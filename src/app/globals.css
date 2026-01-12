@@ -3,24 +3,315 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --primary: #091590;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+} */
+
+html {
+  overscroll-behavior: none;
+  background: #ffffff;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overscroll-behavior: none;
+}
+
+/* AG-Grid Custom Styling - Zoho Projects Inspired */
+.ag-theme-alpine {
+  --ag-background-color: #ffffff;
+  --ag-foreground-color: #1f2937;
+  --ag-header-background-color: #f9fafb;
+  --ag-header-foreground-color: #6b7280;
+  --ag-odd-row-background-color: #ffffff;
+  --ag-row-hover-color: #f9fafb;
+  --ag-selected-row-background-color: #eff6ff;
+  --ag-border-color: #e5e7eb;
+  --ag-row-border-color: #f3f4f6;
+  --ag-font-size: 13px;
+  --ag-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ag-cell-horizontal-padding: 12px;
+}
+
+.ag-theme-alpine .ag-header {
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+}
+
+.ag-theme-alpine .ag-header-cell {
+  padding: 8px 12px;
+}
+
+.ag-theme-alpine .ag-header-cell-label {
+  color: #6b7280;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.ag-theme-alpine .ag-header-cell-text {
+  color: #6b7280;
+}
+
+.ag-theme-alpine .ag-cell {
+  padding: 6px 12px;
+  line-height: 1.4;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+}
+
+.ag-theme-alpine .ag-row {
+  border: none;
+  transition: background-color 0.15s ease;
+}
+
+.ag-theme-alpine .ag-row:hover {
+  background-color: #f9fafb !important;
+}
+
+.ag-theme-alpine .ag-row-selected {
+  background-color: #eff6ff !important;
+  border-left: 2px solid var(--primary);
+}
+
+.ag-theme-alpine .ag-checkbox-input-wrapper {
+  width: 16px;
+  height: 16px;
+}
+
+.ag-theme-alpine .ag-checkbox-input-wrapper input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.ag-theme-alpine .ag-checkbox-input-wrapper.ag-checked::after {
+  color: var(--primary);
+}
+
+.ag-theme-alpine .ag-row-drag {
+  cursor: move;
+  color: #d1d5db;
+  transition: color 0.2s;
+}
+
+.ag-theme-alpine .ag-row-drag:hover {
+  color: var(--primary);
+}
+
+.ag-theme-alpine .ag-icon {
+  color: #9ca3af;
+}
+
+/* =============================================================================
+   REMASTERED PAGINATION & FOOTER STYLING
+   Target: Completely isolate pagination from grid borders and vertical lines
+   ============================================================================= */
+
+/* 1. Container - Force on top of everything to hide column bleeds */
+.ag-theme-alpine .ag-paging-panel {
+  border-top: 1px solid #f3f4f6 !important;
+  /* Clean, intentional separator */
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  background-color: #ffffff !important;
+  /* Solid background to mask everything behind */
+  padding: 10px 16px !important;
+  height: 48px !important;
+  /* Fixed attractive height */
+  position: relative;
+  z-index: 50;
+  /* Super high to sit on top of any pinned columns */
+}
+
+/* 2. Controls - Minimalist Design */
+.ag-theme-alpine .ag-paging-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  /* Smooth rounded corners */
+  border: 1px solid transparent;
+  /* No border by default */
+  background: transparent;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0 2px;
+}
+
+.ag-theme-alpine .ag-paging-button:hover:not([disabled]) {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.ag-theme-alpine .ag-paging-button[disabled] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* 3. Text Styling - Clean Typography */
+.ag-theme-alpine .ag-paging-page-summary-panel,
+.ag-theme-alpine .ag-paging-row-summary-panel {
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.ag-theme-alpine .ag-paging-number,
+.ag-theme-alpine .ag-paging-description {
+  font-weight: 600;
+  color: #111827;
+  margin: 0 4px;
+}
+
+/* 4. Ensure Icons Match Text Color */
+.ag-theme-alpine .ag-paging-button .ag-icon {
+  font-size: 14px;
+  color: inherit;
+}
+
+/* Border Logic - Clean Cutout Design */
+/* 1. Reset Global Container Borders */
+.ag-theme-alpine .ag-root-wrapper {
+  border: none !important;
+}
+
+.ag-theme-alpine .ag-pinned-left-cols-container,
+.ag-theme-alpine .ag-pinned-right-cols-container,
+.ag-theme-alpine .ag-pinned-left-header,
+.ag-theme-alpine .ag-pinned-right-header,
+.ag-theme-alpine .ag-body-viewport,
+.ag-theme-alpine .ag-center-cols-viewport,
+.ag-theme-alpine .ag-center-cols-clipper {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent;
+}
+
+/* 2. Horizontal Borders (Rows) */
+.ag-theme-alpine .ag-row {
+  border-bottom: 1px solid #e5e7eb !important;
+  border-top: none !important;
+}
+
+/* Ensure last row has a clearer border to close the table cutout */
+.ag-theme-alpine .ag-row:last-child {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* 3. Drop Vertical Borders for standard cells */
+.ag-theme-alpine .ag-cell {
+  border-right: none;
+  border-left: none;
+  border-bottom: none;
+}
+
+/* 4. PINNED COLUMNS SEPARATORS (Cell-based for true cutout) */
+.ag-theme-alpine .ag-pinned-left-header .ag-header-cell:last-child,
+.ag-theme-alpine .ag-cell-last-left-pinned {
+  border-right: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+}
+
+.ag-theme-alpine .ag-pinned-right-header .ag-header-cell:first-child,
+.ag-theme-alpine .ag-cell-first-right-pinned {
+  border-left: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+}
+
+.ag-theme-alpine .ag-pinned-left-cols-container,
+.ag-theme-alpine .ag-pinned-right-cols-container {
+  z-index: 10 !important;
+}
+
+.ag-theme-alpine .ag-sticky-bottom,
+.ag-theme-alpine .ag-sticky-top {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 5. Header Bottom Border */
+.ag-theme-alpine .ag-header {
+  border-bottom: 1px solid #e5e7eb !important;
+  background-color: #f9fafb;
+}
+
+/* Fix Header Cell overlap */
+.ag-theme-alpine .ag-header-cell {
+  border-right: none;
+}
+
+/* Scrollbar Styling */
+.ag-theme-alpine ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ag-theme-alpine ::-webkit-scrollbar-track {
+  background: #f9fafb;
+}
+
+.ag-theme-alpine ::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.ag-theme-alpine ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Kanban Board Custom Scrollbar */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 5px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Responsive Table Enhancements */
+@media (max-width: 768px) {
+  .ag-theme-alpine {
+    --ag-font-size: 12px;
+  }
+
+  .ag-theme-alpine .ag-cell {
+    padding: 4px 8px;
+  }
+
+  .ag-theme-alpine .ag-header-cell {
+    padding: 6px 8px;
+  }
 }

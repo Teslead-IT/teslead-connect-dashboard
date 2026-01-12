@@ -1,0 +1,113 @@
+'use client';
+
+import React from 'react';
+import { useUser } from '@/hooks/use-auth';
+import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
+import { Search, Bell, HelpCircle, Building2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+export function TopNav() {
+    const { data: backendUser } = useUser();
+    const { user: auth0User } = useAuth0User();
+    const [isScrolled, setIsScrolled] = React.useState(false);
+
+    React.useEffect(() => {
+        const handleScroll = () => setIsScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Prioritize Backend data, fallback to Auth0 data
+    const displayName = backendUser?.name || auth0User?.name || backendUser?.username || backendUser?.email?.split('@')[0] || auth0User?.nickname || 'User';
+    const displayAvatar = backendUser?.avatarUrl || auth0User?.picture;
+    const orgName = backendUser?.memberships?.find(m => m.orgId === backendUser.currentOrgId)?.orgName;
+
+    return (
+        <header className="fixed top-0 right-0 left-0 lg:left-64 h-14 bg-white/80 backdrop-blur-md border-b border-gray-100 z-30 transition-all duration-200">
+            <div className="h-full px-6 flex items-center justify-between gap-6">
+                {/* Search Bar & Sticky Title */}
+                <div className="flex-1 flex items-center gap-4 group">
+                    <div className="relative w-30 transition-all duration-300 focus-within:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#091590] transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            className="w-full pl-9 pr-4 py-1.5 bg-gray-50/50 hover:bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[#091590]/20 focus:border-[#091590] placeholder:text-gray-400 transition-all"
+                        />
+                    </div>
+
+                    <AnimatePresence mode="wait">
+                        {isScrolled && (
+                            <motion.div
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                className="hidden md:flex items-center gap-2 border-l border-gray-100 pl-4"
+                            >
+                                <h1 className="text-[13px] font-semibold text-gray-900">
+                                    Welcome, {displayName.split(' ')[0]}
+                                </h1>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Right Actions - Professional & Balanced */}
+                <div className="flex items-center gap-3">
+                    {/* Organization Badge if exists */}
+                    {orgName && (
+                        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-gray-50/50 border border-gray-100 rounded-full">
+                            <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{orgName}</span>
+                        </div>
+                    )}
+
+                    {/* Action Group */}
+                    <div className="flex items-center gap-1 pr-4 border-r border-gray-100">
+                        <button
+                            className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all active:scale-95"
+                            title="Help Center"
+                        >
+                            <HelpCircle className="w-5 h-5" />
+                        </button>
+
+                        <button
+                            className="relative p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all active:scale-95"
+                            title="Notifications"
+                        >
+                            <Bell className="w-5 h-5" />
+                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white rounded-full scale-100 transition-transform"></span>
+                        </button>
+                    </div>
+
+                    {/* User Profile - Premium Look */}
+                    <button className="flex items-center gap-2.5 pl-1 group hover:bg-gray-50 p-1.5 rounded-xl transition-all">
+                        <div className="hidden md:flex flex-col items-end">
+                            <span className="text-xs font-bold text-gray-900 group-hover:text-[#091590] transition-colors whitespace-nowrap">
+                                {displayName}
+                            </span>
+                            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-tighter">
+                                {backendUser?.role || 'Member'}
+                            </span>
+                        </div>
+                        <div className="relative">
+                            {displayAvatar ? (
+                                <img
+                                    src={displayAvatar}
+                                    alt="Profile"
+                                    className="w-8 h-8 rounded-lg object-cover ring-2 ring-transparent group-hover:ring-blue-50 transition-all shadow-sm"
+                                />
+                            ) : (
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#091590] to-[#071170] flex items-center justify-center text-white font-black text-xs shadow-inner uppercase">
+                                    {displayName.charAt(0)}
+                                </div>
+                            )}
+                            {/* Online status indicator */}
+                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </header>
+    );
+}
