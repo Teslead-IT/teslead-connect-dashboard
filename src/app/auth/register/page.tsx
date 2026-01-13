@@ -10,6 +10,7 @@ import { useUser as useAuth0User } from "@auth0/nextjs-auth0/client";
 import { SocialLoginButton } from "@/components/auth/social-login-button";
 import { EmailVerificationModal } from "@/components/auth/email-verification-modal";
 import { isAuth0Configured } from "@/lib/config";
+import { Loader } from "@/components/ui/Loader";
 
 type SignupMethod = 'email' | 'phone';
 type PhoneStep = 'REQUEST' | 'VERIFY';
@@ -101,6 +102,15 @@ export default function RegisterPage() {
 
   const showSocialLogin = isAuth0Configured();
   const errorMessage = error ? (error as any)?.response?.data?.message || (error as any)?.message || 'Registration failed' : null;
+
+  // Show loader while checking auth status to avoid flicker
+  if (isAuth0Loading || isBackendLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-white">
+        <Loader size={200} />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full flex bg-white font-sans overflow-hidden">

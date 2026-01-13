@@ -3,18 +3,22 @@
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useLogout } from '@/hooks/use-auth';
+import { useSidebar } from '@/context/SidebarContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard,
     FolderKanban,
-    CheckSquare,
     Settings,
     FileText,
     Users,
     LogOut,
     Menu,
     X,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 
 interface NavItem {
@@ -27,37 +31,33 @@ const navItems: NavItem[] = [
     {
         label: 'Dashboard',
         href: '/dashboard',
-        icon: <LayoutDashboard className="w-[18px] h-[18px]" />,
+        icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />,
     },
     {
         label: 'Projects',
         href: '/projects',
-        icon: <FolderKanban className="w-[18px] h-[18px]" />,
-    },
-    {
-        label: 'Tasks',
-        href: '/tasks',
-        icon: <CheckSquare className="w-[18px] h-[18px]" />,
+        icon: <FolderKanban className="w-5 h-5 flex-shrink-0" />,
     },
     {
         label: 'Documents',
         href: '/documents',
-        icon: <FileText className="w-[18px] h-[18px]" />,
+        icon: <FileText className="w-5 h-5 flex-shrink-0" />,
     },
     {
         label: 'Team',
         href: '/team',
-        icon: <Users className="w-[18px] h-[18px]" />,
+        icon: <Users className="w-5 h-5 flex-shrink-0" />,
     },
     {
         label: 'Settings',
         href: '/settings',
-        icon: <Settings className="w-[18px] h-[18px]" />,
+        icon: <Settings className="w-5 h-5 flex-shrink-0" />,
     },
 ];
 
 export function Sidebar() {
     const [mobileOpen, setMobileOpen] = useState(false);
+    const { isCollapsed, toggleSidebar } = useSidebar();
     const pathname = usePathname();
     const { mutate: logout, isPending: isLoggingOut } = useLogout();
 
@@ -69,20 +69,37 @@ export function Sidebar() {
 
     const SidebarContent = () => (
         <>
-            {/* Logo Section - Clean and Simple */}
-            <div className="h-16 px-4 flex items-center border-b border-gray-200">
-                <Link href="/dashboard" className="flex items-center gap-2.5 w-full">
-                    <div className="w-8 h-8 rounded-lg bg-[#091590] flex items-center justify-center shadow-sm">
-                        <span className="text-white font-bold text-sm">PM</span>
+            {/* Logo Section */}
+            <div className={cn(
+                "h-16 flex items-center border-b border-gray-200 transition-all duration-300",
+                isCollapsed ? "justify-center px-0" : "px-6"
+            )}>
+                <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
+                    <div className="relative w-8 h-8 flex-shrink-0">
+                        <Image
+                            src="/logo/single-logo.png"
+                            alt="Logo"
+                            fill
+                            className="object-contain"
+                        />
                     </div>
-                    <span className="font-bold text-base text-gray-900 tracking-tight">
+
+                    <motion.div
+                        initial={false}
+                        animate={{
+                            opacity: isCollapsed ? 0 : 1,
+                            width: isCollapsed ? 0 : 'auto'
+                        }}
+                        transition={{ duration: 0.2 }}
+                        className="font-bold text-lg text-gray-900 tracking-tight whitespace-nowrap overflow-hidden"
+                    >
                         Teslead Connect
-                    </span>
+                    </motion.div>
                 </Link>
             </div>
 
             {/* Navigation Section */}
-            <nav className="flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto">
+            <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto no-scrollbar">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                     return (
@@ -91,22 +108,35 @@ export function Sidebar() {
                             href={item.href}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                                'group flex items-center gap-2.5 px-3 py-2.5 rounded-lg',
-                                'transition-all duration-200 font-medium text-[13px] relative',
+                                'group flex items-center gap-3 px-3 py-2.5 rounded-lg',
+                                'transition-all duration-200 font-medium text-sm relative',
                                 isActive
                                     ? 'bg-[#091590] text-white shadow-sm'
-                                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900',
+                                isCollapsed ? 'justify-center px-2' : ''
                             )}
+                            title={isCollapsed ? item.label : undefined}
                         >
                             <div className={cn(
-                                "flex items-center justify-center",
-                                isActive ? "text-white" : "text-gray-600 group-hover:text-gray-900"
+                                "flex items-center justify-center transition-colors",
+                                isActive ? "text-white" : "text-gray-500 group-hover:text-gray-900"
                             )}>
                                 {item.icon}
                             </div>
-                            <span>{item.label}</span>
-                            {isActive && (
-                                <div className="absolute right-3 w-1 h-1 rounded-full bg-white" />
+
+                            {!isCollapsed && (
+                                <motion.span
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="whitespace-nowrap overflow-hidden"
+                                >
+                                    {item.label}
+                                </motion.span>
+                            )}
+
+                            {isActive && !isCollapsed && (
+                                <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white opacity-50" />
                             )}
                         </Link>
                     );
@@ -114,23 +144,37 @@ export function Sidebar() {
             </nav>
 
             {/* Logout Section */}
-            <div className="p-2.5 border-t border-gray-200">
+            <div className="p-3 border-t border-gray-200">
                 <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium text-red-600 hover:bg-red-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+                        isCollapsed ? "justify-center" : ""
+                    )}
+                    title={isCollapsed ? "Logout" : undefined}
                 >
-                    <LogOut className="w-[18px] h-[18px]" />
-                    <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+                    <LogOut className="w-5 h-5 flex-shrink-0" />
+                    {!isCollapsed && (
+                        <motion.span
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="whitespace-nowrap overflow-hidden"
+                        >
+                            {isLoggingOut ? 'Logging out...' : 'Logout'}
+                        </motion.span>
+                    )}
                 </button>
             </div>
 
-            {/* Footer */}
-            <div className="px-4 py-3 border-t border-gray-200">
-                <p className="text-[10px] text-gray-500 text-center">
-                    © 2026 Teslead Connect
-                </p>
-            </div>
+            {/* Collapse Toggle Button (Desktop Only) */}
+            <button
+                onClick={toggleSidebar}
+                className="hidden lg:flex absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1 shadow-sm text-gray-500 hover:text-[var(--primary)] hover:border-[var(--primary)] transition-colors z-50 cursor-pointer"
+            >
+                {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
         </>
     );
 
@@ -152,12 +196,17 @@ export function Sidebar() {
                 />
             )}
 
-            {/* Desktop Sidebar */}
-            <aside className="hidden lg:flex lg:flex-col fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 z-40">
+            {/* Desktop Sidebar with Animation */}
+            <motion.aside
+                initial={false}
+                animate={{ width: isCollapsed ? 80 : 256 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="hidden lg:flex lg:flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-gray-200 z-40"
+            >
                 <SidebarContent />
-            </aside>
+            </motion.aside>
 
-            {/* Mobile Sidebar */}
+            {/* Mobile Sidebar (Fixed w-64) */}
             <aside
                 className={cn(
                     'lg:hidden flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 z-50 shadow-xl',

@@ -5,11 +5,14 @@ import { useUser } from '@/hooks/use-auth';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
 import { Search, Bell, HelpCircle, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSidebar } from '@/context/SidebarContext';
+import { cn } from '@/lib/utils';
 
 export function TopNav() {
     const { data: backendUser } = useUser();
     const { user: auth0User } = useAuth0User();
     const [isScrolled, setIsScrolled] = React.useState(false);
+    const { isCollapsed } = useSidebar();
 
     React.useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -23,7 +26,12 @@ export function TopNav() {
     const orgName = backendUser?.memberships?.find(m => m.orgId === backendUser.currentOrgId)?.orgName;
 
     return (
-        <header className="fixed top-0 right-0 left-0 lg:left-64 h-14 bg-white/80 backdrop-blur-md border-b border-gray-100 z-30 transition-all duration-200">
+        <header
+            className={cn(
+                "fixed top-0 right-0 left-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 z-30 transition-all duration-300 ease-in-out",
+                isCollapsed ? "lg:left-20" : "lg:left-64"
+            )}
+        >
             <div className="h-full px-6 flex items-center justify-between gap-6">
                 {/* Search Bar & Sticky Title */}
                 <div className="flex-1 flex items-center gap-4 group">

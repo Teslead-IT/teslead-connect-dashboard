@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowDragEndEvent, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -15,578 +15,459 @@ import {
     List as ListIcon,
     Plus,
     Search,
-    Filter,
     MoreVertical,
     Calendar,
+    Filter,
+    SlidersHorizontal,
+    ArrowUpRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { Loader } from '@/components/ui/Loader';
+import { ProjectFormData, CreateProjectModal } from '@/components/ui/CreateProjectModal';
+// import { projectsApi } from '@/services/projects.service'; // Removed
+import { useProjects, useCreateProject } from '@/hooks/use-projects';
+import type { Project, Tag } from '@/types/project';
 
 // ==================== TYPE DEFINITIONS ====================
 type ViewMode = 'list' | 'kanban';
-
-interface Project {
-    id: string;
-    name: string;
-    description: string;
-    status: string;
-    priority: string;
-    progress: number;
-    owner: string;
-    team: string[];
-    startDate: string;
-    endDate: string;
-    budget: number;
-    tags: string[];
-    tasksCompleted: number;
-    tasksTotal: number;
-}
-
-// ==================== MOCK DATA GENERATOR ====================
-const generateMockProjects = (count: number): Project[] => {
-    const statuses = ['planning', 'in-progress', 'completed'];
-    const priorities = ['high', 'medium', 'low'];
-    const owners = ['Sarah Johnson', 'Mike Chen', 'Alex Kumar', 'Emma Davis', 'David Park', 'Lisa Wong', 'John Smith', 'Jane Doe'];
-    const projectTypes = ['Website', 'Mobile App', 'Database', 'Marketing Campaign', 'API Integration', 'Cloud Migration', 'Analytics Dashboard', 'E-commerce Platform'];
-    const tags = [['Design', 'Frontend'], ['Mobile', 'Development'], ['Backend', 'Infrastructure'], ['Marketing', 'Content'], ['Integration', 'API'], ['Cloud', 'DevOps'], ['Analytics', 'BI'], ['E-commerce', 'Sales']];
-
-    const projects: Project[] = [];
-
-    for (let i = 1; i <= count; i++) {
-        const typeIndex = i % projectTypes.length;
-        const status = statuses[i % statuses.length];
-        const priority = priorities[i % priorities.length];
-        const owner = owners[i % owners.length];
-        const progress = status === 'completed' ? 100 : status === 'planning' ? Math.floor(Math.random() * 30) : Math.floor(Math.random() * 70) + 30;
-        const tasksTotal = Math.floor(Math.random() * 20) + 10;
-        const tasksCompleted = Math.floor((progress / 100) * tasksTotal);
-
-        // Generate team
-        const teamSize = Math.floor(Math.random() * 4) + 2;
-        const team = Array.from({ length: teamSize }, (_, idx) => owners[(i + idx) % owners.length]);
-
-        projects.push({
-            id: `PRJ-${String(i).padStart(3, '0')}`,
-            name: `${projectTypes[typeIndex]} ${i}`,
-            description: `Project description for ${projectTypes[typeIndex]} ${i}`,
-            status,
-            priority,
-            progress,
-            owner,
-            team,
-            startDate: new Date(2026, 0, (i % 28) + 1).toISOString().split('T')[0],
-            endDate: new Date(2026, (i % 12), (i % 28) + 1).toISOString().split('T')[0],
-            budget: Math.floor(Math.random() * 100000) + 20000,
-            tags: tags[typeIndex],
-            tasksCompleted,
-            tasksTotal,
-        });
-    }
-
-    return projects;
-};
-
-// Generate 60 mock projects for pagination testing
-const MOCK_PROJECTS: Project[] = generateMockProjects(60);
-
-// ==================== CELL RENDERERS ====================
-const ProjectNameRenderer = (props: ICellRendererParams) => {
-    const { name, tasksCompleted, tasksTotal, id } = props.data;
-    const initial = name?.charAt(0) || 'P';
-    const router = useRouter();
-
-    const handleClick = () => {
-        router.push(`/projects/${id}`);
-    };
-
-    return (
-        <div className="flex items-center gap-2" onClick={handleClick}>
-            <div className="w-7 h-7 rounded bg-[#091590] flex items-center justify-center text-white font-bold text-[10px] flex-shrink-0">
-                {initial}
-            </div>
-            <div className="min-w-0">
-                <div className="font-semibold text-gray-900 hover:text-[#091590] cursor-pointer truncate text-[13px]">
-                    {name}
-                </div>
-                <div className="text-[11px] text-gray-500">
-                    {tasksCompleted}/{tasksTotal} tasks
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const StatusRenderer = (props: ICellRendererParams) => {
-    const status = props.value;
-    const statusConfig: Record<string, { bg: string; text: string; border: string }> = {
-        'planning': { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' },
-        'in-progress': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-        'completed': { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
-    };
-    const config = statusConfig[status] || statusConfig['planning'];
-
-    return (
-        <span className={cn(
-            "inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border",
-            config.bg, config.text, config.border
-        )}>
-            {status.replace('-', ' ').toUpperCase()}
-        </span>
-    );
-};
-
-const PriorityRenderer = (props: ICellRendererParams) => {
-    const priority = props.value;
-    const priorityConfig: Record<string, { bg: string; text: string }> = {
-        'high': { bg: 'bg-red-50', text: 'text-red-700' },
-        'medium': { bg: 'bg-orange-50', text: 'text-orange-700' },
-        'low': { bg: 'bg-gray-100', text: 'text-gray-600' },
-    };
-    const config = priorityConfig[priority] || priorityConfig['low'];
-
-    return (
-        <span className={cn(
-            "inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium",
-            config.bg, config.text
-        )}>
-            {priority.toUpperCase()}
-        </span>
-    );
-};
-
-const ProgressRenderer = (props: ICellRendererParams) => {
-    const progress = props.value;
-
-    return (
-        <div className="flex items-center gap-2 w-full">
-            <div className="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                <div
-                    className="h-full bg-[#091590] rounded-full transition-all"
-                    style={{ width: `${progress}%` }}
-                />
-            </div>
-            <span className="text-[12px] font-semibold text-gray-700 w-9 text-right">
-                {progress}%
-            </span>
-        </div>
-    );
-};
-
-const OwnerRenderer = (props: ICellRendererParams) => {
-    const owner = props.value;
-    const initials = owner?.split(' ').map((n: string) => n[0]).join('') || 'U';
-
-    return (
-        <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                {initials}
-            </div>
-            <span className="text-[12px] text-gray-700 truncate">{owner}</span>
-        </div>
-    );
-};
-
-const TeamRenderer = (props: ICellRendererParams) => {
-    const team = props.value || [];
-    const avatarColors = ['from-blue-500 to-blue-600', 'from-green-500 to-green-600', 'from-orange-500 to-orange-600'];
-
-    return (
-        <div className="flex items-center -space-x-1.5">
-            {team.slice(0, 3).map((member: string, idx: number) => {
-                const initials = member.split(' ').map((n: string) => n[0]).join('');
-                return (
-                    <div
-                        key={idx}
-                        className={cn(
-                            "w-6 h-6 rounded-full bg-gradient-to-br flex items-center justify-center text-white text-[10px] font-bold border-2 border-white",
-                            avatarColors[idx % 3]
-                        )}
-                        title={member}
-                    >
-                        {initials}
-                    </div>
-                );
-            })}
-            {team.length > 3 && (
-                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-[10px] font-bold border-2 border-white">
-                    +{team.length - 3}
-                </div>
-            )}
-        </div>
-    );
-};
-
-const DateRenderer = (props: ICellRendererParams) => {
-    const date = props.value;
-    const formatted = new Date(date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    });
-
-    return <span className="text-[12px] text-gray-600">{formatted}</span>;
-};
-
-const BudgetRenderer = (props: ICellRendererParams) => {
-    const budget = props.value;
-    return <span className="text-[12px] font-semibold text-gray-700">₹{budget?.toLocaleString()}</span>;
-};
-
-const ActionsRenderer = () => {
-    return (
-        <button className="p-1.5 hover:bg-gray-100 rounded-md transition-colors">
-            <MoreVertical className="w-4 h-4 text-gray-500" />
-        </button>
-    );
-};
-
-// ==================== KANBAN COLUMNS CONFIG ====================
-const KANBAN_COLUMNS = [
-    { id: 'planning', title: 'Planning', color: 'border-gray-400' },
-    { id: 'in-progress', title: 'In Progress', color: 'border-[#091590]' },
-    { id: 'completed', title: 'Completed', color: 'border-green-500' },
-];
 
 // ==================== MAIN COMPONENT ====================
 export default function ProjectsPage() {
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [searchQuery, setSearchQuery] = useState('');
-    const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+    // React Query Hooks
+    const { data: projects = [], isLoading: loading, error } = useProjects();
+    const createProjectMutation = useCreateProject();
+
+    // Refetch not needed manually with React Query, but if you want a manual reload button:
+    const { refetch } = useProjects(); // Actually calling useProjects() multiple times is fine, it shares cache key. 
+    // Ideally rename first call to `projectsQuery` or just use the data/refetch from one call.
+    // Let's stick to simple usage.
+
+    const handleRetry = () => refetch();
 
     // Filter projects
     const filteredProjects = useMemo(() => {
         return projects.filter(project =>
             project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            project.description.toLowerCase().includes(searchQuery.toLowerCase())
+            (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
         );
     }, [projects, searchQuery]);
+
+    // ==================== CELL RENDERERS ====================
+    const ProjectNameRenderer = (props: ICellRendererParams) => {
+        const { name, color, id, description } = props.data;
+        const initial = name?.charAt(0) || 'P';
+        const router = useRouter();
+
+        const handleClick = () => {
+            router.push(`/projects/${id}`);
+        };
+
+        return (
+            <div className="flex items-start gap-3 py-1 group cursor-pointer" onClick={handleClick}>
+                <div
+                    className="w-8 h-8 rounded-md shadow-sm flex items-center justify-center text-white font-bold text-xs flex-shrink-0 transition-transform group-hover:scale-105"
+                    style={{
+                        backgroundColor: color || 'var(--primary)',
+                        background: color ? `linear-gradient(135deg, ${color}, ${color}dd)` : 'var(--primary)'
+                    }}
+                >
+                    {initial}
+                </div>
+                <div className="min-w-0 flex flex-col justify-center">
+                    <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-xs flex items-center gap-1.5">
+                        {name}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const AccessRenderer = (props: ICellRendererParams) => {
+        const access = props.value;
+        const isPrivate = access === 'PRIVATE';
+
+        return (
+            <div className="h-full flex items-center">
+                <span className={cn(
+                    "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
+                    isPrivate
+                        ? 'bg-slate-50 text-slate-600 border-slate-200'
+                        : 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                )}>
+                    {access}
+                </span>
+            </div>
+        );
+    };
+
+    const RoleRenderer = (props: ICellRendererParams) => {
+        const role = props.value;
+        const isAdmin = role === 'ADMIN';
+
+        return (
+            <div className="h-full flex items-center">
+                <span className={cn(
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border",
+                    isAdmin
+                        ? 'bg-purple-50/50 text-purple-700 border-purple-100'
+                        : 'bg-gray-50 text-gray-600 border-gray-100'
+                )}>
+                    {role}
+                </span>
+            </div>
+        );
+    };
+
+    const TagsRenderer = (props: ICellRendererParams) => {
+        const tags = props.value || [];
+
+        if (tags.length === 0) {
+            return <div className="h-full flex items-center text-[10px] text-gray-400 italic">No tags</div>;
+        }
+
+        return (
+            <div className="h-full flex items-center gap-1 flex-wrap content-center">
+                {tags.slice(0, 2).map((tagObj: Tag, idx: number) => (
+                    <span
+                        key={idx}
+                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border border-transparent shadow-sm"
+                        style={{
+                            backgroundColor: tagObj.color + '15', // Ultra light background
+                            color: tagObj.color,
+                            borderColor: tagObj.color + '30', // Subtle border
+                        }}
+                    >
+                        {tagObj.name}
+                    </span>
+                ))}
+                {tags.length > 2 && (
+                    <span className="text-[10px] items-center flex justify-center w-5 h-5 rounded-full bg-gray-100 text-gray-500 font-medium">
+                        +{tags.length - 2}
+                    </span>
+                )}
+            </div>
+        );
+    };
+
+
+    const StatusRenderer = (props: ICellRendererParams) => {
+        const status = props.value;
+        const isCompleted = status === 'COMPLETED';
+
+        return (
+            <div className="h-full flex items-center">
+                <span className={cn(
+                    "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
+                    isCompleted
+                        ? 'bg-green-50 text-green-600 border-green-200'
+                        : 'bg-gray-50 text-gray-600 border-gray-200'
+                )}>
+                    {status}
+                </span>
+            </div>
+        );
+    };
+
+    const DateRenderer = (props: ICellRendererParams) => {
+        const date = props.value;
+        if (!date) return <div className="h-full flex items-center text-gray-300">-</div>;
+
+        const formatted = new Date(date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        const isPast = new Date(date) < new Date();
+        const isDueDate = props.colDef?.field === 'endDate';
+
+        return (
+            <div className="h-full flex items-center gap-2">
+                <span className={cn(
+                    "text-[11px] font-medium",
+                    isDueDate && isPast ? "text-red-500" : "text-gray-600"
+                )}>
+                    {formatted}
+                </span>
+            </div>
+        );
+    };
 
     // AG-Grid Column Definitions
     const columnDefs: ColDef[] = useMemo(() => [
         {
-            headerCheckboxSelection: true,
-            checkboxSelection: true,
-            width: 45,
+            headerName: 'S.No',
+            valueGetter: "node.rowIndex + 1",
+            width: 70,
             pinned: 'left',
-            lockPosition: true,
+            cellClass: 'text-gray-500 font-medium text-[11px] flex items-center justify-center',
+            suppressMenu: true,
         },
         {
-            field: 'id',
-            headerName: 'ID',
-            width: 95,
-            pinned: 'left',
-            cellClass: 'font-semibold text-gray-600 text-[12px]',
+            field: 'projectId',
+            headerName: 'ProjectId',
+            width: 120,
+            cellClass: 'text-gray-400 font-mono text-[10px]',
+            suppressMenu: true,
         },
         {
             field: 'name',
-            headerName: 'PROJECT NAME',
-            width: 240,
+            headerName: 'PROJECT', // Main column takes available space
+            flex: 2,
+            minWidth: 260,
             pinned: 'left',
             cellRenderer: ProjectNameRenderer,
         },
         {
+            field: 'tags',
+            headerName: 'TAGS',
+            flex: 1,
+            minWidth: 200,
+            cellRenderer: TagsRenderer,
+            sortable: false,
+        },
+        {
+            field: 'access',
+            headerName: 'ACCESS',
+            width: 110,
+            cellRenderer: AccessRenderer,
+        },
+        {
             field: 'status',
             headerName: 'STATUS',
-            width: 130,
+            width: 110,
             cellRenderer: StatusRenderer,
-            checkboxSelection: false,
-            headerCheckboxSelection: false,
         },
         {
-            field: 'priority',
-            headerName: 'PRIORITY',
-            width: 105,
-            cellRenderer: PriorityRenderer,
+            field: 'role',
+            headerName: 'ROLE',
+            width: 100,
+            cellRenderer: RoleRenderer,
         },
         {
-            field: 'progress',
-            headerName: 'PROGRESS',
-            width: 150,
-            cellRenderer: ProgressRenderer,
-        },
-        {
-            field: 'owner',
-            headerName: 'OWNER',
-            width: 170,
-            cellRenderer: OwnerRenderer,
-        },
-        {
-            field: 'team',
-            headerName: 'TEAM',
-            width: 130,
-            cellRenderer: TeamRenderer,
-        },
-        {
-            field: 'endDate',
-            headerName: 'DUE DATE',
+            field: 'startDate',
+            headerName: 'START',
             width: 120,
             cellRenderer: DateRenderer,
         },
         {
-            field: 'budget',
-            headerName: 'BUDGET',
-            width: 115,
-            cellRenderer: BudgetRenderer,
+            field: 'endDate',
+            headerName: 'DUE',
+            width: 120,
+            cellRenderer: DateRenderer,
         },
-        // {
-        //     headerName: 'ACTIONS',
-        //     width: 80,
-        //     pinned: 'right',
-        //     cellRenderer: ActionsRenderer,
-        // },
+        {
+            field: 'createdAt',
+            headerName: 'CREATED',
+            width: 120,
+            cellRenderer: DateRenderer,
+        },
     ], []);
 
     const defaultColDef = useMemo(() => ({
         sortable: true,
         filter: true,
         resizable: true,
-        checkboxSelection: false,
-        headerCheckboxSelection: false,
+        headerClass: 'bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
     }), []);
 
-    const onRowDragEnd = useCallback((event: RowDragEndEvent) => {
-        const movingNode = event.node;
-        const overNode = event.overNode;
-        if (!overNode || !movingNode) return;
-
-        const fromIndex = projects.findIndex(p => p.id === movingNode.data.id);
-        const toIndex = projects.findIndex(p => p.id === overNode.data.id);
-
-        const newProjects = [...projects];
-        newProjects.splice(fromIndex, 1);
-        newProjects.splice(toIndex, 0, movingNode.data);
-        setProjects(newProjects);
-    }, [projects]);
-
-    // Kanban handlers
-    const handleKanbanDragStart = (e: React.DragEvent, project: Project) => {
-        e.dataTransfer.setData('projectId', project.id);
-    };
-
-    const handleKanbanDrop = (e: React.DragEvent, status: string) => {
-        e.preventDefault();
-        const projectId = e.dataTransfer.getData('projectId');
-        setProjects(prev => prev.map(p =>
-            p.id === projectId ? { ...p, status } : p
-        ));
-    };
-
-    const handleKanbanDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
+    const handleCreateProject = async (projectData: ProjectFormData) => {
+        try {
+            await createProjectMutation.mutateAsync({
+                name: projectData.name,
+                description: projectData.description || undefined,
+                color: projectData.color,
+                startDate: projectData.startDate || undefined,
+                endDate: projectData.endDate || undefined,
+                access: projectData.access,
+                tags: projectData.tags,
+            });
+            console.log('Project created successfully');
+        } catch (error: any) {
+            console.error('Failed to create project:', error);
+            // alert('Failed to create project: ' + (error.message || 'Unknown error')); // Optional/handled by UI
+            throw error;
+        }
     };
 
     return (
-        <div className="h-full flex flex-col overflow-hidden">
-            {/* Ultra-Compact Header */}
-            <div className="bg-white border-b border-gray-200 px-4 py-2 flex-shrink-0">
-                {/* Single Row Layout */}
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                    {/* Left: Title + Count */}
-                    <div className="flex items-baseline gap-2">
-                        <h1 className="text-lg font-bold text-gray-900">Projects</h1>
-                        <span className="text-[11px] text-gray-500">
-                            {filteredProjects.length} total
+        <div className="h-full flex flex-col bg-white">
+            {/* COMPACT Header Section */}
+            <div className="border-b border-gray-100 py-3 px-6 flex-shrink-0">
+                <div className="flex items-center justify-between gap-4">
+                    {/* Left: Title & Count */}
+                    <div className="flex items-center gap-3 min-w-[140px]">
+                        <h1 className="text-xl font-bold text-gray-900 tracking-tight">Projects</h1>
+                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
+                            {filteredProjects.length}
                         </span>
                     </div>
 
-                    {/* Right: Actions */}
-                    <div className="flex items-center gap-2">
-                        {/* <Button variant="secondary" className="text-[11px] py-1 px-2.5 h-7">
-                            <Filter className="w-3 h-3 mr-1" />
-                            Filters
-                        </Button> */}
-                        {/* <Button className="text-[11px] py-1 px-2.5 h-7 bg-[#091590] hover:bg-[#071170]">
-                            <Plus className="w-3 h-3 mr-1" />
-                            New
-                        </Button> */}
-                    </div>
-                </div>
-
-                {/* Second Row: Search + View Toggle */}
-                <div className="flex items-center justify-between gap-3 mt-2 flex-wrap">
-                    {/* Search */}
-                    <div className="flex-1 max-w-sm">
-                        <div className="relative">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                    {/* Right: Search, Filter, Action */}
+                    <div className="flex items-center gap-3 flex-1 justify-end">
+                        {/* Compact Search */}
+                        <div className="relative max-w-xs w-full lg:max-w-sm group transition-all">
+                            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                <Search className="w-3.5 h-3.5 text-gray-400 group-focus-within:text-[var(--primary)] transition-colors" />
+                            </div>
                             <input
-                                type="search"
-                                placeholder="Search projects..."
+                                type="text"
+                                placeholder="Search..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-7 pr-2 py-1 bg-gray-50 border border-gray-200 rounded text-[12px] text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#091590] focus:border-transparent transition-all"
+                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all text-xs"
                             />
                         </div>
-                    </div>
 
-                    {/* View Toggle */}
-                    <div className="flex items-center gap-0.5 p-0.5 bg-gray-100 rounded">
+                        {/* Divider */}
+                        <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+
+                        {/* View Filters */}
+                        <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={cn(
+                                    'p-1 rounded transition-all',
+                                    viewMode === 'list'
+                                        ? 'bg-white text-[var(--primary)] shadow-sm'
+                                        : 'text-gray-400 hover:text-gray-600'
+                                )}
+                                title="List View"
+                            >
+                                <ListIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('kanban')}
+                                className={cn(
+                                    'p-1 rounded transition-all',
+                                    viewMode === 'kanban'
+                                        ? 'bg-white text-[var(--primary)] shadow-sm'
+                                        : 'text-gray-400 hover:text-gray-600'
+                                )}
+                                title="Kanban View"
+                            >
+                                <LayoutGrid className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Primary Action Button */}
                         <button
-                            onClick={() => setViewMode('list')}
-                            className={cn(
-                                'flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-all',
-                                viewMode === 'list'
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900 cursor-pointer'
-                            )}
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-4 h-8 text-xs rounded-md ml-2 transition-colors duration-200 border border-transparent shadow-sm"
                         >
-                            <ListIcon className="w-3 h-3" />
-
-                        </button>
-                        <button
-                            onClick={() => setViewMode('kanban')}
-                            className={cn(
-                                'flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-all',
-                                viewMode === 'kanban'
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900 cursor-pointer'
-                            )}
-                        >
-                            <LayoutGrid className="w-3 h-3" />
-
+                            <Plus className="w-3.5 h-3.5 mr-1.5" />
+                            New Project
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Content Area - Fixed Height */}
-            <div className="flex-1 overflow-hidden bg-white">
-                {viewMode === 'list' ? (
-                    <div className="h-full ag-theme-alpine">
-                        <AgGridReact
-                            theme="legacy"
-                            rowData={filteredProjects}
-                            columnDefs={columnDefs}
-                            defaultColDef={defaultColDef}
-                            rowSelection="multiple"
-                            suppressRowClickSelection={true}
-                            onRowDragEnd={onRowDragEnd}
-                            rowHeight={44}
-                            headerHeight={36}
-                            pagination={true}
-                            paginationPageSize={25}
-                            paginationPageSizeSelector={[25, 50, 100]}
-                            suppressPaginationPanel={false}
-                        />
+            {/* Content Area */}
+            <div className="flex-1 overflow-hidden p-0 bg-white">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center h-full space-y-4">
+                        <Loader />
+                    </div>
+                ) : error ? (
+                    <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto text-center space-y-4">
+                        <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-2">
+                            <MoreVertical className="w-6 h-6 text-red-500" />
+                        </div>
+                        <h3 className="text-md font-semibold text-gray-900">Error loading projects</h3>
+                        <h3 className="text-md font-semibold text-gray-900">Error loading projects</h3>
+                        <p className="text-sm text-gray-500">{(error as Error)?.message || 'Unknown error'}</p>
+                        <Button variant="primary" size="sm" onClick={handleRetry} className="mt-2">
+                            Retry
+                        </Button>
+                    </div>
+                ) : viewMode === 'list' ? (
+                    <div className="h-full flex flex-col">
+                        <div className="flex-1 overflow-hidden ag-theme-alpine custom-ag-grid border-0 w-full pl-0">
+                            <style jsx global>{`
+                                .custom-ag-grid .ag-root-wrapper {
+                                    border: 1px solid #e2e8f0 !important;
+                                    border-radius: 8px !important;
+                                    background-color: white;
+                                    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+                                }
+                                .custom-ag-grid .ag-header {
+                                    background-color: #f1f5f9 !important; /* Slate-100 for visibility */
+                                    border-bottom: 1px solid #cbd5e1 !important; /* Slate-300 for boundary */
+                                    min-height: 48px !important;
+                                }
+                                .custom-ag-grid .ag-header-row {
+                                    height: 48px !important;
+                                }
+                                .custom-ag-grid .ag-header-cell {
+                                    padding-left: 16px;
+                                    padding-right: 16px;
+                                }
+                                .custom-ag-grid .ag-header-cell-label {
+                                    font-weight: 700;
+                                    color: #334155 !important; /* Slate-700 */
+                                    font-size: 11px;
+                                    letter-spacing: 0.05em;
+                                    text-transform: uppercase;
+                                }
+                                .custom-ag-grid .ag-row {
+                                    border-bottom: 1px solid #f1f5f9;
+                                    background-color: #ffffff;
+                                }
+                                .custom-ag-grid .ag-cell {
+                                    padding-left: 16px;
+                                    padding-right: 16px;
+                                    display: flex;
+                                    align-items: center;
+                                    color: #0f172a; /* Slate-900 */
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                }
+                                .custom-ag-grid .ag-row:hover {
+                                    background-color: #f8fafc !important;
+                                }
+                                .custom-ag-grid .ag-row-selected {
+                                    background-color: #eff6ff !important;
+                                }
+                            `}</style>
+                            <AgGridReact
+                                theme="legacy"
+                                rowData={filteredProjects}
+                                columnDefs={columnDefs}
+                                defaultColDef={defaultColDef}
+
+                                rowHeight={48}
+                                headerHeight={40}
+                                pagination={true}
+                                paginationPageSize={20}
+                                paginationPageSizeSelector={[20, 50, 100]}
+                                animateRows={true}
+                                suppressLoadingOverlay={true}
+                            />
+                        </div>
                     </div>
                 ) : (
-                    <div className="h-full overflow-x-auto overflow-y-auto p-4 bg-gray-50">
-                        <div className="flex gap-4 min-w-max h-full">
-                            {KANBAN_COLUMNS.map(column => {
-                                const columnProjects = filteredProjects.filter(p => p.status === column.id);
-
-                                return (
-                                    <div
-                                        key={column.id}
-                                        className="flex-shrink-0 w-72 flex flex-col bg-gray-100 rounded-lg"
-                                        onDrop={(e) => handleKanbanDrop(e, column.id)}
-                                        onDragOver={handleKanbanDragOver}
-                                    >
-                                        <div className={cn("px-3 py-2.5 border-b-3 rounded-t-lg bg-white", column.color)}>
-                                            <div className="flex items-center justify-between">
-                                                <h3 className="font-semibold text-gray-900 text-[13px]">{column.title}</h3>
-                                                <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[11px] font-bold rounded">
-                                                    {columnProjects.length}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex-1 p-3 space-y-2.5 overflow-y-auto">
-                                            {columnProjects.map(project => (
-                                                <div
-                                                    key={project.id}
-                                                    draggable
-                                                    onDragStart={(e) => handleKanbanDragStart(e, project)}
-                                                    className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-move group"
-                                                >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <h4 className="font-semibold text-gray-900 text-[13px] leading-tight flex-1 group-hover:text-[#091590] transition-colors">
-                                                            {project.name}
-                                                        </h4>
-                                                        <button className="p-1 hover:bg-gray-100 rounded transition-colors">
-                                                            <MoreVertical className="w-3.5 h-3.5 text-gray-400" />
-                                                        </button>
-                                                    </div>
-
-                                                    <p className="text-[11px] text-gray-600 mb-2 line-clamp-2">
-                                                        {project.description}
-                                                    </p>
-
-                                                    <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                                                        <span className={cn(
-                                                            "px-1.5 py-0.5 rounded text-[10px] font-medium",
-                                                            project.priority === 'high' ? 'bg-red-50 text-red-700' :
-                                                                project.priority === 'medium' ? 'bg-orange-50 text-orange-700' :
-                                                                    'bg-gray-100 text-gray-600'
-                                                        )}>
-                                                            {project.priority}
-                                                        </span>
-                                                        {project.tags.slice(0, 2).map(tag => (
-                                                            <span key={tag} className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-medium">
-                                                                {tag}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-
-                                                    <div className="mb-2.5">
-                                                        <div className="flex items-center justify-between text-[11px] mb-1">
-                                                            <span className="text-gray-600">Progress</span>
-                                                            <span className="font-semibold text-gray-900">{project.progress}%</span>
-                                                        </div>
-                                                        <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                                            <div
-                                                                className="bg-[#091590] h-1.5 rounded-full transition-all"
-                                                                style={{ width: `${project.progress}%` }}
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between pt-2.5 border-t border-gray-100">
-                                                        <div className="flex items-center -space-x-1.5">
-                                                            {project.team.slice(0, 3).map((member, idx) => {
-                                                                const initials = member.split(' ').map(n => n[0]).join('');
-                                                                const colors = ['from-blue-500 to-blue-600', 'from-green-500 to-green-600', 'from-purple-500 to-purple-600'];
-                                                                return (
-                                                                    <div
-                                                                        key={idx}
-                                                                        className={cn(
-                                                                            "w-5 h-5 rounded-full bg-gradient-to-br flex items-center justify-center text-white text-[10px] font-bold border-2 border-white",
-                                                                            colors[idx % 3]
-                                                                        )}
-                                                                        title={member}
-                                                                    >
-                                                                        {initials}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                            {project.team.length > 3 && (
-                                                                <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-[10px] font-bold border-2 border-white">
-                                                                    +{project.team.length - 3}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-1 text-gray-500">
-                                                            <Calendar className="w-3 h-3" />
-                                                            <span className="text-[11px]">
-                                                                {new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-
-                                            {columnProjects.length === 0 && (
-                                                <div className="text-center py-6 text-gray-400 text-[12px]">
-                                                    No projects
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                    <div className="h-full overflow-auto p-4 bg-gray-50 flex items-center justify-center">
+                        <div className="text-center py-8 px-4 rounded-xl border border-dashed border-gray-200">
+                            <LayoutGrid className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                            <p className="text-sm text-gray-500">
+                                Kanban view coming soon
+                            </p>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* Create Project Modal */}
+            <CreateProjectModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSubmit={handleCreateProject}
+            />
         </div>
     );
 }

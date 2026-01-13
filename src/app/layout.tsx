@@ -16,8 +16,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Project Management",
-  description: "Modern project management platform with secure authentication",
+  title: "Teslead Connect",
+  description: "The official platform for Teslead Connect, fostering professional networking and collaboration.",
+
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({

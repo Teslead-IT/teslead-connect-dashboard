@@ -9,6 +9,8 @@ import { type ReactNode } from 'react';
 import { QueryProvider } from './query-provider';
 import { Auth0ProviderWrapper as Auth0Provider } from './auth0-provider';
 
+import { GlobalLoaderProvider } from './global-loader-provider';
+
 interface ProvidersProps {
     children: ReactNode;
 }
@@ -17,7 +19,9 @@ export function Providers({ children }: ProvidersProps) {
     return (
         <QueryProvider>
             <Auth0Provider>
-                {children}
+                <GlobalLoaderProvider>
+                    {children}
+                </GlobalLoaderProvider>
             </Auth0Provider>
         </QueryProvider>
     );

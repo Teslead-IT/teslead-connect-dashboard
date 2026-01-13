@@ -7,6 +7,31 @@ import { useUser } from '@/hooks/use-auth';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopNav } from '@/components/layout/TopNav';
 import { NotificationProvider } from '@/context/NotificationContext';
+import { Loader } from '@/components/ui/Loader';
+
+import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
+import { cn } from '@/lib/utils';
+
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
+    const { isCollapsed } = useSidebar();
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <Sidebar />
+            <TopNav />
+            <main
+                className={cn(
+                    "pt-16 transition-all duration-300 ease-in-out",
+                    isCollapsed ? "lg:ml-20" : "lg:ml-64"
+                )}
+            >
+                <div className="p-4 lg:p-6">
+                    {children}
+                </div>
+            </main>
+        </div>
+    );
+}
 
 export default function DashboardLayout({
     children,
@@ -35,10 +60,7 @@ export default function DashboardLayout({
     if (isAuth0Loading || isBackendLoading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-gray-600 font-medium">Loading...</p>
-                </div>
+                <Loader />
             </div>
         );
     }
@@ -50,15 +72,9 @@ export default function DashboardLayout({
 
     return (
         <NotificationProvider>
-            <div className="min-h-screen bg-gray-50">
-                <Sidebar />
-                <TopNav />
-                <main className="lg:ml-64 pt-16">
-                    <div className="p-4 lg:p-6">
-                        {children}
-                    </div>
-                </main>
-            </div>
+            <SidebarProvider>
+                <DashboardLayoutContent>{children}</DashboardLayoutContent>
+            </SidebarProvider>
         </NotificationProvider>
     );
 }
