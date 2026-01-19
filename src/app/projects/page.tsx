@@ -19,14 +19,17 @@ import {
     Calendar,
     Filter,
     SlidersHorizontal,
-    ArrowUpRight
+    ArrowUpRight,
+    ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
 import { ProjectFormData, CreateProjectModal } from '@/components/ui/CreateProjectModal';
-// import { projectsApi } from '@/services/projects.service'; // Removed
+import { ProjectContextMenu } from '@/components/projects/ProjectContextMenu';
+import { SendProjectInviteModal } from '@/components/invitations';
 import { useProjects, useCreateProject } from '@/hooks/use-projects';
+import { useAuth, useSwitchOrg } from '@/hooks/use-auth';
 import type { Project, Tag } from '@/types/project';
 
 // ==================== TYPE DEFINITIONS ====================
@@ -37,16 +40,70 @@ export default function ProjectsPage() {
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedOrgId, setSelectedOrgId] = useState<string>('all');
 
-    // React Query Hooks
-    const { data: projects = [], isLoading: loading, error } = useProjects();
+    // React Query Hooks (pass selectedOrgId to filter)
+    const { data: projects = [], isLoading: loading, error } = useProjects({
+        orgId: selectedOrgId
+    });
     const createProjectMutation = useCreateProject();
+    const { user } = useAuth();
+    // const { mutate: switchOrg, isPending: isSwitching } = useSwitchOrg(); // Not directly switching context, just filtering view
+
+    const memberships = user?.memberships || [];
+
+    // Reset to 'all' or user's current org on load if needed, but 'all' is default per request
+    // useEffect(() => {
+    //    if (user?.currentOrgId) setSelectedOrgId(user.currentOrgId);
+    // }, [user?.currentOrgId]);
+
+
+    const handleOrgChange = (orgId: string) => {
+        setSelectedOrgId(orgId);
+    };
 
     // Refetch not needed manually with React Query, but if you want a manual reload button:
     const { refetch } = useProjects(); // Actually calling useProjects() multiple times is fine, it shares cache key. 
     // Ideally rename first call to `projectsQuery` or just use the data/refetch from one call.
     // Let's stick to simple usage.
 
+    // Context Menu State
+    const [contextMenu, setContextMenu] = useState<{
+        projectId: string;
+        projectName: string;
+        role: string;
+        x: number;
+        y: number;
+    } | null>(null);
+
+    // Invite Modal State
+    const [inviteModalState, setInviteModalState] = useState<{
+        isOpen: boolean;
+        projectId?: string;
+        projectName?: string;
+    }>({ isOpen: false });
+
+    // Handle Context Menu
+    const handleCellContextMenu = useCallback((params: any) => {
+        const event = params.event;
+        if (event) {
+            event.preventDefault();
+            setContextMenu({
+                projectId: params.data.id,
+                projectName: params.data.name,
+                role: params.data.role,
+                x: event.clientX,
+                y: event.clientY,
+            });
+        }
+    }, []);
+
+    // Close context menu on click elsewhere
+    useEffect(() => {
+        const handleClick = () => setContextMenu(null);
+        window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, []);
     const handleRetry = () => refetch();
 
     // Filter projects
@@ -286,6 +343,7 @@ export default function ProjectsPage() {
                 endDate: projectData.endDate || undefined,
                 access: projectData.access,
                 tags: projectData.tags,
+                orgId: projectData.orgId,
             });
             console.log('Project created successfully');
         } catch (error: any) {
@@ -296,7 +354,7 @@ export default function ProjectsPage() {
     };
 
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-white" onContextMenu={(e) => e.preventDefault()}> {/* Prevent default context menu on container */}
             {/* COMPACT Header Section */}
             <div className="border-b border-gray-100 py-3 px-6 flex-shrink-0">
                 <div className="flex items-center justify-between gap-4">
@@ -306,6 +364,34 @@ export default function ProjectsPage() {
                         <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
                             {filteredProjects.length}
                         </span>
+
+                        {/* Organization Switcher */}
+                        {memberships.length > 0 && (
+                            <div className="ml-2 relative">
+                                <select
+                                    className="appearance-none bg-white border border-gray-200 text-gray-700 text-[11px] font-semibold rounded-lg py-1.5 pl-3 pr-8 focus:outline-none focus:ring-1 focus:ring-[#091590] focus:border-[#091590] cursor-pointer min-w-[200px] hover:border-gray-300 transition-colors shadow-sm"
+                                    value={selectedOrgId}
+                                    onChange={(e) => handleOrgChange(e.target.value)}
+                                    disabled={loading}
+                                >
+                                    <option value="all">Global (All Projects)</option>
+                                    {memberships
+                                        .filter(m => m.status === 'ACTIVE')
+                                        .map((m) => (
+                                            <option key={m.orgId} value={m.orgId}>
+                                                {m.orgName} • {m.role}
+                                            </option>
+                                        ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                    {loading ? (
+                                        <div className="w-3 h-3 border-2 border-gray-300 border-t-[#091590] rounded-full animate-spin"></div>
+                                    ) : (
+                                        <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Right: Search, Filter, Action */}
@@ -379,7 +465,6 @@ export default function ProjectsPage() {
                             <MoreVertical className="w-6 h-6 text-red-500" />
                         </div>
                         <h3 className="text-md font-semibold text-gray-900">Error loading projects</h3>
-                        <h3 className="text-md font-semibold text-gray-900">Error loading projects</h3>
                         <p className="text-sm text-gray-500">{(error as Error)?.message || 'Unknown error'}</p>
                         <Button variant="primary" size="sm" onClick={handleRetry} className="mt-2">
                             Retry
@@ -396,8 +481,8 @@ export default function ProjectsPage() {
                                     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
                                 }
                                 .custom-ag-grid .ag-header {
-                                    background-color: #f1f5f9 !important; /* Slate-100 for visibility */
-                                    border-bottom: 1px solid #cbd5e1 !important; /* Slate-300 for boundary */
+                                    background-color: #f1f5f9 !important;
+                                    border-bottom: 1px solid #cbd5e1 !important;
                                     min-height: 48px !important;
                                 }
                                 .custom-ag-grid .ag-header-row {
@@ -409,7 +494,7 @@ export default function ProjectsPage() {
                                 }
                                 .custom-ag-grid .ag-header-cell-label {
                                     font-weight: 700;
-                                    color: #334155 !important; /* Slate-700 */
+                                    color: #334155 !important;
                                     font-size: 11px;
                                     letter-spacing: 0.05em;
                                     text-transform: uppercase;
@@ -423,7 +508,7 @@ export default function ProjectsPage() {
                                     padding-right: 16px;
                                     display: flex;
                                     align-items: center;
-                                    color: #0f172a; /* Slate-900 */
+                                    color: #0f172a;
                                     font-size: 13px;
                                     font-weight: 500;
                                 }
@@ -447,6 +532,8 @@ export default function ProjectsPage() {
                                 paginationPageSizeSelector={[20, 50, 100]}
                                 animateRows={true}
                                 suppressLoadingOverlay={true}
+                                onCellContextMenu={handleCellContextMenu}
+                                preventDefaultOnContextMenu={true}
                             />
                         </div>
                     </div>
@@ -462,12 +549,44 @@ export default function ProjectsPage() {
                 )}
             </div>
 
+            {/* Context Menu */}
+            {
+                contextMenu && (
+                    <ProjectContextMenu
+                        x={contextMenu.x}
+                        y={contextMenu.y}
+                        onClose={() => setContextMenu(null)}
+                        onInvite={contextMenu.role !== 'VIEWER' ? () => {
+                            setInviteModalState({
+                                isOpen: true,
+                                projectId: contextMenu.projectId,
+                                projectName: contextMenu.projectName
+                            });
+                            setContextMenu(null);
+                        } : undefined}
+                    />
+                )
+            }
+
+            {/* Invite Modal - Project Level */}
+            {
+                inviteModalState.projectId && (
+                    <SendProjectInviteModal
+                        isOpen={inviteModalState.isOpen}
+                        onClose={() => setInviteModalState({ ...inviteModalState, isOpen: false })}
+                        projectId={inviteModalState.projectId}
+                        projectName={inviteModalState.projectName || 'Project'}
+                    />
+                )
+            }
+
             {/* Create Project Modal */}
             <CreateProjectModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onSubmit={handleCreateProject}
+                defaultOrgId={selectedOrgId !== 'all' ? selectedOrgId : undefined}
             />
-        </div>
+        </div >
     );
 }

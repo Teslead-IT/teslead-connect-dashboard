@@ -8,10 +8,10 @@ export const projectKeys = {
     detail: (id: string) => ['projects', id] as const,
 };
 
-export function useProjects() {
+export function useProjects(params?: { orgId?: string; page?: number; limit?: number }) {
     return useQuery({
-        queryKey: projectKeys.all,
-        queryFn: projectsApi.getAllProjects,
+        queryKey: [...projectKeys.all, params?.orgId || 'all', params?.page, params?.limit],
+        queryFn: () => projectsApi.getAllProjects(params || { orgId: 'all' }),
     });
 }
 

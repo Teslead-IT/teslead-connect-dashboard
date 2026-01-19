@@ -3,6 +3,7 @@ export interface Membership {
     orgId: string;
     orgName: string;
     slug: string;
+    status: string;
     role: string;
 }
 

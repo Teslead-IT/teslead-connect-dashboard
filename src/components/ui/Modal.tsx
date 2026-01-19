@@ -11,6 +11,7 @@ export interface ModalProps {
     children: React.ReactNode;
     size?: 'sm' | 'md' | 'lg' | 'xl';
     showCloseButton?: boolean;
+    closeOnOutsideClick?: boolean;
 }
 
 export function Modal({
@@ -20,6 +21,7 @@ export function Modal({
     children,
     size = 'md',
     showCloseButton = true,
+    closeOnOutsideClick = true,
 }: ModalProps) {
     useEffect(() => {
         if (isOpen) {
@@ -34,13 +36,13 @@ export function Modal({
 
     useEffect(() => {
         function handleEscape(e: KeyboardEvent) {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape' && closeOnOutsideClick) onClose();
         }
         if (isOpen) {
             document.addEventListener('keydown', handleEscape);
             return () => document.removeEventListener('keydown', handleEscape);
         }
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, closeOnOutsideClick]);
 
     const sizeStyles = {
         sm: 'max-w-md',
@@ -56,7 +58,7 @@ export function Modal({
             {/* Backdrop */}
             <div
                 className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
-                onClick={onClose}
+                onClick={() => closeOnOutsideClick && onClose()}
             />
 
             {/* Modal */}

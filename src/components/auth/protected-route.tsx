@@ -38,7 +38,8 @@ export function ProtectedRoute({
         // If user exists but doesn't have required role
         if (user && requiredRole) {
             const roleHierarchy = { USER: 0, ADMIN: 1, SUPER_ADMIN: 2 };
-            const userLevel = roleHierarchy[user.role] || 0;
+            const userRole = user.role || 'USER';
+            const userLevel = roleHierarchy[userRole] || 0;
             const requiredLevel = roleHierarchy[requiredRole] || 0;
 
             if (userLevel < requiredLevel) {

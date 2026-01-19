@@ -25,6 +25,8 @@ import {
     ChevronRight,
     ChevronDown,
     X,
+    ShieldAlert,
+    FolderX,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
@@ -169,15 +171,55 @@ export default function ProjectDetailPage() {
     }
 
     if (errorMessage || !project) {
+        // Try to derive status from error message or projectError object
+        const isForbidden = errorMessage?.includes('403') ||
+            errorMessage?.toLowerCase().includes('access denied') ||
+            (projectError as any)?.response?.status === 403;
+
+        const isNotFound = errorMessage?.includes('404') ||
+            errorMessage?.toLowerCase().includes('not found') ||
+            (projectError as any)?.response?.status === 404;
+
         return (
-            <div className="flex flex-col items-center justify-center h-screen">
-                <p className="text-red-600 font-medium mb-4">{errorMessage || 'Project not found'}</p>
-                <button
-                    onClick={() => router.push('/projects')}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                    Back to Projects
-                </button>
+            <div className="flex flex-col items-center justify-center h-screen bg-gray-50/50">
+                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center max-w-md w-full mx-4">
+                    <div className={cn(
+                        "w-16 h-16 rounded-full flex items-center justify-center mb-6",
+                        isForbidden ? "bg-orange-50 text-orange-500" : "bg-red-50 text-red-500"
+                    )}>
+                        {isForbidden ? (
+                            <ShieldAlert className="w-8 h-8" />
+                        ) : (
+                            <FolderX className="w-8 h-8" />
+                        )}
+                    </div>
+
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">
+                        {isForbidden ? "Access Restricted" : "Project Not Found"}
+                    </h2>
+
+                    <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+                        {isForbidden
+                            ? "You don't have permission to view this project. It might be private or you may need to be invited."
+                            : "The project you're looking for doesn't exist or has been deleted. Please check the URL or go back to your dashboard."
+                        }
+                    </p>
+
+                    <div className="space-y-3 w-full">
+                        <button
+                            onClick={() => router.push('/projects')}
+                            className="w-full px-4 py-2.5 bg-[#091590] text-white rounded-lg hover:bg-[#071170] font-medium transition-colors shadow-sm text-sm"
+                        >
+                            Return to Projects
+                        </button>
+
+                        <div className="pt-2 border-t border-gray-50">
+                            <p className="text-[10px] text-gray-400 font-mono">
+                                Error: {errorMessage || 'Unknown error'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -280,13 +322,15 @@ export default function ProjectDetailPage() {
                         </div>
 
                         {/* New Task Button */}
-                        <button
-                            onClick={() => setIsCreateTaskOpen(true)}
-                            className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-3 h-7 text-xs rounded-md ml-2 transition-colors duration-200 border border-transparent shadow-sm"
-                        >
-                            <Plus className="w-3 h-3 mr-1" />
-                            New Task
-                        </button>
+                        {project?.role !== 'VIEWER' && (
+                            <button
+                                onClick={() => setIsCreateTaskOpen(true)}
+                                className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-3 h-7 text-xs rounded-md ml-2 transition-colors duration-200 border border-transparent shadow-sm"
+                            >
+                                <Plus className="w-3 h-3 mr-1" />
+                                New Task
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -303,10 +347,10 @@ export default function ProjectDetailPage() {
                                 onUpdateStatus={handleUpdateTaskStatus}
                                 expandedIds={expandedIds}
                                 onToggleExpand={toggleTaskExpansion}
-                                onCreateSubtask={(parentTask) => {
+                                onCreateSubtask={project?.role !== 'VIEWER' ? (parentTask) => {
                                     setSelectedParentTask(parentTask);
                                     setIsCreateTaskOpen(true);
-                                }}
+                                } : undefined}
                             />
                         ) : (
                             <KanbanView
@@ -314,10 +358,10 @@ export default function ProjectDetailPage() {
                                 allTasks={tasks}
                                 workflow={workflow}
                                 onUpdateStatus={handleUpdateTaskStatus}
-                                onCreateSubtask={(parentTask) => {
+                                onCreateSubtask={project?.role !== 'VIEWER' ? (parentTask) => {
                                     setSelectedParentTask(parentTask);
                                     setIsCreateTaskOpen(true);
-                                }}
+                                } : undefined}
                             />
                         )}
                     </div>
@@ -356,7 +400,7 @@ interface TaskTableProps {
     allTasks: Task[];
     workflow: WorkflowStage[];
     onUpdateStatus: (taskId: string, statusId: string) => void;
-    onCreateSubtask: (parentTask: Task) => void;
+    onCreateSubtask?: (parentTask: Task) => void;
     expandedIds: Set<string>;
     onToggleExpand: (taskId: string) => void;
 }
@@ -453,16 +497,18 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 </div>
 
                 {/* Quick Add Subtask (any level) */}
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onCreateSubtask(task);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-50 text-gray-400 hover:text-[var(--primary)] rounded transition-all ml-2"
-                    title="Add subtask"
-                >
-                    <Plus className="w-4 h-4" />
-                </button>
+                {onCreateSubtask && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onCreateSubtask(task);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-50 text-gray-400 hover:text-[var(--primary)] rounded transition-all ml-2"
+                        title="Add subtask"
+                    >
+                        <Plus className="w-4 h-4" />
+                    </button>
+                )}
             </div>
         );
     };
@@ -664,7 +710,7 @@ interface KanbanViewProps {
     allTasks: Task[];
     workflow: WorkflowStage[];
     onUpdateStatus: (taskId: string, statusId: string) => void;
-    onCreateSubtask: (parentTask: Task) => void;
+    onCreateSubtask?: (parentTask: Task) => void;
 }
 
 function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask }: KanbanViewProps) {
@@ -741,12 +787,14 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
                                                 <h4 className="text-sm font-medium text-gray-900 flex-1">
                                                     {task.title}
                                                 </h4>
-                                                <button
-                                                    onClick={() => onCreateSubtask(task)}
-                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-all text-gray-400 hover:text-blue-600"
-                                                >
-                                                    <Plus className="w-4 h-4" />
-                                                </button>
+                                                {onCreateSubtask && (
+                                                    <button
+                                                        onClick={() => onCreateSubtask(task)}
+                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-all text-gray-400 hover:text-blue-600"
+                                                    >
+                                                        <Plus className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
 
                                             {task.description && (

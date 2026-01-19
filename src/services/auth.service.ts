@@ -153,4 +153,15 @@ export const authApi = {
         );
         return data;
     },
+
+    /**
+     * Switch current organization
+     */
+    async switchOrg(orgId: string): Promise<AuthResponse> {
+        const { data } = await apiClient.post<AuthResponse>(
+            API_CONFIG.ENDPOINTS.AUTH.SWITCH_ORG,
+            { orgId }
+        );
+        return data;
+    },
 };

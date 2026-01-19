@@ -1,17 +1,18 @@
-'use client';
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useUser } from '@/hooks/use-auth';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
-import { Search, Bell, HelpCircle, Building2 } from 'lucide-react';
+import { Search, HelpCircle, Building2, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSidebar } from '@/context/SidebarContext';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/notifications';
+import { SendInviteModal } from '@/components/invitations';
 
 export function TopNav() {
     const { data: backendUser } = useUser();
     const { user: auth0User } = useAuth0User();
     const [isScrolled, setIsScrolled] = React.useState(false);
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const { isCollapsed } = useSidebar();
 
     React.useEffect(() => {
@@ -23,7 +24,10 @@ export function TopNav() {
     // Prioritize Backend data, fallback to Auth0 data
     const displayName = backendUser?.name || auth0User?.name || backendUser?.username || backendUser?.email?.split('@')[0] || auth0User?.nickname || 'User';
     const displayAvatar = backendUser?.avatarUrl || auth0User?.picture;
-    const orgName = backendUser?.memberships?.find(m => m.orgId === backendUser.currentOrgId)?.orgName;
+    const currentOrgId = backendUser?.currentOrgId || backendUser?.memberships?.[0]?.orgId || 'org_123';
+    const currentMembership = backendUser?.memberships?.find(m => m.orgId === currentOrgId);
+    const orgName = currentMembership?.orgName;
+    const userRole = currentMembership?.role || backendUser?.role || 'Member';
 
     return (
         <header
@@ -72,20 +76,24 @@ export function TopNav() {
 
                     {/* Action Group */}
                     <div className="flex items-center gap-1 pr-4 border-r border-gray-100">
+                        {/* 👥 Invite Button */}
                         <button
-                            className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all active:scale-95"
+                            onClick={() => setIsInviteModalOpen(true)}
+                            className="p-2 text-gray-400 hover:text-[#091590] hover:bg-blue-50 rounded-lg transition-all active:scale-95 group"
+                            title="Invite Members"
+                        >
+                            <UserPlus className="w-5 h-5 group-hover:scale-110 transition-transform cursor-pointer" />
+                        </button>
+
+                        <button
+                            className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all active:scale-95 cursor-pointer"
                             title="Help Center"
                         >
                             <HelpCircle className="w-5 h-5" />
                         </button>
 
-                        <button
-                            className="relative p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all active:scale-95"
-                            title="Notifications"
-                        >
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white rounded-full scale-100 transition-transform"></span>
-                        </button>
+                        {/* 🔔 Real-time Notification Bell with WebSocket */}
+                        <NotificationBell />
                     </div>
 
                     {/* User Profile - Premium Look */}
@@ -95,7 +103,7 @@ export function TopNav() {
                                 {displayName}
                             </span>
                             <span className="text-[10px] font-medium text-gray-400 uppercase tracking-tighter">
-                                {backendUser?.role || 'Member'}
+                                {userRole}
                             </span>
                         </div>
                         <div className="relative">
@@ -116,6 +124,14 @@ export function TopNav() {
                     </button>
                 </div>
             </div>
+
+            {/* Invite Modal */}
+            <SendInviteModal
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+                orgId={currentOrgId}
+                orgName={orgName || 'Organization'}
+            />
         </header>
     );
 }

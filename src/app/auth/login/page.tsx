@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { useLogin, useUser } from "@/hooks/use-auth";
@@ -12,33 +12,32 @@ import { EmailVerificationModal } from "@/components/auth/email-verification-mod
 import { isAuth0Configured } from "@/lib/config";
 import { Loader } from "@/components/ui/Loader";
 
-export default function LoginPage() {
+function LoginPageContent() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [mounted, setMounted] = useState(false);
     const [showVerifyModal, setShowVerifyModal] = useState(false);
 
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const returnTo = searchParams.get('returnTo') || '/dashboard';
+
     const { user: auth0User, isLoading: isAuth0Loading } = useAuth0User();
     const { data: backendUser, isLoading: isBackendLoading } = useUser();
 
     useEffect(() => {
-        const isAuth0LoggedIn = !isAuth0Loading && auth0User;
+        // Only redirect if valid backend session exists (tokens are present)
+        // We ignore auth0User independent check to prevent infinite loops when tokens are missing
         const isBackendLoggedIn = !isBackendLoading && backendUser;
-
-        if (isAuth0LoggedIn) {
-            router.replace('/dashboard');
-            return;
-        }
 
         if (isBackendLoggedIn) {
             // If unverified, don't redirect (allow modal to show)
             if (backendUser?.accountStatus === 'UNVERIFIED' || backendUser?.emailVerified === false) {
                 return;
             }
-            router.replace('/dashboard');
+            router.replace(returnTo);
         }
-    }, [auth0User, isAuth0Loading, backendUser, isBackendLoading, router]);
+    }, [backendUser, isBackendLoading, router, returnTo]);
 
     const { mutate: login, isPending: isLoading, error } = useLogin();
 
@@ -73,7 +72,7 @@ export default function LoginPage() {
                 if (data.user.accountStatus === 'UNVERIFIED') {
                     setShowVerifyModal(true);
                 } else {
-                    router.push('/dashboard');
+                    router.push(returnTo);
                 }
             }
         });
@@ -147,16 +146,6 @@ export default function LoginPage() {
                         </div>
 
                         <div className="flex items-center justify-between">
-                            {/* <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer group">
-                                <div className="relative flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        className="peer w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors cursor-pointer"
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                                <span className="group-hover:text-gray-900 transition-colors">Remember me</span>
-                            </label> */}
                             <Link
                                 href="/auth/forgot-password"
                                 className="text-sm font-semibold text-[#091590] hover:text-[#071170] hover:underline transition-colors"
@@ -210,7 +199,7 @@ export default function LoginPage() {
 
                         <p className="text-center text-gray-500 text-sm mt-6">
                             Don't have an account?{' '}
-                            <Link href="/auth/register" className="font-bold cursor-pointer text-[#091590] hover:text-[#071170] hover:underline transition-colors">
+                            <Link href={returnTo !== '/dashboard' ? `/auth/register?returnTo=${encodeURIComponent(returnTo)}` : "/auth/register"} className="font-bold cursor-pointer text-[#091590] hover:text-[#071170] hover:underline transition-colors">
                                 Sign up now
                             </Link>
                         </p>
@@ -250,3 +239,17 @@ export default function LoginPage() {
         </div>
     );
 }
+
+function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="h-screen w-full flex items-center justify-center bg-white">
+                <Loader size={200} />
+            </div>
+        }>
+            <LoginPageContent />
+        </Suspense>
+    );
+}
+
+export default LoginPage;

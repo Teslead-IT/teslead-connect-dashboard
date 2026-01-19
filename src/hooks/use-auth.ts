@@ -274,3 +274,28 @@ export const usePhoneSignupVerify = () => {
         },
     });
 };
+
+/**
+ * Hook: Switch Organization
+ */
+export function useSwitchOrg() {
+    const queryClient = useQueryClient();
+    const router = useRouter();
+
+    return useMutation({
+        mutationFn: (orgId: string) => authApi.switchOrg(orgId),
+        onSuccess: (data: AuthResponse) => {
+            // Update tokens and user session
+            setAuthSession(data.accessToken, data.refreshToken, data.user);
+
+            // Update cached user data
+            queryClient.setQueryData(authKeys.user(), data.user);
+
+            // Invalidate all queries to refresh data (projects, tasks, etc.)
+            queryClient.invalidateQueries();
+
+            // Force refresh to ensure all components pick up the new context
+            router.refresh();
+        },
+    });
+}
