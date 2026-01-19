@@ -114,7 +114,11 @@ apiClient.interceptors.response.use(
 
             // Save both new access token and new refresh token
             tokenStorage.setToken(API_CONFIG.STORAGE.ACCESS_TOKEN, newAccessToken);
-            tokenStorage.setToken(API_CONFIG.STORAGE.REFRESH_TOKEN, newRefreshToken);
+
+            // Only update refresh token if the backend returns a new one
+            if (newRefreshToken) {
+                tokenStorage.setToken(API_CONFIG.STORAGE.REFRESH_TOKEN, newRefreshToken);
+            }
 
             // Update authorization header
             if (originalRequest.headers) {
@@ -143,9 +147,11 @@ apiClient.interceptors.response.use(
 function handleLogout() {
     tokenStorage.clearAll();
 
-    // Only redirect if we're in the browser
+    // Only redirect if we're in the browser and NOT on an auth or invite page
     if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
+        if (!window.location.pathname.startsWith('/auth/') && !window.location.pathname.startsWith('/invites/')) {
+            window.location.href = '/auth/login';
+        }
     }
 }
 

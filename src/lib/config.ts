@@ -30,7 +30,27 @@ export const API_CONFIG = {
             RESET_PASSWORD: '/auth/password/reset',
             CHANGE_PASSWORD: '/auth/password/change',
             ME: '/auth/me',
+            SWITCH_ORG: '/auth/switch-org',
         },
+        PROJECTS: {
+            ALL: '/projects/all',
+        },
+        INVITATIONS: {
+            SEND: (orgId: string) => `/invites/send/${orgId}`,
+            PENDING: '/invites/pending',
+            ACCEPT: '/invites/accept',
+            REJECT: '/invites/reject',
+            RESEND: (orgId: string) => `/invites/resend/${orgId}`,
+        },
+        NOTIFICATIONS: {
+            UNREAD: '/notifications/unread',
+            MARK_READ: (id: string) => `/notifications/${id}/read`,
+        },
+    },
+
+    // WebSocket Configuration
+    WEBSOCKET: {
+        NAMESPACE: '/notifications',
     },
 
     // Token Storage Keys

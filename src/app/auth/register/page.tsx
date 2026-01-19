@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { useSignup, useUser, usePhoneSignupRequest, usePhoneSignupVerify } from "@/hooks/use-auth";
@@ -31,6 +31,9 @@ export default function RegisterPage() {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo') || '/dashboard';
+
   const { user: auth0User, isLoading: isAuth0Loading } = useAuth0User();
   const { data: backendUser, isLoading: isBackendLoading } = useUser();
 
@@ -43,21 +46,17 @@ export default function RegisterPage() {
   const error = emailError || phoneRequestError || phoneVerifyError;
 
   useEffect(() => {
-    const isAuth0LoggedIn = !isAuth0Loading && auth0User;
+    // Only redirect if valid backend session exists (tokens are present)
+    // We ignore auth0User independent check to prevent infinite loops when tokens are missing
     const isBackendLoggedIn = !isBackendLoading && backendUser;
-
-    if (isAuth0LoggedIn) {
-      router.replace('/dashboard');
-      return;
-    }
 
     if (isBackendLoggedIn) {
       if (backendUser?.accountStatus === 'UNVERIFIED' || backendUser?.emailVerified === false) {
         return;
       }
-      router.replace('/dashboard');
+      router.replace(returnTo);
     }
-  }, [auth0User, isAuth0Loading, backendUser, isBackendLoading, router]);
+  }, [backendUser, isBackendLoading, router, returnTo]);
 
   // Motivational quotes with Indian authors
   const quotes = [
@@ -94,7 +93,7 @@ export default function RegisterPage() {
         });
       } else {
         verifyPhoneSignup({ phone, otp, password }, {
-          onSuccess: () => router.replace('/dashboard')
+          onSuccess: () => router.replace(returnTo)
         });
       }
     }
@@ -221,24 +220,6 @@ export default function RegisterPage() {
                   />
                 </div>
               )}
-
-              {/* Organization Name (Phone Only) */}
-              {/* {signupMethod === 'phone' && phoneStep === 'REQUEST' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">
-                    Organization Name
-                  </label>
-                  <input
-                    type="text"
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-300 focus:border-[#091590] focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 outline-none text-base font-medium"
-                    placeholder="Company Ltd"
-                    autoComplete="organization"
-                  />
-                  <p className="text-xs text-gray-500 mt-1 ml-1">Optional</p>
-                </div>
-              )} */}
 
               {/* Phone Input */}
               {signupMethod === 'phone' && phoneStep === 'REQUEST' && (
@@ -367,7 +348,10 @@ export default function RegisterPage() {
 
           <p className="text-center text-gray-500 text-sm mt-6">
             Already have an account?{' '}
-            <Link href="/auth/login" className="font-bold text-[#091590] hover:text-[#071170] hover:underline transition-colors">
+            <Link
+              href={returnTo !== '/dashboard' ? `/auth/login?returnTo=${encodeURIComponent(returnTo)}` : "/auth/login"}
+              className="font-bold text-[#091590] hover:text-[#071170] hover:underline transition-colors"
+            >
               Sign in
             </Link>
           </p>

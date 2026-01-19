@@ -11,6 +11,7 @@ import type {
     UpdateProjectPayload,
     ProjectResponse,
 } from '@/types/project';
+import { API_CONFIG } from '@/lib/config';
 
 /**
  * Get Organization ID from stored user data
@@ -26,14 +27,31 @@ export const projectsApi = {
     /**
      * Get all projects for the current organization
      */
-    async getAllProjects(): Promise<Project[]> {
-        const orgId = getOrgId();
-        const { data } = await apiClient.get<Project[]>('/projects', {
+    async getAllProjects(params?: { orgId?: string; email?: string; page?: number; limit?: number }): Promise<Project[]> {
+        // If orgId is explicitly 'all' or empty, use the dedicated /projects/all endpoint
+        if (params?.orgId === 'all') {
+            const { data } = await apiClient.get<{ data: Project[] }>(API_CONFIG.ENDPOINTS.PROJECTS.ALL);
+            return data.data;
+        }
+
+        const orgId = params?.orgId || getOrgId();
+
+        // Build query params
+        const queryParams: Record<string, any> = {};
+        if (params?.orgId && params.orgId !== 'all') {
+            queryParams.orgId = params.orgId;
+        }
+        if (params?.page) queryParams.page = params.page;
+        if (params?.limit) queryParams.limit = params.limit;
+
+        const { data } = await apiClient.get<{ data: Project[] }>('/projects', {
             headers: {
                 'x-org-id': orgId,
             },
+            params: queryParams
         });
-        return data;
+
+        return data.data; // API returns enveloped response
     },
 
     /**
@@ -53,10 +71,11 @@ export const projectsApi = {
      * Create a new project
      */
     async createProject(payload: CreateProjectPayload): Promise<ProjectResponse> {
-        const orgId = getOrgId();
-        const { data } = await apiClient.post<ProjectResponse>('/projects', payload, {
+        const { orgId, ...restPayload } = payload;
+        const targetOrgId = orgId || getOrgId();
+        const { data } = await apiClient.post<ProjectResponse>('/projects', restPayload, {
             headers: {
-                'x-org-id': orgId,
+                'x-org-id': targetOrgId,
             },
         });
         return data;

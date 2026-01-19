@@ -1,7 +1,7 @@
 import { getAccessToken, getSession, withApiAuthRequired } from '@auth0/nextjs-auth0';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const GET = withApiAuthRequired(async function GET(req) {
+export async function GET(req: NextRequest) {
     try {
         // 1. Get the session (which contains the swapped NestJS token)
         // We pass empty Response as second arg required by v3 getSession
@@ -19,4 +19,4 @@ export const GET = withApiAuthRequired(async function GET(req) {
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: error.status || 500 });
     }
-});
+}

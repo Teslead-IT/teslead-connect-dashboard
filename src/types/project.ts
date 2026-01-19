@@ -25,7 +25,7 @@ export interface Project {
     access: 'PRIVATE' | 'PUBLIC';
     status: ProjectStatus;
     ownerId: string | null;
-    role: 'ADMIN' | 'MEMBER';
+    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
     joinedAt?: string;
     createdAt: string;
     updatedAt?: string;
@@ -43,6 +43,7 @@ export interface CreateProjectPayload {
     status?: ProjectStatus;
     ownerId?: string;
     tags?: Array<{ name: string; color: string }>;
+    orgId?: string;
 }
 
 export interface UpdateProjectPayload {
@@ -67,7 +68,7 @@ export interface ProjectResponse {
     access: 'PRIVATE' | 'PUBLIC';
     status: ProjectStatus;
     ownerId: string | null;
-    role: 'ADMIN' | 'MEMBER';
+    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
     joinedAt?: string;
     createdAt: string;
     updatedAt?: string;

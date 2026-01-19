@@ -42,22 +42,24 @@ export default function DashboardLayout({
 
     // Check both Auth0 session (Social Login) and Backend session (Email/Password)
     const { user: auth0User, isLoading: isAuth0Loading } = useAuth0User();
-    const { data: backendUser, isLoading: isBackendLoading } = useUser();
+    const { data: backendUser, isLoading: isBackendLoading, isFetching: isBackendFetching } = useUser();
 
     useEffect(() => {
-        // Wait for both checks to complete
-        if (isAuth0Loading || isBackendLoading) {
+        // Wait for auth check to complete
+        if (isBackendLoading) {
             return;
         }
 
-        // If no user session exists at all, redirect to login
-        if (!auth0User && !backendUser) {
+        // If no backend session (access token) exists, redirect to login
+        // We do not rely on auth0User here because we need valid backend tokens for API calls
+        // We also wait if we are currently fetching/verifying the user
+        if (!backendUser && !isBackendFetching) {
             router.replace('/auth/login');
         }
-    }, [auth0User, backendUser, isAuth0Loading, isBackendLoading, router]);
+    }, [backendUser, isBackendLoading, isBackendFetching, router]);
 
     // Show loading state while checking authentication
-    if (isAuth0Loading || isBackendLoading) {
+    if (isBackendLoading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <Loader />
@@ -66,7 +68,7 @@ export default function DashboardLayout({
     }
 
     // Don't render dashboard if not authenticated
-    if (!auth0User && !backendUser) {
+    if (!backendUser && !isBackendFetching) {
         return null;
     }
 

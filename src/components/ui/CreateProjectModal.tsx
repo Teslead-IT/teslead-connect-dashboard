@@ -19,8 +19,11 @@ import {
     Smile,
     Lock,
     Globe,
-    Palette
+    Palette,
+    Building2,
+    ChevronDown
 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 export interface TagData {
     name: string;
@@ -36,12 +39,14 @@ export interface ProjectFormData {
     access: 'PRIVATE' | 'PUBLIC';
     status: ProjectStatus;
     tags?: TagData[];
+    orgId?: string;
 }
 
 export interface CreateProjectModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (projectData: ProjectFormData) => void | Promise<void>;
+    defaultOrgId?: string;
 }
 
 // Helper: Hex to RGB
@@ -185,7 +190,7 @@ function ColorPicker({ color, onChange }: ColorPickerProps) {
     );
 }
 
-export function CreateProjectModal({ isOpen, onClose, onSubmit }: CreateProjectModalProps) {
+export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId }: CreateProjectModalProps) {
     const [formData, setFormData] = useState<ProjectFormData>({
         name: '',
         description: '',
@@ -195,8 +200,10 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit }: CreateProjectM
         access: 'PRIVATE',
         status: 'NOT_STARTED',
         tags: [],
+        orgId: '',
     });
 
+    const { user } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Tag state
@@ -217,12 +224,19 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit }: CreateProjectM
                 access: 'PRIVATE',
                 status: 'NOT_STARTED',
                 tags: [],
+                orgId: defaultOrgId && defaultOrgId !== 'all' ? defaultOrgId : (user?.currentOrgId || ''),
             });
             setErrors({});
             setTagInput('');
             setTagColor('#10B981');
+        } else {
+            // Set default org if not set (e.g. on first open) or if priority changed
+            if ((!formData.orgId || formData.orgId === 'all') && user?.currentOrgId) {
+                const targetOrg = (defaultOrgId && defaultOrgId !== 'all') ? defaultOrgId : user.currentOrgId;
+                setFormData(prev => ({ ...prev, orgId: targetOrg }));
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, user?.currentOrgId, defaultOrgId]);
 
     // Prevent body scroll when modal is open
     useEffect(() => {
@@ -311,6 +325,31 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit }: CreateProjectM
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
                     <div className="flex items-center gap-4">
                         <h2 className="text-lg font-semibold text-gray-900">New Project</h2>
+
+                        {/* Organization Selector */}
+                        {user?.memberships && (
+                            <div className="relative group">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <Building2 className="w-4 h-4 text-gray-400" />
+                                </div>
+                                <select
+                                    value={formData.orgId}
+                                    onChange={(e) => setFormData({ ...formData, orgId: e.target.value })}
+                                    className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg py-1.5 pl-9 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer min-w-[200px] hover:border-gray-300 transition-all shadow-sm"
+                                >
+                                    {user.memberships
+                                        .filter(m => (m.role === 'OWNER' || m.role === 'ADMIN') && m.status === 'ACTIVE')
+                                        .map((m) => (
+                                            <option key={m.orgId} value={m.orgId}>
+                                                {m.orgName}
+                                            </option>
+                                        ))}
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <button
                         onClick={onClose}
