@@ -35,7 +35,7 @@ export default function RegisterPage() {
   const returnTo = searchParams.get('returnTo') || '/dashboard';
 
   const { user: auth0User, isLoading: isAuth0Loading } = useAuth0User();
-  const { data: backendUser, isLoading: isBackendLoading } = useUser();
+  const { data: backendUser, isLoading: isBackendLoading, isFetching } = useUser();
 
   // Hooks
   const { mutate: signupEmail, isPending: isEmailLoading, error: emailError } = useSignup();
@@ -46,9 +46,13 @@ export default function RegisterPage() {
   const error = emailError || phoneRequestError || phoneVerifyError;
 
   useEffect(() => {
-    // Only redirect if valid backend session exists (tokens are present)
-    // We ignore auth0User independent check to prevent infinite loops when tokens are missing
-    const isBackendLoggedIn = !isBackendLoading && backendUser;
+    // Wait for all loading states to complete
+    if (isAuth0Loading || isBackendLoading || isFetching) {
+      return;
+    }
+
+    // Only redirect if valid backend session exists
+    const isBackendLoggedIn = backendUser && !isBackendLoading;
 
     if (isBackendLoggedIn) {
       if (backendUser?.accountStatus === 'UNVERIFIED' || backendUser?.emailVerified === false) {
@@ -56,7 +60,7 @@ export default function RegisterPage() {
       }
       router.replace(returnTo);
     }
-  }, [backendUser, isBackendLoading, router, returnTo]);
+  }, [backendUser, isBackendLoading, isFetching, isAuth0Loading, router, returnTo]);
 
   // Motivational quotes with Indian authors
   const quotes = [
@@ -103,7 +107,7 @@ export default function RegisterPage() {
   const errorMessage = error ? (error as any)?.response?.data?.message || (error as any)?.message || 'Registration failed' : null;
 
   // Show loader while checking auth status to avoid flicker
-  if (isAuth0Loading || isBackendLoading) {
+  if (isAuth0Loading || isBackendLoading || isFetching) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-white">
         <Loader size={200} />

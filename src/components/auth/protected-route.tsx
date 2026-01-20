@@ -21,22 +21,29 @@ export function ProtectedRoute({
     requiredRole,
     fallback
 }: ProtectedRouteProps) {
-    const { data: user, isLoading } = useUser();
+    const { data: user, isLoading, isFetching } = useUser();
     const router = useRouter();
 
     useEffect(() => {
+        // Don't redirect while still loading or fetching
+        if (isLoading || isFetching) {
+            return;
+        }
+
         // If not loading and no user, redirect to login
-        if (!isLoading && !user) {
+        if (!user) {
             router.push('/auth/login');
+            return;
         }
 
         // If user exists but account is unverified, redirect to verification
-        if (user && user.accountStatus === 'UNVERIFIED') {
+        if (user.accountStatus === 'UNVERIFIED') {
             router.push(`/auth/verify-email?email=${user.email}`);
+            return;
         }
 
         // If user exists but doesn't have required role
-        if (user && requiredRole) {
+        if (requiredRole) {
             const roleHierarchy = { USER: 0, ADMIN: 1, SUPER_ADMIN: 2 };
             const userRole = user.role || 'USER';
             const userLevel = roleHierarchy[userRole] || 0;
@@ -46,10 +53,10 @@ export function ProtectedRoute({
                 router.push('/unauthorized');
             }
         }
-    }, [user, isLoading, router, requiredRole]);
+    }, [user, isLoading, isFetching, router, requiredRole]);
 
-    // Show loading state
-    if (isLoading) {
+    // Show loading state while checking auth or fetching
+    if (isLoading || isFetching) {
         return fallback || (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <Loader size={200} />
