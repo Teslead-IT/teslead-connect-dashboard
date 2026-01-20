@@ -54,10 +54,14 @@ export function useUser() {
                 return cachedUser;
             }
         },
-        // Use cached data as placeholder while fetching
-        placeholderData: () => tokenStorage.getUser() as User | null,
-        // Refetch on mount if data is stale
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        // Use initialData instead of placeholderData to treat cached data as real data
+        initialData: () => {
+            const token = tokenStorage.getToken(API_CONFIG.STORAGE.ACCESS_TOKEN);
+            if (!token) return null;
+            return tokenStorage.getUser() as User | null;
+        },
+        // Data is always stale so it refetches on mount
+        staleTime: 0,
         // Keep cache indefinitely
         gcTime: Infinity,
         // Retry only once on failure
