@@ -31,6 +31,7 @@ export interface Project {
     updatedAt?: string;
     isArchived?: boolean;
     tags: Tag[];
+    orgId?: string;
 }
 
 export interface CreateProjectPayload {
@@ -74,4 +75,5 @@ export interface ProjectResponse {
     updatedAt?: string;
     isArchived?: boolean;
     tags: Tag[];
+    orgId?: string;
 }

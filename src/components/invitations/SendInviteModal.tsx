@@ -42,24 +42,36 @@ export function SendInviteModal({
         projectRole: id ? ProjectRole.VIEWER : undefined,
     });
 
-    const { mutate: sendInvite, isPending, isError, error, isSuccess } = useSendInvite(orgId);
+    const { mutate: sendInvite, isPending, isError, error, isSuccess, reset } = useSendInvite(orgId);
 
     useEffect(() => {
         setMounted(true);
         return () => setMounted(false);
     }, []);
 
-    // Prevent body scroll when modal is open
+    // Prevent body scroll when modal is open and reset state on close
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
+
+            // Reset form and mutation state when modal closes (after transition)
+            const timer = setTimeout(() => {
+                setFormData({
+                    email: '',
+                    orgRole: OrgRole.MEMBER,
+                    id: id,
+                    projectRole: id ? ProjectRole.VIEWER : undefined,
+                });
+                reset();
+            }, 300);
+            return () => clearTimeout(timer);
         }
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [isOpen]);
+    }, [isOpen, id, reset]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

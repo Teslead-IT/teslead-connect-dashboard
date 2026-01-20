@@ -28,8 +28,10 @@ import { Loader } from '@/components/ui/Loader';
 import { ProjectFormData, CreateProjectModal } from '@/components/ui/CreateProjectModal';
 import { ProjectContextMenu } from '@/components/projects/ProjectContextMenu';
 import { SendProjectInviteModal } from '@/components/invitations';
-import { useProjects, useCreateProject } from '@/hooks/use-projects';
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
 import { useAuth, useSwitchOrg } from '@/hooks/use-auth';
+import { useToast, ToastContainer } from '@/components/ui/Toast';
+import { Dialog } from '@/components/ui/Dialog';
 import type { Project, Tag } from '@/types/project';
 
 // ==================== TYPE DEFINITIONS ====================
@@ -41,31 +43,29 @@ export default function ProjectsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedOrgId, setSelectedOrgId] = useState<string>('all');
+    const [editingProject, setEditingProject] = useState<Project | null>(null);
 
     // React Query Hooks (pass selectedOrgId to filter)
     const { data: projects = [], isLoading: loading, error } = useProjects({
         orgId: selectedOrgId
     });
     const createProjectMutation = useCreateProject();
+    const updateProjectMutation = useUpdateProject();
+    const deleteProjectMutation = useDeleteProject();
     const { user } = useAuth();
-    // const { mutate: switchOrg, isPending: isSwitching } = useSwitchOrg(); // Not directly switching context, just filtering view
+    const toast = useToast();
+
+    // Dialog State
+    const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const memberships = user?.memberships || [];
-
-    // Reset to 'all' or user's current org on load if needed, but 'all' is default per request
-    // useEffect(() => {
-    //    if (user?.currentOrgId) setSelectedOrgId(user.currentOrgId);
-    // }, [user?.currentOrgId]);
-
 
     const handleOrgChange = (orgId: string) => {
         setSelectedOrgId(orgId);
     };
 
-    // Refetch not needed manually with React Query, but if you want a manual reload button:
-    const { refetch } = useProjects(); // Actually calling useProjects() multiple times is fine, it shares cache key. 
-    // Ideally rename first call to `projectsQuery` or just use the data/refetch from one call.
-    // Let's stick to simple usage.
+    const { refetch } = useProjects();
 
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{
@@ -105,6 +105,37 @@ export default function ProjectsPage() {
         return () => window.removeEventListener('click', handleClick);
     }, []);
     const handleRetry = () => refetch();
+
+    const handleDeleteClick = () => {
+        if (contextMenu) {
+            setDeleteDialog({ id: contextMenu.projectId, name: contextMenu.projectName });
+            setContextMenu(null);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteDialog) return;
+
+        setIsDeleting(true);
+        const toastId = toast.loading('Deleting project...');
+
+        try {
+            await deleteProjectMutation.mutateAsync(deleteDialog.id);
+            toast.success('Project deleted successfully', undefined, { id: toastId, soundEnabled: true });
+            setDeleteDialog(null);
+        } catch (error: any) {
+            console.error('Failed to delete project:', error);
+            // Extract error message from various possible locations in the error object
+            const errorMessage = error.response?.data?.message ||
+                error.response?.message ||
+                error.message ||
+                'Unknown error occurred';
+
+            toast.error('Failed to delete project', errorMessage, { id: toastId, soundEnabled: true });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     // Filter projects
     const filteredProjects = useMemo(() => {
@@ -234,28 +265,38 @@ export default function ProjectsPage() {
         const date = props.value;
         if (!date) return <div className="h-full flex items-center text-gray-300">-</div>;
 
-        const formatted = new Date(date).toLocaleDateString('en-US', {
+        const targetDate = new Date(date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize today to start of day
+        targetDate.setHours(0, 0, 0, 0);
+
+        const diffTime = targetDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        const formatted = targetDate.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
             year: 'numeric'
         });
 
-        const isPast = new Date(date) < new Date();
         const isDueDate = props.colDef?.field === 'endDate';
+        const isPast = diffDays < 0;
+        const isNearDue = diffDays >= 0 && diffDays <= 5;
+
+        const daysText = isNearDue ? `(${diffDays} days)` : '';
 
         return (
             <div className="h-full flex items-center gap-2">
                 <span className={cn(
                     "text-[11px] font-medium",
-                    isDueDate && isPast ? "text-red-500" : "text-gray-600"
+                    isDueDate && (isPast || isNearDue) ? "text-red-500 font-bold" : "text-gray-600"
                 )}>
-                    {formatted}
+                    {formatted} {isDueDate && isNearDue && <span className="text-[10px] ml-1 opacity-90">{daysText}</span>}
                 </span>
             </div>
         );
     };
 
-    // AG-Grid Column Definitions
     const columnDefs: ColDef[] = useMemo(() => [
         {
             headerName: 'S.No',
@@ -274,7 +315,7 @@ export default function ProjectsPage() {
         },
         {
             field: 'name',
-            headerName: 'PROJECT', // Main column takes available space
+            headerName: 'PROJECT',
             flex: 2,
             minWidth: 260,
             pinned: 'left',
@@ -333,39 +374,62 @@ export default function ProjectsPage() {
         headerClass: 'bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
     }), []);
 
-    const handleCreateProject = async (projectData: ProjectFormData) => {
+    const handleProjectFormSubmit = async (projectData: ProjectFormData) => {
+        const isEdit = !!editingProject;
+        const toastId = toast.loading(isEdit ? 'Updating project...' : 'Creating project...');
+
         try {
-            await createProjectMutation.mutateAsync({
-                name: projectData.name,
-                description: projectData.description || undefined,
-                color: projectData.color,
-                startDate: projectData.startDate || undefined,
-                endDate: projectData.endDate || undefined,
-                access: projectData.access,
-                tags: projectData.tags,
-                orgId: projectData.orgId,
-            });
-            console.log('Project created successfully');
+            if (isEdit) {
+                await updateProjectMutation.mutateAsync({
+                    id: editingProject.id,
+                    data: {
+                        name: projectData.name,
+                        description: projectData.description,
+                        color: projectData.color,
+                        startDate: projectData.startDate,
+                        endDate: projectData.endDate,
+                        access: projectData.access,
+                        status: projectData.status,
+                        tags: projectData.tags?.map(t => t.name)
+                    }
+                });
+                toast.success('Project updated successfully', undefined, { id: toastId, soundEnabled: true });
+            } else {
+                await createProjectMutation.mutateAsync({
+                    name: projectData.name,
+                    description: projectData.description || undefined,
+                    color: projectData.color,
+                    startDate: projectData.startDate || undefined,
+                    endDate: projectData.endDate || undefined,
+                    access: projectData.access,
+                    status: projectData.status,
+                    tags: projectData.tags,
+                    orgId: projectData.orgId,
+                });
+                toast.success('Project created successfully', undefined, { id: toastId, soundEnabled: true });
+            }
+            setIsCreateModalOpen(false);
+            setEditingProject(null);
         } catch (error: any) {
-            console.error('Failed to create project:', error);
-            // alert('Failed to create project: ' + (error.message || 'Unknown error')); // Optional/handled by UI
-            throw error;
+            console.error('Failed to save project:', error);
+            toast.error(
+                isEdit ? 'Failed to update project' : 'Failed to create project',
+                error.message || 'Unknown error',
+                { id: toastId, soundEnabled: true }
+            );
         }
     };
 
     return (
-        <div className="h-full flex flex-col bg-white" onContextMenu={(e) => e.preventDefault()}> {/* Prevent default context menu on container */}
-            {/* COMPACT Header Section */}
+        <div className="h-full flex flex-col bg-white" onContextMenu={(e) => e.preventDefault()}>
             <div className="border-b border-gray-100 py-3 px-6 flex-shrink-0">
                 <div className="flex items-center justify-between gap-4">
-                    {/* Left: Title & Count */}
                     <div className="flex items-center gap-3 min-w-[140px]">
                         <h1 className="text-xl font-bold text-gray-900 tracking-tight">Projects</h1>
                         <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
                             {filteredProjects.length}
                         </span>
 
-                        {/* Organization Switcher */}
                         {memberships.length > 0 && (
                             <div className="ml-2 relative">
                                 <select
@@ -394,9 +458,7 @@ export default function ProjectsPage() {
                         )}
                     </div>
 
-                    {/* Right: Search, Filter, Action */}
                     <div className="flex items-center gap-3 flex-1 justify-end">
-                        {/* Compact Search */}
                         <div className="relative max-w-xs w-full lg:max-w-sm group transition-all">
                             <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                                 <Search className="w-3.5 h-3.5 text-gray-400 group-focus-within:text-[var(--primary)] transition-colors" />
@@ -410,10 +472,8 @@ export default function ProjectsPage() {
                             />
                         </div>
 
-                        {/* Divider */}
                         <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
 
-                        {/* View Filters */}
                         <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
                             <button
                                 onClick={() => setViewMode('list')}
@@ -441,7 +501,6 @@ export default function ProjectsPage() {
                             </button>
                         </div>
 
-                        {/* Primary Action Button */}
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
                             className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-4 h-8 text-xs rounded-md ml-2 transition-colors duration-200 border border-transparent shadow-sm"
@@ -453,7 +512,6 @@ export default function ProjectsPage() {
                 </div>
             </div>
 
-            {/* Content Area */}
             <div className="flex-1 overflow-hidden p-0 bg-white">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-full space-y-4">
@@ -549,44 +607,74 @@ export default function ProjectsPage() {
                 )}
             </div>
 
-            {/* Context Menu */}
-            {
-                contextMenu && (
-                    <ProjectContextMenu
-                        x={contextMenu.x}
-                        y={contextMenu.y}
-                        onClose={() => setContextMenu(null)}
-                        onInvite={contextMenu.role !== 'VIEWER' ? () => {
-                            setInviteModalState({
-                                isOpen: true,
-                                projectId: contextMenu.projectId,
-                                projectName: contextMenu.projectName
-                            });
-                            setContextMenu(null);
-                        } : undefined}
-                    />
-                )
-            }
+            {contextMenu && (
+                <ProjectContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    onClose={() => setContextMenu(null)}
+                    onDelete={(contextMenu.role === 'OWNER' || contextMenu.role === 'ADMIN') ? handleDeleteClick : undefined}
+                    onEdit={(contextMenu.role === 'OWNER' || contextMenu.role === 'ADMIN') ? () => {
+                        const project = projects.find(p => p.id === contextMenu.projectId);
+                        if (project) {
+                            setEditingProject(project);
+                            setIsCreateModalOpen(true);
+                        }
+                        setContextMenu(null);
+                    } : undefined}
+                    onInvite={contextMenu.role !== 'VIEWER' ? () => {
+                        setInviteModalState({
+                            isOpen: true,
+                            projectId: contextMenu.projectId,
+                            projectName: contextMenu.projectName
+                        });
+                        setContextMenu(null);
+                    } : undefined}
+                />
+            )}
 
-            {/* Invite Modal - Project Level */}
-            {
-                inviteModalState.projectId && (
-                    <SendProjectInviteModal
-                        isOpen={inviteModalState.isOpen}
-                        onClose={() => setInviteModalState({ ...inviteModalState, isOpen: false })}
-                        projectId={inviteModalState.projectId}
-                        projectName={inviteModalState.projectName || 'Project'}
-                    />
-                )
-            }
+            {inviteModalState.projectId && (
+                <SendProjectInviteModal
+                    isOpen={inviteModalState.isOpen}
+                    onClose={() => setInviteModalState({ ...inviteModalState, isOpen: false })}
+                    projectId={inviteModalState.projectId}
+                    projectName={inviteModalState.projectName || 'Project'}
+                />
+            )}
 
-            {/* Create Project Modal */}
             <CreateProjectModal
                 isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                onSubmit={handleCreateProject}
+                onClose={() => {
+                    setIsCreateModalOpen(false);
+                    setEditingProject(null);
+                }}
+                onSubmit={handleProjectFormSubmit}
                 defaultOrgId={selectedOrgId !== 'all' ? selectedOrgId : undefined}
+                initialData={editingProject ? {
+                    name: editingProject.name,
+                    description: editingProject.description || '',
+                    color: editingProject.color || '#3B82F6',
+                    startDate: editingProject.startDate || '',
+                    endDate: editingProject.endDate || '',
+                    access: editingProject.access,
+                    status: editingProject.status,
+                    tags: editingProject.tags.map(t => ({ name: t.name, color: t.color })),
+                    orgId: editingProject.orgId || user?.currentOrgId,
+                } : undefined}
             />
-        </div >
+
+            <ToastContainer />
+
+            <Dialog
+                isOpen={!!deleteDialog}
+                onClose={() => setDeleteDialog(null)}
+                type="warning"
+                title="Delete Project"
+                message={`Are you sure you want to delete "${deleteDialog?.name}"? This action cannot be undone and will remove all tasks and data associated with this project.`}
+                confirmText="Delete Project"
+                confirmVariant="destructive"
+                onConfirm={handleDeleteConfirm}
+                isLoading={isDeleting}
+            />
+        </div>
     );
 }

@@ -347,6 +347,7 @@ export default function ProjectDetailPage() {
                                 onUpdateStatus={handleUpdateTaskStatus}
                                 expandedIds={expandedIds}
                                 onToggleExpand={toggleTaskExpansion}
+                                isEditable={project?.role !== 'VIEWER'}
                                 onCreateSubtask={project?.role !== 'VIEWER' ? (parentTask) => {
                                     setSelectedParentTask(parentTask);
                                     setIsCreateTaskOpen(true);
@@ -358,6 +359,7 @@ export default function ProjectDetailPage() {
                                 allTasks={tasks}
                                 workflow={workflow}
                                 onUpdateStatus={handleUpdateTaskStatus}
+                                isEditable={project?.role !== 'VIEWER'}
                                 onCreateSubtask={project?.role !== 'VIEWER' ? (parentTask) => {
                                     setSelectedParentTask(parentTask);
                                     setIsCreateTaskOpen(true);
@@ -403,9 +405,10 @@ interface TaskTableProps {
     onCreateSubtask?: (parentTask: Task) => void;
     expandedIds: Set<string>;
     onToggleExpand: (taskId: string) => void;
+    isEditable?: boolean;
 }
 
-function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask, expandedIds, onToggleExpand }: TaskTableProps) {
+function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask, expandedIds, onToggleExpand, isEditable = false }: TaskTableProps) {
 
     const gridDisplayData = useMemo(() => {
         const displayRows: any[] = [];
@@ -515,6 +518,7 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
 
     const StatusRenderer = (props: ICellRendererParams) => {
         const task: Task = props.data;
+        const { isEditable } = props.context;
         const allStatuses = workflow.flatMap(stage =>
             stage.statuses.map(status => ({ ...status, stageName: stage.name }))
         );
@@ -523,7 +527,8 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
             <select
                 value={task.status.id}
                 onChange={(e) => onUpdateStatus(task.id, e.target.value)}
-                className="text-xs px-2 py-1 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                disabled={!isEditable}
+                className="text-xs px-2 py-1 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
                 style={{
                     backgroundColor: task.status.id + '20',
                     color: task.status.id,
@@ -697,7 +702,8 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 context={{
                     onToggleExpand,
                     onCreateSubtask,
-                    allTasks
+                    allTasks,
+                    isEditable
                 }}
             />
         </div>
@@ -711,9 +717,10 @@ interface KanbanViewProps {
     workflow: WorkflowStage[];
     onUpdateStatus: (taskId: string, statusId: string) => void;
     onCreateSubtask?: (parentTask: Task) => void;
+    isEditable?: boolean;
 }
 
-function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask }: KanbanViewProps) {
+function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask, isEditable = false }: KanbanViewProps) {
     const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
     const getTasksByStage = (stageId: string) => {
@@ -730,7 +737,7 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
     };
 
     const handleDrop = (stageId: string) => {
-        if (!draggedTask) return;
+        if (!draggedTask || !isEditable) return;
 
         const stage = workflow.find(s => s.id === stageId);
         const defaultStatus = stage?.statuses.find(s => s.isDefault) || stage?.statuses[0];
@@ -779,9 +786,12 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
                                     return (
                                         <div
                                             key={task.id}
-                                            draggable
-                                            onDragStart={() => setDraggedTask(task)}
-                                            className="bg-white border border-gray-200 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow group"
+                                            draggable={isEditable}
+                                            onDragStart={() => isEditable && setDraggedTask(task)}
+                                            className={cn(
+                                                "bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow group relative",
+                                                isEditable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+                                            )}
                                         >
                                             <div className="flex items-start justify-between gap-2 mb-2">
                                                 <h4 className="text-sm font-medium text-gray-900 flex-1">
