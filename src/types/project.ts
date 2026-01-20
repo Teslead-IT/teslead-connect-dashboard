@@ -55,7 +55,7 @@ export interface UpdateProjectPayload {
     endDate?: string;
     access?: 'PRIVATE' | 'PUBLIC';
     status?: ProjectStatus;
-    tags?: string[];
+    tags?: Array<{ name: string; color: string }>;
 }
 
 export interface ProjectResponse {
