@@ -27,6 +27,8 @@ import {
     X,
     ShieldAlert,
     FolderX,
+    Pencil,
+    Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
@@ -37,10 +39,14 @@ import {
     useProjectTasks,
     useProjectWorkflow,
     useCreateTask,
-    useUpdateTaskStatus
+    useUpdateTask,
+    useDeleteTask,
 } from '@/hooks/use-tasks';
-import type { Project, Tag } from '@/types/project';
+import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
+import { TaskContextMenu } from '@/components/tasks/TaskContextMenu';
 import type { Task, WorkflowStage, CreateTaskPayload, TaskPriority } from '@/types/task';
+import { Dialog } from '@/components/ui/Dialog';
+import { useToast, ToastContainer } from '@/components/ui/Toast';
 
 import { Tabs, TabItem } from '@/components/ui/Tabs';
 
@@ -93,15 +99,33 @@ export default function ProjectDetailPage() {
 
     // Mutations
     const createTaskMutation = useCreateTask(projectId);
-    const updateTaskStatusMutation = useUpdateTaskStatus(projectId);
+    // const updateTaskStatusMutation = useUpdateTaskStatus(projectId); // Removed
 
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [activeTab, setActiveTab] = useState('tasks');
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
     const [selectedParentTask, setSelectedParentTask] = useState<Task | null>(null);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [isReadOnly, setIsReadOnly] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null); // For mutation errors
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const [taskContextMenu, setTaskContextMenu] = useState<{
+        task: Task;
+        x: number;
+        y: number;
+    } | null>(null);
+
+    // Delete Dialog State
+    const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; task: Task | null; isDeleting: boolean }>({
+        isOpen: false,
+        task: null,
+        isDeleting: false
+    });
+
+    const updateTaskMutation = useUpdateTask(projectId);
+    const deleteTaskMutation = useDeleteTask(projectId);
+    const toast = useToast();
 
     const toggleTaskExpansion = (taskId: string) => {
         const newExpanded = new Set(expandedIds);
@@ -135,30 +159,87 @@ export default function ProjectDetailPage() {
         return tasks.filter(t => t.parentId === parentId);
     };
 
-    const handleCreateTask = async (taskData: CreateTaskPayload) => {
-        try {
-            await createTaskMutation.mutateAsync(taskData);
+    // Close context menu on click elsewhere
+    useEffect(() => {
+        const handleClick = () => setTaskContextMenu(null);
+        window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, []);
 
-            // Auto-expand parent if creating subtask
-            if (taskData.parentId) {
-                setExpandedIds(prev => new Set(prev).add(taskData.parentId!));
+    const handleTaskContextMenu = (event: React.MouseEvent | any, task: Task) => {
+        // Handle both native MouseEvent and AG Grid params
+        const e = event.event || event;
+        e.preventDefault();
+
+        // Adjust coordinates if needed (AG Grid event might need clientX/Y from the native event)
+        const x = e.clientX;
+        const y = e.clientY;
+
+        setTaskContextMenu({
+            task,
+            x,
+            y
+        });
+    };
+
+    const handleTaskSubmit = async (taskData: CreateTaskPayload) => {
+        try {
+            if (editingTask) {
+                await updateTaskMutation.mutateAsync({
+                    taskId: editingTask.id,
+                    data: taskData
+                });
+            } else {
+                await createTaskMutation.mutateAsync(taskData);
+                // Auto-expand parent if creating subtask
+                if (taskData.parentId) {
+                    setExpandedIds(prev => new Set(prev).add(taskData.parentId!));
+                }
             }
 
             setIsCreateTaskOpen(false);
             setSelectedParentTask(null);
+            setEditingTask(null);
+            setIsReadOnly(false);
         } catch (error: any) {
-            console.error('Failed to create task:', error);
-            // setErrorMessage(error.message); // If you want to show error in main view, or handle in modal
+            console.error('Failed to save task:', error);
             throw error;
         }
     };
 
-    const handleUpdateTaskStatus = async (taskId: string, statusId: string) => {
+    const handleDeleteTask = (taskId: string) => {
+        const taskToDelete = tasks.find(t => t.id === taskId);
+        if (taskToDelete) {
+            setDeleteDialog({ isOpen: true, task: taskToDelete, isDeleting: false });
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteDialog.task) return;
+
+        setDeleteDialog(prev => ({ ...prev, isDeleting: true }));
         try {
-            await updateTaskStatusMutation.mutateAsync({ taskId, data: { statusId } });
+            await deleteTaskMutation.mutateAsync(deleteDialog.task.id);
+            toast.success('Task deleted successfully');
+            setDeleteDialog({ isOpen: false, task: null, isDeleting: false });
+        } catch (error) {
+            console.error('Failed to delete task:', error);
+            toast.error('Failed to delete task', 'An error occurred while deleting the task. Please try again.');
+            setDeleteDialog(prev => ({ ...prev, isDeleting: false }));
+        }
+    };
+
+    const handleUpdateTaskStatus = async (taskId: string, statusId: string) => {
+        const toastId = toast.loading('Updating status...');
+        try {
+            await updateTaskMutation.mutateAsync({
+                taskId,
+                data: { statusId }
+            });
+            toast.success('Status updated successfully', undefined, { id: toastId });
         } catch (error) {
             console.error('Failed to update task status:', error);
-            throw error;
+            toast.error('Failed to update status', undefined, { id: toastId });
         }
     };
 
@@ -324,7 +405,10 @@ export default function ProjectDetailPage() {
                         {/* New Task Button */}
                         {project?.role !== 'VIEWER' && (
                             <button
-                                onClick={() => setIsCreateTaskOpen(true)}
+                                onClick={() => {
+                                    setIsReadOnly(false);
+                                    setIsCreateTaskOpen(true);
+                                }}
                                 className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-3 h-7 text-xs rounded-md ml-2 transition-colors duration-200 border border-transparent shadow-sm"
                             >
                                 <Plus className="w-3 h-3 mr-1" />
@@ -350,8 +434,16 @@ export default function ProjectDetailPage() {
                                 isEditable={project?.role !== 'VIEWER'}
                                 onCreateSubtask={project?.role !== 'VIEWER' ? (parentTask) => {
                                     setSelectedParentTask(parentTask);
+                                    setIsReadOnly(false);
                                     setIsCreateTaskOpen(true);
                                 } : undefined}
+                                onEditTask={project?.role !== 'VIEWER' ? (task) => {
+                                    setEditingTask(task);
+                                    setIsReadOnly(false);
+                                    setIsCreateTaskOpen(true);
+                                } : undefined}
+                                onDeleteTask={project?.role !== 'VIEWER' ? handleDeleteTask : undefined}
+                                onContextMenu={handleTaskContextMenu}
                             />
                         ) : (
                             <KanbanView
@@ -362,8 +454,15 @@ export default function ProjectDetailPage() {
                                 isEditable={project?.role !== 'VIEWER'}
                                 onCreateSubtask={project?.role !== 'VIEWER' ? (parentTask) => {
                                     setSelectedParentTask(parentTask);
+                                    setIsReadOnly(false);
                                     setIsCreateTaskOpen(true);
                                 } : undefined}
+                                onEditTask={project?.role !== 'VIEWER' ? (task) => {
+                                    setEditingTask(task);
+                                    setIsReadOnly(false);
+                                    setIsCreateTaskOpen(true);
+                                } : undefined}
+                                onDeleteTask={project?.role !== 'VIEWER' ? handleDeleteTask : undefined}
                             />
                         )}
                     </div>
@@ -386,16 +485,260 @@ export default function ProjectDetailPage() {
                         onClose={() => {
                             setIsCreateTaskOpen(false);
                             setSelectedParentTask(null);
+                            setEditingTask(null);
+                            setIsReadOnly(false);
                         }}
-                        onSubmit={handleCreateTask}
+                        onSubmit={handleTaskSubmit}
                         workflow={workflow}
                         parentTask={selectedParentTask}
+                        initialData={editingTask || undefined}
+                        isReadOnly={isReadOnly}
                     />
                 )
             }
+            {/* Task Context Menu */}
+            {taskContextMenu && (
+                <TaskContextMenu
+                    x={taskContextMenu.x}
+                    y={taskContextMenu.y}
+                    onClose={() => setTaskContextMenu(null)}
+                    onEdit={project?.role !== 'VIEWER' ? () => {
+                        setEditingTask(taskContextMenu.task);
+                        setIsReadOnly(false);
+                        setIsCreateTaskOpen(true);
+                        setTaskContextMenu(null);
+                    } : undefined}
+                    onDelete={project?.role !== 'VIEWER' ? () => {
+                        handleDeleteTask(taskContextMenu.task.id);
+                        setTaskContextMenu(null);
+                    } : undefined}
+                    onCreateSubtask={project?.role !== 'VIEWER' ? () => {
+                        setSelectedParentTask(taskContextMenu.task);
+                        setIsReadOnly(false);
+                        setIsCreateTaskOpen(true);
+                        setTaskContextMenu(null);
+                    } : undefined}
+                    onViewDetails={() => {
+                        setEditingTask(taskContextMenu.task);
+                        setIsReadOnly(true);
+                        setIsCreateTaskOpen(true);
+                        setTaskContextMenu(null);
+                    }}
+                />
+            )}
+
+            <ToastContainer />
+
+            <Dialog
+                isOpen={deleteDialog.isOpen}
+                onClose={() => setDeleteDialog({ isOpen: false, task: null, isDeleting: false })}
+                type="warning"
+                title="Delete Task"
+                message={`Are you sure you want to delete "${deleteDialog.task?.title}"?`}
+                description="This action cannot be undone. If this task has any subtasks, they will also be permanently deleted."
+                confirmText="Delete Task"
+                confirmVariant="destructive"
+                onConfirm={handleConfirmDelete}
+                isLoading={deleteDialog.isDeleting}
+            />
         </div >
     );
 }
+// ==================== RENDERERS ====================
+
+const TaskNameRenderer = (props: ICellRendererParams) => {
+    const { onToggleExpand, onCreateSubtask, allTasks } = props.context;
+    const task = props.data;
+    // Don't fetch subtasks here for layout, used pre-calculated hierarchy props
+    const level = task.level || 0;
+    const hasChildren = task.hasChildren;
+    const isExpanded = task.isExpanded;
+
+    // For the subtask count badge
+    const subtasks = allTasks.filter((t: Task) => t.parentId === task.id);
+    const completedSubtasks = subtasks.filter((st: Task) =>
+        st.status.name.toLowerCase().includes('done') ||
+        st.status.name.toLowerCase().includes('complete')
+    ).length;
+
+    return (
+        <div className="flex items-center h-full" style={{ paddingLeft: `${level * 24}px` }}>
+            {/* Toggle Button or Spacer */}
+            <div className="w-6 flex-shrink-0 flex items-center justify-center mr-1">
+                {hasChildren && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleExpand(task.id);
+                        }}
+                        className="p-0.5 hover:bg-gray-100 rounded text-gray-500 transition-colors"
+                    >
+                        {isExpanded ? (
+                            <ChevronDown className="w-4 h-4" />
+                        ) : (
+                            <ChevronRight className="w-4 h-4" />
+                        )}
+                    </button>
+                )}
+            </div>
+
+            <div className="flex-1 min-w-0 py-1">
+                <div className="flex items-center gap-2">
+                    <span className={cn(
+                        "font-medium text-sm truncate",
+                        level > 0 ? "text-gray-700" : "text-gray-900"
+                    )}>
+                        {task.title}
+                    </span>
+                    {hasChildren && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 border border-gray-100 rounded text-[10px] text-gray-500 font-medium">
+                            <CheckSquare className="w-3 h-3" />
+                            {completedSubtasks}/{subtasks.length}
+                        </span>
+                    )}
+                </div>
+                {task.description && (
+                    <div className="text-xs text-gray-500 truncate mt-0.5 pl-0">{task.description}</div>
+                )}
+            </div>
+
+            {/* Quick Add Subtask (any level) */}
+            {onCreateSubtask && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onCreateSubtask(task);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-50 text-gray-400 hover:text-[var(--primary)] rounded transition-all ml-2"
+                    title="Add subtask"
+                >
+                    <Plus className="w-4 h-4" />
+                </button>
+            )}
+        </div>
+    );
+};
+
+const StatusRenderer = (props: ICellRendererParams) => {
+    const task: Task = props.data;
+    const { isEditable, workflow, onUpdateStatus } = props.context;
+
+    // Flatten workflow statuses for the select options
+    const allStatuses = useMemo(() => {
+        return workflow.flatMap((stage: any) =>
+            stage.statuses.map((status: any) => ({ ...status, stageName: stage.name }))
+        );
+    }, [workflow]);
+
+    const currentStatus = allStatuses.find((s: any) => s.id === task.status.id);
+    const statusName = currentStatus?.name || task.status.name || 'Unknown';
+    const statusColor = currentStatus?.color || '#64748b'; // Default to slate-500 if no color
+
+    // Generate styles dynamically based on backend color
+    // Assuming backend returns HEX colors, we append alpha for transparency
+    const statusStyle = {
+        backgroundColor: `${statusColor}20`, // ~12% opacity
+        color: statusColor,
+        borderColor: `${statusColor}40`, // ~25% opacity
+    };
+
+    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newStatusId = e.target.value;
+        if (newStatusId !== task.status.id) {
+            onUpdateStatus(task.id, newStatusId);
+        }
+    };
+
+    if (!isEditable) {
+        return (
+            <div className="status-select-wrapper">
+                <span
+                    className="status-select-base inline-flex items-center justify-center cursor-default hover:opacity-100"
+                    style={statusStyle}
+                >
+                    {statusName}
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="status-select-wrapper" onClick={(e) => e.stopPropagation()}>
+            <select
+                value={task.status.id}
+                onChange={handleStatusChange}
+                className="status-select-base"
+                style={{
+                    ...statusStyle,
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none'
+                }}
+            >
+                {allStatuses.map((status: any) => (
+                    <option key={status.id} value={status.id}>
+                        {status.name}
+                    </option>
+                ))}
+            </select>
+            <ChevronDown className="status-select-icon" style={{ color: statusColor }} />
+        </div>
+    );
+};
+
+const PriorityRenderer = (props: ICellRendererParams) => {
+    const priority: TaskPriority = props.value;
+    return (
+        <div className="flex items-center gap-1.5">
+            <span
+                className={cn(
+                    'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium',
+                    PRIORITY_COLORS[priority]
+                )}
+            >
+                <Flag className="w-3 h-3" />
+                {PRIORITY_LABELS[priority]}
+            </span>
+        </div>
+    );
+};
+
+const DueDateRenderer = (props: ICellRendererParams) => {
+    const date = props.value;
+    if (!date) return <span className="text-gray-300 text-xs">-</span>;
+
+    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+
+    const isPast = new Date(date) < new Date();
+
+    return (
+        <span className={cn('text-xs', isPast ? 'text-red-600 font-medium' : 'text-gray-600')}>
+            {formattedDate}
+        </span>
+    );
+};
+
+const AssigneeRenderer = (props: ICellRendererParams) => {
+    const count = props.value?.length || 0;
+    if (count === 0) return <span className="text-gray-300 text-xs">-</span>;
+    return (
+        <div className="flex items-center gap-1">
+            <User className="w-3 h-3 text-gray-400" />
+            <span className="text-xs text-gray-600">{count}</span>
+        </div>
+    );
+};
+
+const DEFAULT_COL_DEF = {
+    sortable: true,
+    filter: true,
+    resizable: true,
+    headerClass: 'bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
+};
+
 // Task Table Component
 interface TaskTableProps {
     tasks: Task[];
@@ -406,9 +749,12 @@ interface TaskTableProps {
     expandedIds: Set<string>;
     onToggleExpand: (taskId: string) => void;
     isEditable?: boolean;
+    onEditTask?: (task: Task) => void;
+    onDeleteTask?: (taskId: string) => void;
+    onContextMenu: (event: any, task: Task) => void;
 }
 
-function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask, expandedIds, onToggleExpand, isEditable = false }: TaskTableProps) {
+function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask, onEditTask, onDeleteTask, onContextMenu, expandedIds, onToggleExpand, isEditable = false }: TaskTableProps) {
 
     const gridDisplayData = useMemo(() => {
         const displayRows: any[] = [];
@@ -441,143 +787,6 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
         return displayRows;
     }, [tasks, allTasks, expandedIds]);
 
-    // Toggle logic is now lifted up
-
-    const TaskNameRenderer = (props: ICellRendererParams) => {
-        const { onToggleExpand, onCreateSubtask, allTasks } = props.context;
-        const task = props.data;
-        // Don't fetch subtasks here for layout, used pre-calculated hierarchy props
-        const level = task.level || 0;
-        const hasChildren = task.hasChildren;
-        const isExpanded = task.isExpanded;
-
-        // For the subtask count badge
-        const subtasks = allTasks.filter((t: Task) => t.parentId === task.id);
-        const completedSubtasks = subtasks.filter((st: Task) =>
-            st.status.name.toLowerCase().includes('done') ||
-            st.status.name.toLowerCase().includes('complete')
-        ).length;
-
-        return (
-            <div className="flex items-center h-full" style={{ paddingLeft: `${level * 24}px` }}>
-                {/* Toggle Button or Spacer */}
-                <div className="w-6 flex-shrink-0 flex items-center justify-center mr-1">
-                    {hasChildren && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onToggleExpand(task.id);
-                            }}
-                            className="p-0.5 hover:bg-gray-100 rounded text-gray-500 transition-colors"
-                        >
-                            {isExpanded ? (
-                                <ChevronDown className="w-4 h-4" />
-                            ) : (
-                                <ChevronRight className="w-4 h-4" />
-                            )}
-                        </button>
-                    )}
-                </div>
-
-                <div className="flex-1 min-w-0 py-1">
-                    <div className="flex items-center gap-2">
-                        <span className={cn(
-                            "font-medium text-sm truncate",
-                            level > 0 ? "text-gray-700" : "text-gray-900"
-                        )}>
-                            {task.title}
-                        </span>
-                        {hasChildren && (
-                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 border border-gray-100 rounded text-[10px] text-gray-500 font-medium">
-                                <CheckSquare className="w-3 h-3" />
-                                {completedSubtasks}/{subtasks.length}
-                            </span>
-                        )}
-                    </div>
-                    {task.description && (
-                        <div className="text-xs text-gray-500 truncate mt-0.5 pl-0">{task.description}</div>
-                    )}
-                </div>
-
-                {/* Quick Add Subtask (any level) */}
-                {onCreateSubtask && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onCreateSubtask(task);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-50 text-gray-400 hover:text-[var(--primary)] rounded transition-all ml-2"
-                        title="Add subtask"
-                    >
-                        <Plus className="w-4 h-4" />
-                    </button>
-                )}
-            </div>
-        );
-    };
-
-    const StatusRenderer = (props: ICellRendererParams) => {
-        const task: Task = props.data;
-        const { isEditable } = props.context;
-        const allStatuses = workflow.flatMap(stage =>
-            stage.statuses.map(status => ({ ...status, stageName: stage.name }))
-        );
-
-        return (
-            <select
-                value={task.status.id}
-                onChange={(e) => onUpdateStatus(task.id, e.target.value)}
-                disabled={!isEditable}
-                className="text-xs px-2 py-1 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
-                style={{
-                    backgroundColor: task.status.id + '20',
-                    color: task.status.id,
-                }}
-            >
-                {allStatuses.map((status) => (
-                    <option key={status.id} value={status.id}>
-                        {status.stageName} - {status.name}
-                    </option>
-                ))}
-            </select>
-        );
-    };
-
-    const PriorityRenderer = (props: ICellRendererParams) => {
-        const priority: TaskPriority = props.value;
-        return (
-            <div className="flex items-center gap-1.5">
-                <span
-                    className={cn(
-                        'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium',
-                        PRIORITY_COLORS[priority]
-                    )}
-                >
-                    <Flag className="w-3 h-3" />
-                    {PRIORITY_LABELS[priority]}
-                </span>
-            </div>
-        );
-    };
-
-    const DueDateRenderer = (props: ICellRendererParams) => {
-        const date = props.value;
-        if (!date) return <span className="text-gray-300 text-xs">-</span>;
-
-        const formattedDate = new Date(date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-        });
-
-        const isPast = new Date(date) < new Date();
-
-        return (
-            <span className={cn('text-xs', isPast ? 'text-red-600 font-medium' : 'text-gray-600')}>
-                {formattedDate}
-            </span>
-        );
-    };
-
     const columnDefs: ColDef[] = useMemo(
         () => [
             {
@@ -588,7 +797,6 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 cellClass: 'text-gray-500 font-medium text-[11px] flex items-center justify-center',
                 suppressMenu: true,
             },
-            // Task Table: Make Status flexible
             {
                 field: 'title',
                 headerName: 'TASK',
@@ -601,7 +809,7 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 field: 'status',
                 headerName: 'STATUS',
                 width: 200,
-                flex: 0.5, // Allow status to grow slightly
+                flex: 0.5,
                 cellRenderer: StatusRenderer,
             },
             {
@@ -620,19 +828,10 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 field: 'assigneeIds',
                 headerName: 'ASSIGNEES',
                 width: 120,
-                cellRenderer: (props: ICellRendererParams) => {
-                    const count = props.value?.length || 0;
-                    if (count === 0) return <span className="text-gray-300 text-xs">-</span>;
-                    return (
-                        <div className="flex items-center gap-1">
-                            <User className="w-3 h-3 text-gray-400" />
-                            <span className="text-xs text-gray-600">{count}</span>
-                        </div>
-                    );
-                },
+                cellRenderer: AssigneeRenderer,
             },
         ],
-        [workflow] // context handles updates for callbacks
+        [] // No dependencies as renderers are external and context is passed via grid
     );
 
     return (
@@ -666,6 +865,12 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 .custom-ag-grid .ag-row {
                     border-bottom: 1px solid #f1f5f9;
                     background-color: #ffffff;
+                    z-index: 0; /* Default stacking order */
+                }
+                /* Raise z-index on hover so dropdowns in cells render on top of subsequent rows */
+                .custom-ag-grid .ag-row:hover {
+                    background-color: #f8fafc !important;
+                    z-index: 50;
                 }
                 .custom-ag-grid .ag-cell {
                     padding-left: 16px;
@@ -675,10 +880,9 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                     color: #0f172a;
                     font-size: 13px;
                     font-weight: 500;
+                    overflow: visible !important; /* Critical: Allow dropdowns to overflow limits */
                 }
-                .custom-ag-grid .ag-row:hover {
-                    background-color: #f8fafc !important;
-                }
+                
                 .custom-ag-grid .ag-row-selected {
                     background-color: #eff6ff !important;
                 }
@@ -686,23 +890,30 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
             <AgGridReact
                 rowData={gridDisplayData}
                 columnDefs={columnDefs}
-                defaultColDef={{
-                    sortable: true,
-                    filter: true,
-                    resizable: true,
-                    headerClass: 'bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
-                }}
+                defaultColDef={DEFAULT_COL_DEF}
                 rowHeight={60}
                 headerHeight={40}
                 animateRows={true}
                 pagination={true}
                 paginationPageSize={20}
                 paginationPageSizeSelector={[20, 50, 100]}
+                className="ag-theme-alpine"
                 theme="legacy"
+                onCellContextMenu={(params) => {
+                    if (params.data) {
+                        onContextMenu(params.event, params.data);
+                    }
+                }}
+                preventDefaultOnContextMenu={true}
+                suppressRowClickSelection={true}
                 context={{
                     onToggleExpand,
                     onCreateSubtask,
+                    onEditTask,
+                    onDeleteTask,
+                    onUpdateStatus,
                     allTasks,
+                    workflow,
                     isEditable
                 }}
             />
@@ -718,9 +929,11 @@ interface KanbanViewProps {
     onUpdateStatus: (taskId: string, statusId: string) => void;
     onCreateSubtask?: (parentTask: Task) => void;
     isEditable?: boolean;
+    onEditTask?: (task: Task) => void;
+    onDeleteTask?: (taskId: string) => void;
 }
 
-function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask, isEditable = false }: KanbanViewProps) {
+function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask, onEditTask, onDeleteTask, isEditable = false }: KanbanViewProps) {
     const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
     const getTasksByStage = (stageId: string) => {
@@ -797,14 +1010,38 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
                                                 <h4 className="text-sm font-medium text-gray-900 flex-1">
                                                     {task.title}
                                                 </h4>
-                                                {onCreateSubtask && (
-                                                    <button
-                                                        onClick={() => onCreateSubtask(task)}
-                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-all text-gray-400 hover:text-blue-600"
-                                                    >
-                                                        <Plus className="w-4 h-4" />
-                                                    </button>
-                                                )}
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {onEditTask && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
+                                                            className="p-1 hover:bg-blue-50 hover:text-blue-600 text-gray-400 rounded transition-colors"
+                                                            title="Edit Task"
+                                                        >
+                                                            <Pencil className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+                                                    {onDeleteTask && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
+                                                            className="p-1 hover:bg-red-50 hover:text-red-600 text-gray-400 rounded transition-colors"
+                                                            title="Delete Task"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+                                                    {onCreateSubtask && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                onCreateSubtask(task);
+                                                            }}
+                                                            className="p-1 hover:bg-gray-100 rounded transition-all text-gray-400 hover:text-blue-600"
+                                                            title="Add Subtask"
+                                                        >
+                                                            <Plus className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             {task.description && (
@@ -830,6 +1067,7 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
                                                         {new Date(task.dueDate).toLocaleDateString('en-US', {
                                                             month: 'short',
                                                             day: 'numeric',
+                                                            year: 'numeric',
                                                         })}
                                                     </span>
                                                 )}
@@ -895,168 +1133,4 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
 }
 
 // Create Task Modal
-interface CreateTaskModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSubmit: (data: CreateTaskPayload) => Promise<void>;
-    workflow: WorkflowStage[];
-    parentTask?: Task | null;
-}
 
-function CreateTaskModal({ isOpen, onClose, onSubmit, workflow, parentTask }: CreateTaskModalProps) {
-    const [formData, setFormData] = useState<CreateTaskPayload>({
-        title: '',
-        description: '',
-        priority: 3,
-        statusId: workflow[0]?.statuses.find(s => s.isDefault)?.id || workflow[0]?.statuses[0]?.id || '',
-        dueDate: '',
-        assigneeIds: [],
-        parentId: parentTask?.id || null,
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const allStatuses = workflow.flatMap(stage =>
-        stage.statuses.map(status => ({ ...status, stageName: stage.name }))
-    );
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!formData.title.trim()) {
-            setError('Task title is required');
-            return;
-        }
-
-        setIsSubmitting(true);
-        setError(null);
-
-        try {
-            await onSubmit(formData);
-        } catch (err) {
-            setError('Failed to create task. Please try again.');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 z-50 flex justify-end">
-            <div
-                className="fixed inset-0 bg-black/30 backdrop-blur-[2px] transition-opacity duration-300"
-            // onClick={onClose}
-            />
-            <div className="relative w-full max-w-xl bg-white shadow-2xl h-full flex flex-col transform transition-transform duration-500 ease-out translate-x-0">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
-                    <h2 className="text-lg font-semibold text-gray-900">
-                        {parentTask ? `Add Subtask to "${parentTask.title}"` : 'Create New Task'}
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        className="p-1.5 rounded-md cursor-pointer text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto">
-                    <form className="p-6 space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Title <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.title}
-                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                placeholder="Enter task title"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={4}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
-                                placeholder="Enter task description"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Status <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                value={formData.statusId}
-                                onChange={(e) => setFormData({ ...formData, statusId: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                            >
-                                {allStatuses.map((status) => (
-                                    <option key={status.id} value={status.id}>
-                                        {status.stageName} - {status.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                                <select
-                                    value={formData.priority}
-                                    onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) as TaskPriority })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                >
-                                    <option value={1}>Lowest</option>
-                                    <option value={2}>Low</option>
-                                    <option value={3}>Medium</option>
-                                    <option value={4}>High</option>
-                                    <option value={5}>Critical</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
-                                <input
-                                    type="date"
-                                    value={formData.dueDate}
-                                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                />
-                            </div>
-                        </div>
-
-                        {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-100">{error}</p>}
-                    </form>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-white">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        disabled={isSubmitting}
-                        className="px-4 py-2 text-sm cursor-pointer font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || !formData.title.trim()}
-                        className="px-6 py-2 cursor-pointer text-sm font-medium text-white bg-[var(--primary)] rounded-md hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center min-w-[100px]"
-                    >
-                        {isSubmitting ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                            parentTask ? 'Add Subtask' : 'Create Task'
-                        )}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
