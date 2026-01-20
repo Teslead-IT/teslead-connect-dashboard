@@ -390,7 +390,7 @@ export default function ProjectsPage() {
                         endDate: projectData.endDate,
                         access: projectData.access,
                         status: projectData.status,
-                        tags: projectData.tags?.map(t => t.name)
+                        tags: projectData.tags
                     }
                 });
                 toast.success('Project updated successfully', undefined, { id: toastId, soundEnabled: true });
