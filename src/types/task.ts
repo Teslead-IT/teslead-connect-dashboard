@@ -52,10 +52,8 @@ export interface UpdateTaskPayload {
     priority?: TaskPriority;
     dueDate?: string;
     assigneeIds?: string[];
-}
-
-export interface UpdateTaskStatusPayload {
-    statusId: string;
+    statusId?: string;
+    parentId?: string | null;
 }
 
 export interface TaskResponse extends Task { }

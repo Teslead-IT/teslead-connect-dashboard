@@ -7,7 +7,7 @@ interface LoaderProps {
     size?: number; // Size in pixels
 }
 
-export function Loader({ className, size = 300 }: LoaderProps) {
+export function Loader({ className, size = 80 }: LoaderProps) {
     return (
         <div
             className={`flex items-center justify-center ${className || ''}`}

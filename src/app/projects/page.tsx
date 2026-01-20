@@ -38,6 +38,16 @@ import type { Project, Tag } from '@/types/project';
 type ViewMode = 'list' | 'kanban';
 
 // ==================== MAIN COMPONENT ====================
+const PROJECT_STATUS_OPTIONS = [
+    { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-slate-50 text-slate-700 border-slate-200' },
+    { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+    { value: 'ON_HOLD', label: 'On Hold', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+    { value: 'COMPLETED', label: 'Completed', color: 'bg-green-50 text-green-700 border-green-200' },
+    { value: 'CANCELLED', label: 'Cancelled', color: 'bg-red-50 text-red-700 border-red-200' },
+];
+
+
+
 export default function ProjectsPage() {
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [searchQuery, setSearchQuery] = useState('');
@@ -137,13 +147,24 @@ export default function ProjectsPage() {
         }
     };
 
-    // Filter projects
     const filteredProjects = useMemo(() => {
         return projects.filter(project =>
             project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
         );
     }, [projects, searchQuery]);
+
+    const handleUpdateProjectStatus = useCallback(async (projectId: string, newStatus: string) => {
+        try {
+            await updateProjectMutation.mutateAsync({
+                id: projectId,
+                data: { status: newStatus as any }
+            });
+            toast.success('Project status updated');
+        } catch (error) {
+            toast.error('Failed to update status');
+        }
+    }, [updateProjectMutation, toast]);
 
     // ==================== CELL RENDERERS ====================
     const ProjectNameRenderer = (props: ICellRendererParams) => {
@@ -245,18 +266,61 @@ export default function ProjectsPage() {
 
     const StatusRenderer = (props: ICellRendererParams) => {
         const status = props.value;
-        const isCompleted = status === 'COMPLETED';
+        const role = props.data.role;
+        const isViewer = role === 'VIEWER';
+        const { onUpdateStatus } = props.context || {};
+        const [isEditing, setIsEditing] = useState(false);
+
+        const statusConfig = PROJECT_STATUS_OPTIONS.find(s => s.value === status) || {
+            value: status,
+            label: status,
+            color: 'bg-gray-50 text-gray-600 border-gray-200'
+        };
+
+        const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+            const newStatus = e.target.value;
+            if (newStatus !== status && onUpdateStatus) {
+                onUpdateStatus(props.data.id, newStatus);
+            }
+            setIsEditing(false);
+        };
+
+        if (isViewer) {
+            return (
+                <div className="h-full flex items-center">
+                    <span className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
+                        status === 'COMPLETED'
+                            ? 'bg-green-50 text-green-600 border-green-200'
+                            : 'bg-gray-50 text-gray-600 border-gray-200'
+                    )}>
+                        {statusConfig.label}
+                    </span>
+                </div>
+            );
+        }
 
         return (
-            <div className="h-full flex items-center">
-                <span className={cn(
-                    "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
-                    isCompleted
-                        ? 'bg-green-50 text-green-600 border-green-200'
-                        : 'bg-gray-50 text-gray-600 border-gray-200'
-                )}>
-                    {status}
-                </span>
+            <div className="status-select-wrapper group/status" onClick={(e) => e.stopPropagation()}>
+                <select
+                    value={status}
+                    onChange={handleChange}
+                    className={cn(
+                        "status-select-base",
+                        statusConfig.color
+                    )}
+                    style={{
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'none'
+                    }}
+                >
+                    {PROJECT_STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </option>
+                    ))}
+                </select>
+                <ChevronDown className="status-select-icon" />
             </div>
         );
     };
@@ -582,7 +646,7 @@ export default function ProjectsPage() {
                                 rowData={filteredProjects}
                                 columnDefs={columnDefs}
                                 defaultColDef={defaultColDef}
-
+                                context={{ onUpdateStatus: handleUpdateProjectStatus }}
                                 rowHeight={48}
                                 headerHeight={40}
                                 pagination={true}

@@ -4,7 +4,6 @@ import type {
     Task,
     CreateTaskPayload,
     UpdateTaskPayload,
-    UpdateTaskStatusPayload,
     TasksResponse,
     TaskResponse,
 } from '@/types/task';
@@ -60,16 +59,7 @@ export const taskService = {
         return response.data;
     },
 
-    /**
-     * Update task status
-     * @param taskId - Task ID
-     * @param payload - Status update data
-     * @returns Updated task
-     */
-    async updateTaskStatus(taskId: string, payload: UpdateTaskStatusPayload): Promise<TaskResponse> {
-        const response = await apiClient.patch<TaskResponse>(`/tasks/${taskId}/status`, payload);
-        return response.data;
-    },
+
 
     /**
      * Delete a task
