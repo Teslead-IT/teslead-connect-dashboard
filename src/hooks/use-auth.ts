@@ -29,7 +29,7 @@ export const authKeys = {
 
 /**
  * Hook: Get Current User
- * Fetches user data from local storage
+ * Fetches user data from backend, with smart caching
  */
 export function useUser() {
     return useQuery({
@@ -49,13 +49,21 @@ export function useUser() {
                 return null;
             } catch (error) {
                 // If API fails (e.g. network), fall back to storage
-                return tokenStorage.getUser() as User | null;
+                const cachedUser = tokenStorage.getUser() as User | null;
+                // If cached user exists, return it; otherwise return null
+                return cachedUser;
             }
         },
-        initialData: () => tokenStorage.getUser() as User | null,
-        // Mark as stale immediately/shortly so it tries to fetch on mount
-        staleTime: 0,
+        // Use cached data as placeholder while fetching
+        placeholderData: () => tokenStorage.getUser() as User | null,
+        // Refetch on mount if data is stale
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        // Keep cache indefinitely
         gcTime: Infinity,
+        // Retry only once on failure
+        retry: 1,
+        // Don't refetch on window focus during auth transitions
+        refetchOnWindowFocus: false,
     });
 }
 
@@ -195,11 +203,17 @@ export function useLogout() {
     const router = useRouter();
 
     return useMutation({
-        mutationFn: authApi.logout,
-        onSuccess: () => {
-            // Clear tokens
+        mutationFn: async () => {
+            // Immediately clear user cache to prevent showing authenticated state
+            queryClient.setQueryData(authKeys.user(), null);
+
+            // Clear tokens from storage
             clearAuthTokens();
 
+            // Call backend logout
+            return authApi.logout();
+        },
+        onSuccess: () => {
             // Clear all cached data
             queryClient.clear();
 
@@ -210,7 +224,6 @@ export function useLogout() {
         },
         onError: () => {
             // Even on error, clear local state and redirect
-            clearAuthTokens();
             queryClient.clear();
 
             if (typeof window !== 'undefined') {

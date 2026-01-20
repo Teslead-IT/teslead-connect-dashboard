@@ -23,12 +23,16 @@ function LoginPageContent() {
     const returnTo = searchParams.get('returnTo') || '/dashboard';
 
     const { user: auth0User, isLoading: isAuth0Loading } = useAuth0User();
-    const { data: backendUser, isLoading: isBackendLoading } = useUser();
+    const { data: backendUser, isLoading: isBackendLoading, isFetching } = useUser();
 
     useEffect(() => {
-        // Only redirect if valid backend session exists (tokens are present)
-        // We ignore auth0User independent check to prevent infinite loops when tokens are missing
-        const isBackendLoggedIn = !isBackendLoading && backendUser;
+        // Wait for both Auth0 and backend checks to complete before deciding
+        if (isAuth0Loading || isBackendLoading || isFetching) {
+            return; // Still loading, don't redirect yet
+        }
+
+        // Only redirect if we have a valid backend session (both user and tokens)
+        const isBackendLoggedIn = backendUser && !isBackendLoading;
 
         if (isBackendLoggedIn) {
             // If unverified, don't redirect (allow modal to show)
@@ -37,7 +41,7 @@ function LoginPageContent() {
             }
             router.replace(returnTo);
         }
-    }, [backendUser, isBackendLoading, router, returnTo]);
+    }, [backendUser, isBackendLoading, isFetching, isAuth0Loading, router, returnTo]);
 
     const { mutate: login, isPending: isLoading, error } = useLogin();
 
@@ -82,7 +86,8 @@ function LoginPageContent() {
     const errorMessage = error ? (error as any)?.response?.data?.message || (error as any)?.message || 'Login failed' : null;
 
     // Show loader while checking auth status to avoid flicker
-    if (isAuth0Loading || isBackendLoading) {
+    // Include isFetching to show loader during token sync
+    if (isAuth0Loading || isBackendLoading || isFetching) {
         return (
             <div className="h-screen w-full flex items-center justify-center bg-white">
                 <Loader size={200} />
