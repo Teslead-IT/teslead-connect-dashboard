@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { Dialog } from '@/components/ui/Dialog';
 import { useLogout } from '@/hooks/use-auth';
 import { useSidebar } from '@/context/SidebarContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -57,14 +58,13 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
     const { isCollapsed, toggleSidebar } = useSidebar();
     const pathname = usePathname();
     const { mutate: logout, isPending: isLoggingOut } = useLogout();
 
     const handleLogout = () => {
-        if (confirm('Are you sure you want to logout?')) {
-            logout();
-        }
+        setIsLogoutDialogOpen(true);
     };
 
     const SidebarContent = () => (
@@ -206,6 +206,7 @@ export function Sidebar() {
                 <SidebarContent />
             </motion.aside>
 
+
             {/* Mobile Sidebar (Fixed w-64) */}
             <aside
                 className={cn(
@@ -216,6 +217,20 @@ export function Sidebar() {
             >
                 <SidebarContent />
             </aside>
+
+            {/* Logout Dialog */}
+            <Dialog
+                isOpen={isLogoutDialogOpen}
+                onClose={() => setIsLogoutDialogOpen(false)}
+                type="confirmation"
+                title="Confirm Logout"
+                message="Are you sure you want to log out of specific session?"
+                confirmText="Logout"
+                cancelText="Cancel"
+                confirmVariant="destructive"
+                onConfirm={logout}
+                isLoading={isLoggingOut}
+            />
         </>
     );
 }

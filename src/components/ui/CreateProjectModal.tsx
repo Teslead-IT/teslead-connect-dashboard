@@ -47,6 +47,7 @@ export interface CreateProjectModalProps {
     onClose: () => void;
     onSubmit: (projectData: ProjectFormData) => void | Promise<void>;
     defaultOrgId?: string;
+    initialData?: ProjectFormData;
 }
 
 // Helper: Hex to RGB
@@ -190,7 +191,7 @@ function ColorPicker({ color, onChange }: ColorPickerProps) {
     );
 }
 
-export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId }: CreateProjectModalProps) {
+export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, initialData }: CreateProjectModalProps) {
     const [formData, setFormData] = useState<ProjectFormData>({
         name: '',
         description: '',
@@ -212,9 +213,10 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId }: 
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // Reset form when modal closes
+    // Reset form when modal closes or opens with new data
     useEffect(() => {
         if (!isOpen) {
+            // Reset logic when closing...
             setFormData({
                 name: '',
                 description: '',
@@ -229,14 +231,22 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId }: 
             setErrors({});
             setTagInput('');
             setTagColor('#10B981');
+        } else if (initialData) {
+            // Populate form with initial data for editing
+            setFormData({
+                ...initialData,
+                // Ensure dates are in YYYY-MM-DD format for input[type="date"]
+                startDate: initialData.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : '',
+                endDate: initialData.endDate ? new Date(initialData.endDate).toISOString().split('T')[0] : '',
+            });
         } else {
-            // Set default org if not set (e.g. on first open) or if priority changed
+            // Default logic for new project...
             if ((!formData.orgId || formData.orgId === 'all') && user?.currentOrgId) {
                 const targetOrg = (defaultOrgId && defaultOrgId !== 'all') ? defaultOrgId : user.currentOrgId;
                 setFormData(prev => ({ ...prev, orgId: targetOrg }));
             }
         }
-    }, [isOpen, user?.currentOrgId, defaultOrgId]);
+    }, [isOpen, initialData, user?.currentOrgId, defaultOrgId]);
 
     // Prevent body scroll when modal is open
     useEffect(() => {
@@ -406,7 +416,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId }: 
                                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
                                     />
-                                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    {/* <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" /> */}
                                 </div>
                             </div>
                             <div>
@@ -425,7 +435,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId }: 
                                             errors.endDate ? "border-red-300" : "border-gray-300"
                                         )}
                                     />
-                                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    {/* <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" /> */}
                                 </div>
                                 {errors.endDate && <p className="text-xs text-red-500 mt-1">{errors.endDate}</p>}
                             </div>
