@@ -89,7 +89,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
 
         try {
             // Update task status
-            const updatedTask = await taskService.updateTaskStatus(draggedTask.id, {
+            const updatedTask = await taskService.updateTask(draggedTask.id, {
                 statusId: status.id,
             });
 
