@@ -9,7 +9,7 @@ import { NotificationBell } from '@/components/notifications';
 import { SendInviteModal } from '@/components/invitations';
 
 export function TopNav() {
-    const { data: backendUser } = useUser();
+    const { data: backendUser, isLoading } = useUser();
     const { user: auth0User } = useAuth0User();
     const [isScrolled, setIsScrolled] = React.useState(false);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -24,10 +24,10 @@ export function TopNav() {
     // Prioritize Backend data, fallback to Auth0 data
     const displayName = backendUser?.name || auth0User?.name || backendUser?.username || backendUser?.email?.split('@')[0] || auth0User?.nickname || 'User';
     const displayAvatar = backendUser?.avatarUrl || auth0User?.picture;
-    const currentOrgId = backendUser?.currentOrgId || backendUser?.memberships?.[0]?.orgId || 'org_123';
+    const currentOrgId = backendUser?.currentOrgId || backendUser?.memberships?.[0]?.orgId;
     const currentMembership = backendUser?.memberships?.find(m => m.orgId === currentOrgId);
     const orgName = currentMembership?.orgName;
-    const userRole = currentMembership?.role || backendUser?.role || 'Member';
+    const userRole = currentMembership?.role || backendUser?.role; // Don't default to 'Member' yet
 
     return (
         <header
@@ -103,7 +103,11 @@ export function TopNav() {
                                 {displayName}
                             </span>
                             <span className="text-[10px] font-medium text-gray-400 uppercase tracking-tighter">
-                                {userRole}
+                                {isLoading ? (
+                                    <span className="animate-pulse bg-gray-200 h-3 w-12 block rounded" />
+                                ) : (
+                                    userRole || 'Owner'
+                                )}
                             </span>
                         </div>
                         <div className="relative">
@@ -129,7 +133,7 @@ export function TopNav() {
             <SendInviteModal
                 isOpen={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
-                orgId={currentOrgId}
+                orgId={currentOrgId || ''}
                 orgName={orgName || 'Organization'}
             />
         </header>
