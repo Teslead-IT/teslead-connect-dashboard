@@ -268,11 +268,12 @@ export default function ProjectsPage() {
 
 
     const StatusRenderer = (props: ICellRendererParams) => {
-        const status = props.value;
-        const role = props.data.role;
-        const isViewer = role === 'VIEWER';
+        const { value: status, data } = props;
+        const role = data.role;
+        // User requested: "inline status edit allowed to only for role admin...for member and viewer dont allow"
+        // We include OWNER as they should have full permissions.
+        const canEdit = role === 'ADMIN' || role === 'OWNER';
         const { onUpdateStatus } = props.context || {};
-        const [isEditing, setIsEditing] = useState(false);
 
         const statusConfig = PROJECT_STATUS_OPTIONS.find(s => s.value === status) || {
             value: status,
@@ -283,19 +284,16 @@ export default function ProjectsPage() {
         const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
             const newStatus = e.target.value;
             if (newStatus !== status && onUpdateStatus) {
-                onUpdateStatus(props.data.id, newStatus);
+                onUpdateStatus(data.id, newStatus);
             }
-            setIsEditing(false);
         };
 
-        if (isViewer) {
+        if (!canEdit) {
             return (
                 <div className="h-full flex items-center">
                     <span className={cn(
                         "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
-                        status === 'COMPLETED'
-                            ? 'bg-green-50 text-green-600 border-green-200'
-                            : 'bg-gray-50 text-gray-600 border-gray-200'
+                        statusConfig.color
                     )}>
                         {statusConfig.label}
                     </span>
@@ -405,7 +403,7 @@ export default function ProjectsPage() {
         {
             field: 'status',
             headerName: 'STATUS',
-            width: 110,
+            width: 140,
             cellRenderer: StatusRenderer,
         },
         {
@@ -712,11 +710,18 @@ export default function ProjectsPage() {
                                                 statusProjects.map((project) => (
                                                     <div
                                                         key={project.id}
-                                                        draggable
+                                                        draggable={project.role === 'ADMIN' || project.role === 'OWNER'}
                                                         onDragStart={(e) => {
+                                                            if (!(project.role === 'ADMIN' || project.role === 'OWNER')) {
+                                                                e.preventDefault();
+                                                                return;
+                                                            }
                                                             e.dataTransfer.setData('projectId', project.id);
                                                         }}
-                                                        className="bg-white rounded-lg border border-gray-200 p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow group"
+                                                        className={cn(
+                                                            "bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow group",
+                                                            (project.role === 'ADMIN' || project.role === 'OWNER') ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+                                                        )}
                                                         onContextMenu={(e) => {
                                                             e.preventDefault();
                                                             setContextMenu({
@@ -874,6 +879,10 @@ export default function ProjectsPage() {
                     x={contextMenu.x}
                     y={contextMenu.y}
                     onClose={() => setContextMenu(null)}
+                    onViewDetails={() => {
+                        router.push(`/projects/${contextMenu.projectId}`);
+                        setContextMenu(null);
+                    }}
                     onDelete={(contextMenu.role === 'OWNER' || contextMenu.role === 'ADMIN') ? handleDeleteClick : undefined}
                     onEdit={(contextMenu.role === 'OWNER' || contextMenu.role === 'ADMIN') ? () => {
                         const project = projects.find(p => p.id === contextMenu.projectId);
@@ -883,7 +892,7 @@ export default function ProjectsPage() {
                         }
                         setContextMenu(null);
                     } : undefined}
-                    onInvite={contextMenu.role !== 'VIEWER' ? () => {
+                    onInvite={(contextMenu.role === 'OWNER' || contextMenu.role === 'ADMIN') ? () => {
                         setInviteModalState({
                             isOpen: true,
                             projectId: contextMenu.projectId,

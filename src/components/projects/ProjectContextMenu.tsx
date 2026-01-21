@@ -6,12 +6,13 @@
 'use client';
 
 import React from 'react';
-import { UserPlus, Pencil, Trash2 } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Eye } from 'lucide-react';
 
 interface ProjectContextMenuProps {
     x: number;
     y: number;
     onClose: () => void;
+    onViewDetails?: () => void;
     onInvite?: () => void;
     onEdit?: () => void;
     onDelete?: () => void;
@@ -21,6 +22,7 @@ export function ProjectContextMenu({
     x,
     y,
     onClose,
+    onViewDetails,
     onInvite,
     onEdit,
     onDelete,
@@ -32,6 +34,18 @@ export function ProjectContextMenu({
                 style={{ top: y, left: x }}
                 onClick={(e) => e.stopPropagation()}
             >
+                {onViewDetails && (
+                    <button
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
+                        onClick={() => {
+                            onViewDetails();
+                            onClose();
+                        }}
+                    >
+                        <Eye className="w-4 h-4 text-blue-600" />
+                        <span>View Details</span>
+                    </button>
+                )}
                 {onInvite && (
                     <button
                         className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
