@@ -16,6 +16,7 @@ import type {
     AcceptInviteResponse,
     RejectInviteResponse,
     ResendInviteResponse,
+    UserSearchResponse,
 } from '@/types/invitation';
 
 /**
@@ -27,6 +28,7 @@ const INVITE_ENDPOINTS = {
     ACCEPT: '/invites/accept',
     REJECT: '/invites/reject',
     RESEND: (orgId: string) => `/invites/resend/${orgId}`,
+    SEARCH_USERS: '/invites/users',
 } as const;
 
 export const invitationsApi = {
@@ -116,6 +118,25 @@ export const invitationsApi = {
         const { data } = await apiClient.post<ResendInviteResponse>(
             INVITE_ENDPOINTS.RESEND(orgId),
             { email }
+        );
+        return data;
+    },
+
+    /**
+     * Search users for invitation
+     * 
+     * @param params - Search parameters (query, limit, page, projectId)
+     * @returns List of users matching query
+     */
+    async searchUsers(params: {
+        query: string;
+        limit?: number;
+        page?: number;
+        projectId?: string;
+    }): Promise<UserSearchResponse> {
+        const { data } = await apiClient.get<UserSearchResponse>(
+            INVITE_ENDPOINTS.SEARCH_USERS,
+            { params }
         );
         return data;
     },

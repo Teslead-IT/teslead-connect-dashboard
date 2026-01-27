@@ -346,38 +346,41 @@ export default function ProjectDetailPage() {
         <div className="h-full flex flex-col bg-white">
             {/* Compact Combined Header */}
             {/* Compact Combined Header */}
-            <div className="bg-white border-b border-gray-200 px-4 py-1.5">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+            {/* Compact Combined Header */}
+            <div className="bg-white border-b border-gray-200 px-3 py-2 sm:px-4 sm:py-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-y-2">
+                    <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
                         <button
                             onClick={() => router.push('/projects')}
-                            className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-500 hover:text-gray-700"
+                            className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-500 hover:text-gray-700 flex-shrink-0"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                             <div
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                                className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
                                 style={{ backgroundColor: project.color || '#3B82F6' }}
                             >
                                 {project.name.charAt(0).toUpperCase()}
                             </div>
 
                             <div className="flex flex-col min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <h1 className="text-base font-bold text-gray-900 leading-none truncate max-w-[200px] sm:max-w-[300px] md:max-w-[400px]" title={project.name}>{project.name}</h1>
-                                    <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1 py-0.5 rounded border border-gray-100 flex-shrink-0">
-                                        {project.projectId}
-                                    </span>
-                                    <span
-                                        className={cn(
-                                            'inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase flex-shrink-0',
-                                            STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-700'
-                                        )}
-                                    >
-                                        {project.status.replace('_', ' ')}
-                                    </span>
+                                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                    <h1 className="text-base font-bold text-gray-900 leading-none truncate max-w-[150px] sm:max-w-[300px] md:max-w-[400px]" title={project.name}>{project.name}</h1>
+                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1 py-0.5 rounded border border-gray-100 flex-shrink-0">
+                                            {project.projectId}
+                                        </span>
+                                        <span
+                                            className={cn(
+                                                'inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase flex-shrink-0',
+                                                STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-700'
+                                            )}
+                                        >
+                                            {project.status.replace('_', ' ')}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -386,72 +389,75 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* Tabs & Actions Row */}
-            <div className="bg-white border-b border-gray-200 px-4 flex items-center justify-between">
+            <div className="bg-white border-b border-gray-200 px-3 sm:px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-y-2">
                 <Tabs
                     items={TAB_ITEMS}
                     activeTab={activeTab}
                     onChange={setActiveTab}
-                    className="border-none"
+                    className="border-none w-full sm:w-auto -ml-2 sm:ml-0 overflow-x-auto no-scrollbar"
                 />
 
                 {/* Toolbar (Only visible when Tasks tab is active) */}
                 {activeTab === 'tasks' && (
-                    <div className="flex items-center gap-3 py-1">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 py-1 w-full sm:w-auto mt-1 sm:mt-0">
                         {/* Search */}
-                        <div className="relative">
+                        <div className="relative flex-1 sm:flex-none">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                             <input
                                 type="text"
                                 placeholder="Search tasks..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-8 pr-3 py-1 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-48 bg-gray-50 transition-all hover:bg-white focus:bg-white"
+                                className="pl-8 pr-3 py-1 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-48 bg-gray-50 transition-all hover:bg-white focus:bg-white"
                             />
                         </div>
 
-                        <div className="h-5 w-px bg-gray-200 mx-1"></div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
 
-                        {/* View Toggle */}
-                        <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={cn(
-                                    'p-1 rounded transition-all',
-                                    viewMode === 'list'
-                                        ? 'bg-white text-[var(--primary)] shadow-sm'
-                                        : 'text-gray-400 hover:text-gray-600 cursor-pointer'
-                                )}
-                                title="List View"
-                            >
-                                <ListIcon className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('board')}
-                                className={cn(
-                                    'p-1 rounded transition-all',
-                                    viewMode === 'board'
-                                        ? 'bg-white text-[var(--primary)] shadow-sm'
-                                        : 'text-gray-400 hover:text-gray-600 cursor-pointer'
-                                )}
-                                title="Kanban View"
-                            >
-                                <LayoutGrid className="w-3.5 h-3.5" />
-                            </button>
+                            {/* View Toggle */}
+                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    className={cn(
+                                        'p-1 rounded transition-all',
+                                        viewMode === 'list'
+                                            ? 'bg-white text-[var(--primary)] shadow-sm'
+                                            : 'text-gray-400 hover:text-gray-600 cursor-pointer'
+                                    )}
+                                    title="List View"
+                                >
+                                    <ListIcon className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('board')}
+                                    className={cn(
+                                        'p-1 rounded transition-all',
+                                        viewMode === 'board'
+                                            ? 'bg-white text-[var(--primary)] shadow-sm'
+                                            : 'text-gray-400 hover:text-gray-600 cursor-pointer'
+                                    )}
+                                    title="Kanban View"
+                                >
+                                    <LayoutGrid className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+
+                            {/* New Task Button */}
+                            {project?.role !== 'VIEWER' && (
+                                <button
+                                    onClick={() => {
+                                        setIsReadOnly(false);
+                                        setIsCreateTaskOpen(true);
+                                    }}
+                                    className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-3 h-7 text-xs rounded-md sm:ml-2 transition-colors duration-200 border border-transparent shadow-sm whitespace-nowrap"
+                                >
+                                    <Plus className="w-3 h-3 sm:mr-1" />
+                                    <span className="hidden sm:inline">New Task</span>
+                                    <span className="sm:hidden">New</span>
+                                </button>
+                            )}
                         </div>
-
-                        {/* New Task Button */}
-                        {project?.role !== 'VIEWER' && (
-                            <button
-                                onClick={() => {
-                                    setIsReadOnly(false);
-                                    setIsCreateTaskOpen(true);
-                                }}
-                                className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-3 h-7 text-xs rounded-md ml-2 transition-colors duration-200 border border-transparent shadow-sm"
-                            >
-                                <Plus className="w-3 h-3 mr-1" />
-                                New Task
-                            </button>
-                        )}
                     </div>
                 )}
             </div>
