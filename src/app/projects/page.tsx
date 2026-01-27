@@ -490,12 +490,14 @@ export default function ProjectsPage() {
     return (
         <div className="h-full flex flex-col bg-white" onContextMenu={(e) => e.preventDefault()}>
             <div className="border-b border-gray-100 py-3 px-6 flex-shrink-0">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-[140px]">
-                        <h1 className="text-xl font-bold text-gray-900 tracking-tight">Projects</h1>
-                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
-                            {filteredProjects.length}
-                        </span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-3 min-w-[140px]">
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Projects</h1>
+                            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
+                                {filteredProjects.length}
+                            </span>
+                        </div>
 
                         {memberships.length > 0 && (
                             <div className="ml-2 relative">
@@ -525,8 +527,8 @@ export default function ProjectsPage() {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-3 flex-1 justify-end">
-                        <div className="relative max-w-xs w-full lg:max-w-sm group transition-all">
+                    <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 justify-between sm:justify-end">
+                        <div className="relative flex-1 sm:flex-initial sm:max-w-xs w-full lg:max-w-sm group transition-all">
                             <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                                 <Search className="w-3.5 h-3.5 text-gray-400 group-focus-within:text-[var(--primary)] transition-colors" />
                             </div>
@@ -539,42 +541,45 @@ export default function ProjectsPage() {
                             />
                         </div>
 
-                        <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+                        <div className="flex items-center gap-2">
+                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
 
-                        <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
+                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    className={cn(
+                                        'p-1 rounded transition-all',
+                                        viewMode === 'list'
+                                            ? 'bg-white text-[var(--primary)] shadow-sm'
+                                            : 'text-gray-400 hover:text-gray-600'
+                                    )}
+                                    title="List View"
+                                >
+                                    <ListIcon className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('kanban')}
+                                    className={cn(
+                                        'p-1 rounded transition-all',
+                                        viewMode === 'kanban'
+                                            ? 'bg-white text-[var(--primary)] shadow-sm'
+                                            : 'text-gray-400 hover:text-gray-600'
+                                    )}
+                                    title="Kanban View"
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                </button>
+                            </div>
+
                             <button
-                                onClick={() => setViewMode('list')}
-                                className={cn(
-                                    'p-1 rounded transition-all',
-                                    viewMode === 'list'
-                                        ? 'bg-white text-[var(--primary)] shadow-sm'
-                                        : 'text-gray-400 hover:text-gray-600'
-                                )}
-                                title="List View"
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-4 h-8 text-xs rounded-md ml-1 sm:ml-2 transition-colors duration-200 border border-transparent shadow-sm whitespace-nowrap"
                             >
-                                <ListIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('kanban')}
-                                className={cn(
-                                    'p-1 rounded transition-all',
-                                    viewMode === 'kanban'
-                                        ? 'bg-white text-[var(--primary)] shadow-sm'
-                                        : 'text-gray-400 hover:text-gray-600'
-                                )}
-                                title="Kanban View"
-                            >
-                                <LayoutGrid className="w-4 h-4" />
+                                <Plus className="w-3.5 h-3.5 sm:mr-1.5" />
+                                <span className="hidden sm:inline">New Project</span>
+                                <span className="sm:hidden">New</span>
                             </button>
                         </div>
-
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-4 h-8 text-xs rounded-md ml-2 transition-colors duration-200 border border-transparent shadow-sm"
-                        >
-                            <Plus className="w-3.5 h-3.5 mr-1.5" />
-                            New Project
-                        </button>
                     </div>
                 </div>
             </div>

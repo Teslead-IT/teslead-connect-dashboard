@@ -133,6 +133,24 @@ export interface NotificationResponse {
 
 // ============= Error Types =============
 
+
+export interface UserSearchItem {
+    id: string;
+    email: string;
+    name: string;
+    avatarUrl: string | null;
+}
+
+export interface UserSearchResponse {
+    data: UserSearchItem[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+
 export interface InviteError {
     statusCode: number;
     message: string;

@@ -11,6 +11,8 @@ import { X, Send, Mail, Shield, UserCog, Eye } from 'lucide-react';
 import { useSendInvite } from '@/hooks/use-invitations';
 import { useUser } from '@/hooks/use-auth';
 import { OrgRole, ProjectRole } from '@/types/invitation';
+import { useUserSearch } from '@/hooks/use-user-search';
+import { getInitials, getAvatarColor } from '@/lib/utils';
 
 interface SendProjectInviteModalProps {
     isOpen: boolean;
@@ -33,6 +35,21 @@ export function SendProjectInviteModal({
     const orgId = user?.currentOrgId || user?.memberships?.[0]?.orgId || 'org_123';
 
     const { mutate: sendInvite, isPending, isSuccess, isError, error, reset } = useSendInvite(orgId);
+
+    // User Search
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const { results: userSuggestions, isLoading: isSearching } = useUserSearch(email, projectId);
+
+    // Hide suggestions when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (!(e.target as Element).closest('.suggestions-container')) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Reset state when modal opens
     useEffect(() => {
@@ -147,12 +164,54 @@ export function SendProjectInviteModal({
                                     type="email"
                                     required
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        setShowSuggestions(true);
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
                                     className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all text-sm shadow-sm"
                                     placeholder="colleague@example.com"
                                     disabled={isPending}
                                     autoFocus
+                                    autoComplete="off"
                                 />
+
+                                {/* Suggestions */}
+                                {showSuggestions && email.length > 1 && (
+                                    <div className="suggestions-container absolute z-20 w-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-60 overflow-y-auto overflow-x-hidden">
+                                        {isSearching ? (
+                                            <div className="p-4 text-center text-sm text-gray-500 animate-pulse">
+                                                Searching users...
+                                            </div>
+                                        ) : userSuggestions.length > 0 ? (
+                                            <div className="py-1">
+                                                {userSuggestions.map((user) => (
+                                                    <div
+                                                        key={user.id}
+                                                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-50 last:border-0"
+                                                        onClick={() => {
+                                                            setEmail(user.email);
+                                                            setShowSuggestions(false);
+                                                        }}
+                                                    >
+                                                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs text-white font-medium shadow-sm ${getAvatarColor(user.name)}`}>
+                                                            {user.avatarUrl ? (
+                                                                <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                                            ) : (
+                                                                getInitials(user.name)
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                                                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                                                        </div>
+                                                        <div className="text-xs text-gray-400">Select</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                )}
                             </div>
                         </div>
 

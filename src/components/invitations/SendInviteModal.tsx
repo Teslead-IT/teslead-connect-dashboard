@@ -12,6 +12,8 @@ import { X, Send, Mail, Building2, FolderKanban, Shield } from 'lucide-react';
 import { useSendInvite } from '@/hooks/use-invitations';
 import { useProjects } from '@/hooks/use-projects';
 import { OrgRole, ProjectRole, type SendInviteDto } from '@/types/invitation';
+import { useUserSearch } from '@/hooks/use-user-search';
+import { getInitials, getAvatarColor } from '@/lib/utils';
 
 interface SendInviteModalProps {
     isOpen: boolean;
@@ -43,6 +45,21 @@ export function SendInviteModal({
     });
 
     const { mutate: sendInvite, isPending, isError, error, isSuccess, reset } = useSendInvite(orgId);
+
+    // User Search Logic
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const { results: userSuggestions, isLoading: isSearching } = useUserSearch(formData.email);
+
+    // Hide suggestions when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (!(e.target as Element).closest('.suggestions-container')) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         setMounted(true);
@@ -162,12 +179,54 @@ export function SendInviteModal({
                                     type="email"
                                     required
                                     value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, email: e.target.value });
+                                        setShowSuggestions(true);
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
                                     className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all text-sm shadow-sm"
                                     placeholder="user@example.com"
                                     disabled={isPending}
                                     autoFocus
+                                    autoComplete="off"
                                 />
+
+                                {/* User Suggestions Dropdown */}
+                                {showSuggestions && formData.email.length > 1 && (
+                                    <div className="suggestions-container absolute z-20 w-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-60 overflow-y-auto overflow-x-hidden">
+                                        {isSearching ? (
+                                            <div className="p-4 text-center text-sm text-gray-500 animate-pulse">
+                                                Searching users...
+                                            </div>
+                                        ) : userSuggestions.length > 0 ? (
+                                            <div className="py-1">
+                                                {userSuggestions.map((user) => (
+                                                    <div
+                                                        key={user.id}
+                                                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-50 last:border-0"
+                                                        onClick={() => {
+                                                            setFormData({ ...formData, email: user.email });
+                                                            setShowSuggestions(false);
+                                                        }}
+                                                    >
+                                                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs text-white font-medium shadow-sm ${getAvatarColor(user.name)}`}>
+                                                            {user.avatarUrl ? (
+                                                                <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                                            ) : (
+                                                                getInitials(user.name)
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                                                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                                                        </div>
+                                                        <div className="text-xs text-gray-400">Select</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
