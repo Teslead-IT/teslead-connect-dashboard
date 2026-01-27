@@ -180,7 +180,7 @@ export default function ProjectsPage() {
         };
 
         return (
-            <div className="flex items-start gap-3 py-1 group cursor-pointer" onClick={handleClick}>
+            <div className="flex items-center gap-3 py-1 group cursor-pointer w-full overflow-hidden" onClick={handleClick}>
                 <div
                     className="w-8 h-8 rounded-md shadow-sm flex items-center justify-center text-white font-bold text-xs flex-shrink-0 transition-transform group-hover:scale-105"
                     style={{
@@ -190,9 +190,11 @@ export default function ProjectsPage() {
                 >
                     {initial}
                 </div>
-                <div className="min-w-0 flex flex-col justify-center">
-                    <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-xs flex items-center gap-1.5">
-                        {name}
+                <div className="min-w-0 flex flex-col justify-center flex-1">
+                    <div className="flex items-center gap-1.5 w-full">
+                        <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-xs block w-full" title={name}>
+                            {name}
+                        </span>
                     </div>
                 </div>
             </div>

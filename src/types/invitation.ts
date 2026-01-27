@@ -27,7 +27,8 @@ export enum NotificationType {
     INVITE_RECEIVED = 'INVITE_RECEIVED',
     INVITE_ACCEPTED = 'INVITE_ACCEPTED',
     INVITE_REJECTED = 'INVITE_REJECTED',
-    INVITE_EXPIRED = 'INVITE_EXPIRED'
+    INVITE_EXPIRED = 'INVITE_EXPIRED',
+    TASK_ASSIGNED = 'TASK_ASSIGNED'
 }
 
 // ============= Request DTOs =============
@@ -116,6 +117,18 @@ export interface Notification {
     projectId?: string | null;
     createdAt: string;
     read?: boolean;
+    readAt?: string | null;
+    metadata?: any;
+}
+
+export interface NotificationResponse {
+    data: Notification[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
 }
 
 // ============= Error Types =============

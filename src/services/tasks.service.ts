@@ -59,13 +59,47 @@ export const taskService = {
         return response.data;
     },
 
-
-
     /**
      * Delete a task
      * @param taskId - Task ID
      */
     async deleteTask(taskId: string): Promise<void> {
         await apiClient.delete(`/tasks/${taskId}`);
+    },
+
+    /**
+     * Assign a user to a task
+     * @param taskId - Task ID
+     * @param userId - User ID to assign
+     * @returns Updated task
+     */
+    async assignUserToTask(taskId: string, userId: string): Promise<TaskResponse> {
+        const response = await apiClient.post<TaskResponse>(`/tasks/${taskId}/assignees`, { userId });
+        return response.data;
+    },
+
+    /**
+     * Bulk assign a user to multiple tasks
+     * @param taskIds - Array of task IDs
+     * @param userId - User ID to assign
+     * @returns Result with count
+     */
+    async bulkAssignUser(taskIds: string[], userId: string): Promise<{ message: string; count: number }> {
+        const response = await apiClient.post<{ message: string; count: number }>('/tasks/bulk-assign', {
+            taskIds,
+            userId,
+        });
+        return response.data;
+    },
+
+    /**
+     * Remove a user from a task
+     * @param taskId - Task ID
+     * @param userId - User ID to remove
+     * @returns Success message
+     */
+    async removeAssignee(taskId: string, userId: string): Promise<{ message: string }> {
+        const response = await apiClient.delete<{ message: string }>(`/tasks/${taskId}/assignees/${userId}`);
+        return response.data;
     },
 };

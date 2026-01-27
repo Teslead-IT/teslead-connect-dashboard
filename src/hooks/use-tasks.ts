@@ -59,3 +59,15 @@ export function useDeleteTask(projectId: string) {
         },
     });
 }
+
+export function useRevokeAssignee(projectId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ taskId, userId }: { taskId: string; userId: string }) =>
+            taskService.removeAssignee(taskId, userId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.all(projectId) });
+        },
+    });
+}

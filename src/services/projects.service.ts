@@ -10,6 +10,7 @@ import type {
     CreateProjectPayload,
     UpdateProjectPayload,
     ProjectResponse,
+    ProjectMember,
 } from '@/types/project';
 import { API_CONFIG } from '@/lib/config';
 
@@ -126,4 +127,17 @@ export const projectsApi = {
     // Convenience aliases
     getProject: (projectId: string) => projectsApi.getProjectById(projectId),
     getProjects: () => projectsApi.getAllProjects(),
+
+    /**
+     * Get project members
+     */
+    async getProjectMembers(projectId: string): Promise<ProjectMember[]> {
+        const orgId = getOrgId();
+        const { data } = await apiClient.get<ProjectMember[]>(`/projects/${projectId}/members`, {
+            headers: {
+                'x-org-id': orgId,
+            },
+        });
+        return data || [];
+    },
 };

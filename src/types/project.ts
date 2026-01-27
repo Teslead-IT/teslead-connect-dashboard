@@ -77,3 +77,16 @@ export interface ProjectResponse {
     tags: Tag[];
     orgId?: string;
 }
+
+export interface ProjectMember {
+    id: string;
+    userId: string;
+    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+    joinedAt: string;
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        avatarUrl: string | null;
+    };
+}

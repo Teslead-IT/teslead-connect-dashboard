@@ -30,20 +30,24 @@ import {
     Pencil,
     Trash2,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getAvatarColor } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
 // import { projectsApi } from '@/services/projects.service'; // Removed
 // import { taskService, workflowService } from '@/services/tasks.service'; // Removed
-import { useProject } from '@/hooks/use-projects';
+import { useProject, useProjectMembers } from '@/hooks/use-projects';
 import {
     useProjectTasks,
     useProjectWorkflow,
     useCreateTask,
     useUpdateTask,
     useDeleteTask,
+    useRevokeAssignee,
 } from '@/hooks/use-tasks';
+import { ProjectMembersTable } from '@/components/projects/ProjectMembersTable';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { TaskContextMenu } from '@/components/tasks/TaskContextMenu';
+import { AssignUsersToTaskModal } from '@/components/tasks/AssignUsersToTaskModal';
+import { RevokeAssigneeModal } from '@/components/tasks/RevokeAssigneeModal';
 import type { Task, WorkflowStage, CreateTaskPayload, TaskPriority } from '@/types/task';
 import { Dialog } from '@/components/ui/Dialog';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
@@ -95,6 +99,7 @@ export default function ProjectDetailPage() {
 
     const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
     const { data: workflow = [], isLoading: workflowLoading } = useProjectWorkflow(projectId);
+    const { data: members = [], isLoading: membersLoading } = useProjectMembers(projectId);
     const { data: tasks = [], isLoading: tasksLoading } = useProjectTasks(projectId);
 
     // Mutations
@@ -123,7 +128,23 @@ export default function ProjectDetailPage() {
         isDeleting: false
     });
 
+    const [assignUsersModal, setAssignUsersModal] = useState<{
+        isOpen: boolean;
+        task: Task | null;
+    }>({ isOpen: false, task: null });
+
+    const [revokeAssigneeModal, setRevokeAssigneeModal] = useState<{
+        isOpen: boolean;
+        taskId: string | null;
+    }>({ isOpen: false, taskId: null });
+
+    const [directRevoke, setDirectRevoke] = useState<{
+        task: Task;
+        assignee: any;
+    } | null>(null);
+
     const updateTaskMutation = useUpdateTask(projectId);
+    const revokeAssigneeMutation = useRevokeAssignee(projectId);
     const deleteTaskMutation = useDeleteTask(projectId);
     const toast = useToast();
 
@@ -229,6 +250,22 @@ export default function ProjectDetailPage() {
         }
     };
 
+    const handleConfirmDirectRevoke = async () => {
+        if (!directRevoke) return;
+        const { task, assignee } = directRevoke;
+        const userId = assignee.user?.id || assignee.userId || assignee.id;
+
+        const toastId = toast.loading('Revoking assignment...');
+        try {
+            await revokeAssigneeMutation.mutateAsync({ taskId: task.id, userId });
+            toast.success('Assignment revoked successfully', undefined, { id: toastId });
+            setDirectRevoke(null);
+        } catch (error) {
+            console.error('Failed to revoke assignment:', error);
+            toast.error('Failed to revoke assignment', undefined, { id: toastId });
+        }
+    };
+
     const handleUpdateTaskStatus = async (taskId: string, statusId: string) => {
         const toastId = toast.loading('Updating status...');
         try {
@@ -327,15 +364,15 @@ export default function ProjectDetailPage() {
                                 {project.name.charAt(0).toUpperCase()}
                             </div>
 
-                            <div className="flex flex-col">
+                            <div className="flex flex-col min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                    <h1 className="text-base font-bold text-gray-900 leading-none">{project.name}</h1>
-                                    <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1 py-0.5 rounded border border-gray-100">
+                                    <h1 className="text-base font-bold text-gray-900 leading-none truncate max-w-[200px] sm:max-w-[300px] md:max-w-[400px]" title={project.name}>{project.name}</h1>
+                                    <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1 py-0.5 rounded border border-gray-100 flex-shrink-0">
                                         {project.projectId}
                                     </span>
                                     <span
                                         className={cn(
-                                            'inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase',
+                                            'inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase flex-shrink-0',
                                             STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-700'
                                         )}
                                     >
@@ -444,6 +481,8 @@ export default function ProjectDetailPage() {
                                 } : undefined}
                                 onDeleteTask={project?.role !== 'VIEWER' ? handleDeleteTask : undefined}
                                 onContextMenu={handleTaskContextMenu}
+                                onSwitchToUsersTab={() => setActiveTab('users')}
+                                onRevokeAssigneeDirect={project?.role !== 'VIEWER' ? (task, assignee) => setDirectRevoke({ task, assignee }) : undefined}
                             />
                         ) : (
                             <KanbanView
@@ -466,6 +505,8 @@ export default function ProjectDetailPage() {
                             />
                         )}
                     </div>
+                ) : activeTab === 'users' ? (
+                    <ProjectMembersTable members={members} isLoading={membersLoading} projectId={projectId} currentUserRole={project?.role} />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
@@ -524,6 +565,14 @@ export default function ProjectDetailPage() {
                         setIsCreateTaskOpen(true);
                         setTaskContextMenu(null);
                     }}
+                    onAssignUsers={project?.role !== 'VIEWER' ? () => {
+                        setAssignUsersModal({ isOpen: true, task: taskContextMenu.task });
+                        setTaskContextMenu(null);
+                    } : undefined}
+                    onRevokeAssignee={project?.role !== 'VIEWER' ? () => {
+                        setRevokeAssigneeModal({ isOpen: true, taskId: taskContextMenu.task.id });
+                        setTaskContextMenu(null);
+                    } : undefined}
                 />
             )}
 
@@ -540,6 +589,40 @@ export default function ProjectDetailPage() {
                 confirmVariant="destructive"
                 onConfirm={handleConfirmDelete}
                 isLoading={deleteDialog.isDeleting}
+            />
+
+            {/* Assign Users Modal */}
+            {assignUsersModal.isOpen && assignUsersModal.task && (
+                <AssignUsersToTaskModal
+                    isOpen={assignUsersModal.isOpen}
+                    onClose={() => setAssignUsersModal({ isOpen: false, task: null })}
+                    task={assignUsersModal.task}
+                    projectId={projectId}
+                />
+            )}
+
+            {/* Revoke Assignee Modal */}
+            {revokeAssigneeModal.isOpen && revokeAssigneeModal.taskId && (
+                <RevokeAssigneeModal
+                    isOpen={revokeAssigneeModal.isOpen}
+                    onClose={() => setRevokeAssigneeModal({ isOpen: false, taskId: null })}
+                    taskId={revokeAssigneeModal.taskId}
+                    projectId={projectId}
+                />
+            )}
+
+            <Dialog
+                isOpen={!!directRevoke}
+                onClose={() => setDirectRevoke(null)}
+                type="warning"
+                title="Revoke Assignment"
+                message={`Are you sure you want to remove ${directRevoke?.assignee?.user?.name || directRevoke?.assignee?.name || 'this user'} from the task "${directRevoke?.task?.title}"?`}
+                description="They will no longer be responsible for its completion."
+                confirmText="Revoke Now"
+                cancelText="Keep Assignment"
+                confirmVariant="destructive"
+                onConfirm={handleConfirmDirectRevoke}
+                isLoading={revokeAssigneeMutation.isPending}
             />
         </div >
     );
@@ -562,7 +645,7 @@ const TaskNameRenderer = (props: ICellRendererParams) => {
     ).length;
 
     return (
-        <div className="flex items-center h-full" style={{ paddingLeft: `${level * 24}px` }}>
+        <div className="flex items-center h-full w-full overflow-hidden" style={{ paddingLeft: `${level * 24}px` }}>
             {/* Toggle Button or Spacer */}
             <div className="w-6 flex-shrink-0 flex items-center justify-center mr-1">
                 {hasChildren && (
@@ -584,21 +667,24 @@ const TaskNameRenderer = (props: ICellRendererParams) => {
 
             <div className="flex-1 min-w-0 py-1">
                 <div className="flex items-center gap-2">
-                    <span className={cn(
-                        "font-medium text-sm truncate",
-                        level > 0 ? "text-gray-700" : "text-gray-900"
-                    )}>
+                    <span
+                        className={cn(
+                            "font-medium text-sm truncate min-w-0 block",
+                            level > 0 ? "text-gray-700" : "text-gray-900"
+                        )}
+                        title={task.title}
+                    >
                         {task.title}
                     </span>
                     {hasChildren && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 border border-gray-100 rounded text-[10px] text-gray-500 font-medium">
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 border border-gray-100 rounded text-[10px] text-gray-500 font-medium flex-shrink-0">
                             <CheckSquare className="w-3 h-3" />
                             {completedSubtasks}/{subtasks.length}
                         </span>
                     )}
                 </div>
                 {task.description && (
-                    <div className="text-xs text-gray-500 truncate mt-0.5 pl-0">{task.description}</div>
+                    <div className="text-xs text-gray-500 truncate mt-0.5 pl-0 max-w-full block" title={task.description}>{task.description}</div>
                 )}
             </div>
 
@@ -722,14 +808,68 @@ const DueDateRenderer = (props: ICellRendererParams) => {
 };
 
 const AssigneeRenderer = (props: ICellRendererParams) => {
-    const count = props.value?.length || 0;
+    const assignees = props.data.assignees || [];
+    const count = assignees.length;
+
     if (count === 0) return <span className="text-gray-300 text-xs">-</span>;
+
+    const displayedAssignees = assignees.slice(0, 3);
+    const hiddenCount = count - 3;
+    const { onSwitchToUsersTab, onRevokeAssigneeDirect, isEditable } = props.context;
+
+    console.log("assignees,", assignees);
+
     return (
-        <div className="flex items-center gap-1">
-            <User className="w-3 h-3 text-gray-400" />
-            <span className="text-xs text-gray-600">{count}</span>
+        <div className="flex items-center -space-x-2 overflow-hidden h-full py-1">
+            {displayedAssignees.map((assignee: any, index: number) => (
+                <div
+                    key={assignee.assignmentId || assignee.user?.id || `assignee-${index}`}
+                    className={cn(
+                        "relative group transition-transform hover:z-10 hover:scale-105",
+                        isEditable && "cursor-pointer"
+                    )}
+                    title={isEditable ? `Click to revoke ${assignee.user?.name || assignee.name || 'User'}` : (assignee.user?.name || assignee.name || 'Unknown User')}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (isEditable && onRevokeAssigneeDirect) {
+                            onRevokeAssigneeDirect(props.data, assignee);
+                        }
+                    }}
+                >
+                    <div className={cn(
+                        "w-8 h-8 rounded-full border border-white flex items-center justify-center text-white font-bold text-xs overflow-hidden shadow-sm",
+                        assignee.user?.avatarUrl ? "" : getAvatarColor(assignee.user?.name || assignee.name || '?')
+                    )}>
+                        {assignee.user?.avatarUrl ? (
+                            <img src={assignee.user.avatarUrl} alt={assignee.user?.name || 'User'} className="w-full h-full object-cover" />
+                        ) : (
+                            (assignee.user?.name || assignee.name || '?').charAt(0).toUpperCase()
+                        )}
+                    </div>
+                </div>
+            ))}
+            {hiddenCount > 0 && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (onSwitchToUsersTab) onSwitchToUsersTab();
+                    }}
+                    className="w-6 h-6 rounded-full border border-white bg-gray-100 flex items-center justify-center text-[10px] font-medium text-gray-500 hover:bg-gray-200 transition-colors z-0"
+                    title={`View all ${count} assignees in Users tab`}
+                >
+                    +{hiddenCount}
+                </button>
+            )}
         </div>
     );
+};
+
+const SerialNoRenderer = (props: ICellRendererParams) => {
+    const { level, serialNumber } = props.data;
+    if (level === 0) {
+        return <span className="text-gray-500 font-medium">{serialNumber}</span>;
+    }
+    return <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />;
 };
 
 const DEFAULT_COL_DEF = {
@@ -752,9 +892,11 @@ interface TaskTableProps {
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (taskId: string) => void;
     onContextMenu: (event: any, task: Task) => void;
+    onSwitchToUsersTab?: () => void;
+    onRevokeAssigneeDirect?: (task: Task, assignee: any) => void;
 }
 
-function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask, onEditTask, onDeleteTask, onContextMenu, expandedIds, onToggleExpand, isEditable = false }: TaskTableProps) {
+function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask, onEditTask, onDeleteTask, onContextMenu, expandedIds, onToggleExpand, isEditable = false, onSwitchToUsersTab, onRevokeAssigneeDirect }: TaskTableProps) {
 
     const gridDisplayData = useMemo(() => {
         const displayRows: any[] = [];
@@ -764,7 +906,7 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
 
         // Recursive function to add tasks to displayRows
         const addTasksRecursive = (tasksToAdd: Task[], level: number) => {
-            tasksToAdd.forEach(task => {
+            tasksToAdd.forEach((task, index) => {
                 const hasChildren = hasSubtasks(task.id);
                 const isExpanded = expandedIds.has(task.id);
 
@@ -773,7 +915,8 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                     isWrapper: false,
                     level,
                     hasChildren,
-                    isExpanded
+                    isExpanded,
+                    serialNumber: level === 0 ? index + 1 : undefined
                 });
 
                 if (hasChildren && isExpanded) {
@@ -791,9 +934,10 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
         () => [
             {
                 headerName: 'S.No',
-                valueGetter: "node.rowIndex + 1",
+                field: 'serialNumber',
                 width: 65,
                 pinned: 'left',
+                cellRenderer: SerialNoRenderer,
                 cellClass: 'text-gray-500 font-medium text-[11px] flex items-center justify-center',
                 suppressMenu: true,
             },
@@ -888,6 +1032,7 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 }
             `}</style>
             <AgGridReact
+                theme="legacy"
                 rowData={gridDisplayData}
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
@@ -898,7 +1043,6 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 paginationPageSize={20}
                 paginationPageSizeSelector={[20, 50, 100]}
                 className="ag-theme-alpine"
-                theme="legacy"
                 onCellContextMenu={(params) => {
                     if (params.data) {
                         onContextMenu(params.event, params.data);
@@ -912,9 +1056,11 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                     onEditTask,
                     onDeleteTask,
                     onUpdateStatus,
+                    onRevokeAssigneeDirect,
                     allTasks,
                     workflow,
-                    isEditable
+                    isEditable,
+                    onSwitchToUsersTab // Passed from props
                 }}
             />
         </div>

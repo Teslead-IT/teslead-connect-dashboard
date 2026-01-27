@@ -9,6 +9,17 @@ import type { Notification } from '@/types/invitation';
 
 export const notificationApi = {
     /**
+     * Get all notifications with pagination and filtering
+     */
+    async getAll(params: { page?: number; limit?: number; unread?: boolean } = {}): Promise<import('@/types/invitation').NotificationResponse> {
+        const { data } = await apiClient.get<import('@/types/invitation').NotificationResponse>(
+            API_CONFIG.ENDPOINTS.NOTIFICATIONS.LIST,
+            { params }
+        );
+        return data;
+    },
+
+    /**
      * Get unread notifications
      */
     async getUnread(): Promise<Notification[]> {

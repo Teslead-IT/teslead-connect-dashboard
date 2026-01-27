@@ -20,6 +20,7 @@ import {
     X,
     ChevronLeft,
     ChevronRight,
+    Bell,
 } from 'lucide-react';
 
 interface NavItem {
@@ -48,6 +49,11 @@ const navItems: NavItem[] = [
         label: 'Team',
         href: '/team',
         icon: <Users className="w-5 h-5 flex-shrink-0" />,
+    },
+    {
+        label: 'Notifications',
+        href: '/notifications',
+        icon: <Bell className="w-5 h-5 flex-shrink-0" />,
     },
     {
         label: 'Settings',

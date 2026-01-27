@@ -43,8 +43,14 @@ export const API_CONFIG = {
             RESEND: (orgId: string) => `/invites/resend/${orgId}`,
         },
         NOTIFICATIONS: {
+            LIST: '/notifications',
             UNREAD: '/notifications/unread',
             MARK_READ: (id: string) => `/notifications/${id}/read`,
+        },
+        MESSAGES: {
+            LIST: '/messages',
+            UNREAD: '/messages/?status=unread',
+            MARK_READ: (id: string) => `/messages/${id}/read`,
         },
     },
 
