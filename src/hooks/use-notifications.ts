@@ -107,12 +107,9 @@ export function useNotifications(
      */
     const handleNotification = useCallback(
         (notification: Notification) => {
-            // Add to query cache
-            queryClient.setQueryData(['notifications', 'unread'], (old: Notification[] = []) => {
-                // Check if already exists to prevent duplicates
-                if (old.some(n => n.id === notification.id)) return old;
-                return [notification, ...old];
-            });
+            // Invalidate query to fetch fresh data from API
+            // This ensures data consistency (e.g. dates, types) matching the GET endpoint
+            queryClient.invalidateQueries({ queryKey: ['notifications', 'unread'] });
 
             // Call custom handler if provided
             if (onNotification) {
@@ -138,6 +135,13 @@ export function useNotifications(
                             queryKey: invitationKeys.pending(),
                         });
                         break;
+                    case 'TASK_ASSIGNED':
+                        if (notification.projectId) {
+                            queryClient.invalidateQueries({
+                                queryKey: ['tasks', notification.projectId],
+                            });
+                        }
+                        break;
                 }
             }
         },
@@ -157,32 +161,53 @@ export function useNotifications(
             return;
         }
 
-        // Construct proper URL - handle potential trailing slash in BASE_URL
-        const baseUrl = API_CONFIG.BASE_URL.replace(/\/$/, '');
+        // Construct proper URL
+        // If BASE_URL has /api suffix, remove it to find the root domain for socket
+        // Example: http://localhost:3000/api -> http://localhost:3000
+        const baseUrl = API_CONFIG.BASE_URL.replace(/\/api\/v\d+|\/api\/?$/, '').replace(/\/$/, '');
         const socketUrl = `${baseUrl}${SOCKET_CONFIG.namespace}`;
 
-        console.log('[Notification] Connecting to:', socketUrl);
+        console.log('[Notification] Initializing socket connection...');
+        console.log('[Notification] Target URL:', socketUrl);
 
-        const socket = io(socketUrl, {
-            auth: { token }, // Token passed in auth object as requested
+        const socket = io(baseUrl, { // Connect to root, namespace handled via path or later
+            path: '/socket.io/',
+            transports: ['websocket', 'polling'],
+            auth: { token },
             reconnectionDelay: SOCKET_CONFIG.reconnectionDelay,
             reconnectionDelayMax: SOCKET_CONFIG.reconnectionDelayMax,
             reconnectionAttempts: SOCKET_CONFIG.reconnectionAttempts,
-            transports: ['websocket', 'polling'],
-            path: '/socket.io/', // Standard socket.io path, usually default but good to be explicit if backend API is under a subpath
         });
 
-        socket.on('connect', () => {
-            console.log('✅ Connected to notification service');
+        // Connect to namespace specifically
+        const nspSocket = io(socketUrl, {
+            path: '/socket.io/',
+            transports: ['websocket', 'polling'],
+            auth: { token },
+        });
+
+        nspSocket.on('connect', () => {
+            console.log('✅ [Notification] Connected to WebSocket service');
+            console.log('   ID:', nspSocket.id);
             setIsConnected(true);
         });
 
-        socket.on('disconnect', () => setIsConnected(false));
-        socket.on('connect_error', () => setIsConnected(false));
+        nspSocket.on('disconnect', (reason) => {
+            console.warn('❌ [Notification] Disconnected:', reason);
+            setIsConnected(false);
+        });
 
-        socket.on('notification:new', handleNotification);
+        nspSocket.on('connect_error', (err) => {
+            console.error('⚠️ [Notification] Connection Error:', err.message);
+            setIsConnected(false);
+        });
 
-        socketRef.current = socket;
+        nspSocket.on('notification:new', (payload) => {
+            console.log('🔔 [Notification] New notification received:', payload);
+            handleNotification(payload);
+        });
+
+        socketRef.current = nspSocket;
     }, [handleNotification]);
 
     /**

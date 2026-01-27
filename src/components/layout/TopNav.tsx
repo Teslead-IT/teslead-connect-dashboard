@@ -7,6 +7,7 @@ import { useSidebar } from '@/context/SidebarContext';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notifications';
 import { SendInviteModal } from '@/components/invitations';
+import { AppsMenu } from './AppsMenu';
 
 export function TopNav() {
     const { data: backendUser, isLoading } = useUser();
@@ -94,6 +95,11 @@ export function TopNav() {
 
                         {/* 🔔 Real-time Notification Bell with WebSocket */}
                         <NotificationBell />
+                    </div>
+
+                    {/* Apps Menu */}
+                    <div className="pl-1">
+                        <AppsMenu />
                     </div>
 
                     {/* User Profile - Premium Look */}

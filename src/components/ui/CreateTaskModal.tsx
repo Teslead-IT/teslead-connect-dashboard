@@ -38,7 +38,7 @@ export function CreateTaskModal({ isOpen, onClose, onSubmit, workflow, parentTas
                     priority: initialData.priority,
                     statusId: initialData.status.id,
                     dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : '',
-                    assigneeIds: initialData.assigneeIds,
+                    assigneeIds: initialData.assigneeIds || [],
                     parentId: initialData.parentId,
                 });
             } else {

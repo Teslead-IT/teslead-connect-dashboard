@@ -6,7 +6,7 @@
 'use client';
 
 import React from 'react';
-import { Pencil, Trash2, Plus, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, Eye, UserPlus, UserMinus } from 'lucide-react';
 
 interface TaskContextMenuProps {
     x: number;
@@ -16,6 +16,8 @@ interface TaskContextMenuProps {
     onDelete?: () => void;
     onCreateSubtask?: () => void;
     onViewDetails?: () => void;
+    onAssignUsers?: () => void;
+    onRevokeAssignee?: () => void;
 }
 
 export function TaskContextMenu({
@@ -26,6 +28,8 @@ export function TaskContextMenu({
     onDelete,
     onCreateSubtask,
     onViewDetails,
+    onAssignUsers,
+    onRevokeAssignee,
 }: TaskContextMenuProps) {
     return (
         <>
@@ -56,6 +60,32 @@ export function TaskContextMenu({
                     >
                         <Plus className="w-4 h-4 text-[#091590]" />
                         <span>Add Subtask</span>
+                    </button>
+                )}
+
+                {onAssignUsers && (
+                    <button
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
+                        onClick={() => {
+                            onAssignUsers();
+                            onClose();
+                        }}
+                    >
+                        <UserPlus className="w-4 h-4 text-green-600" />
+                        <span>Assign Users</span>
+                    </button>
+                )}
+
+                {onRevokeAssignee && (
+                    <button
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
+                        onClick={() => {
+                            onRevokeAssignee();
+                            onClose();
+                        }}
+                    >
+                        <UserMinus className="w-4 h-4 text-orange-600" />
+                        <span>Revoke Assignee</span>
                     </button>
                 )}
 

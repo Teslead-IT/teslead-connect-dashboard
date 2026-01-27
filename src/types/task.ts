@@ -23,6 +23,21 @@ export interface TaskStatus {
     stageName: string;
 }
 
+export interface TaskAssignee {
+    assignmentId?: string;
+    id: string; // usually assignment id
+    userId: string;
+    taskId: string;
+    name?: string;
+    email?: string;
+    user?: {
+        id: string;
+        name: string;
+        email: string;
+        avatarUrl?: string;
+    };
+}
+
 export interface Task {
     id: string;
     title: string;
@@ -31,6 +46,7 @@ export interface Task {
     priority: TaskPriority;
     dueDate: string | null;
     assigneeIds: string[];
+    assignees?: TaskAssignee[];
     status: TaskStatus;
     createdAt: string;
     updatedAt: string;

@@ -6,7 +6,16 @@ import type { CreateProjectPayload, UpdateProjectPayload } from '@/types/project
 export const projectKeys = {
     all: ['projects'] as const,
     detail: (id: string) => ['projects', id] as const,
+    members: (id: string) => ['projects', id, 'members'] as const,
 };
+
+export function useProjectMembers(projectId: string) {
+    return useQuery({
+        queryKey: projectKeys.members(projectId),
+        queryFn: () => projectsApi.getProjectMembers(projectId),
+        enabled: !!projectId,
+    });
+}
 
 export function useProjects(params?: { orgId?: string; page?: number; limit?: number }) {
     return useQuery({
