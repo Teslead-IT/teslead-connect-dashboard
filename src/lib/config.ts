@@ -44,12 +44,12 @@ export const API_CONFIG = {
         },
         NOTIFICATIONS: {
             LIST: '/notifications',
-            UNREAD: '/notifications/unread',
+            UNREAD: '/notifications?status=unread',
             MARK_READ: (id: string) => `/notifications/${id}/read`,
         },
         MESSAGES: {
             LIST: '/messages',
-            UNREAD: '/messages/?status=unread',
+            UNREAD: '/messages?status=unread',
             MARK_READ: (id: string) => `/messages/${id}/read`,
         },
     },

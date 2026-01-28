@@ -170,20 +170,14 @@ export function useNotifications(
         console.log('[Notification] Initializing socket connection...');
         console.log('[Notification] Target URL:', socketUrl);
 
-        const socket = io(baseUrl, { // Connect to root, namespace handled via path or later
+        // Connect to namespace specifically
+        const nspSocket = io(socketUrl, {
             path: '/socket.io/',
             transports: ['websocket', 'polling'],
             auth: { token },
             reconnectionDelay: SOCKET_CONFIG.reconnectionDelay,
             reconnectionDelayMax: SOCKET_CONFIG.reconnectionDelayMax,
             reconnectionAttempts: SOCKET_CONFIG.reconnectionAttempts,
-        });
-
-        // Connect to namespace specifically
-        const nspSocket = io(socketUrl, {
-            path: '/socket.io/',
-            transports: ['websocket', 'polling'],
-            auth: { token },
         });
 
         nspSocket.on('connect', () => {

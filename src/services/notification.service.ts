@@ -12,9 +12,18 @@ export const notificationApi = {
      * Get all notifications with pagination and filtering
      */
     async getAll(params: { page?: number; limit?: number; unread?: boolean } = {}): Promise<import('@/types/invitation').NotificationResponse> {
+        const queryParams: any = {
+            page: params.page,
+            limit: params.limit,
+        };
+
+        if (params.unread) {
+            queryParams.status = 'unread';
+        }
+
         const { data } = await apiClient.get<import('@/types/invitation').NotificationResponse>(
             API_CONFIG.ENDPOINTS.NOTIFICATIONS.LIST,
-            { params }
+            { params: queryParams }
         );
         return data;
     },
@@ -23,10 +32,16 @@ export const notificationApi = {
      * Get unread notifications
      */
     async getUnread(): Promise<Notification[]> {
-        const { data } = await apiClient.get<Notification[]>(
-            API_CONFIG.ENDPOINTS.NOTIFICATIONS.UNREAD
+        const { data } = await apiClient.get<import('@/types/invitation').NotificationResponse>(
+            API_CONFIG.ENDPOINTS.NOTIFICATIONS.LIST,
+            {
+                params: {
+                    status: 'unread',
+                    limit: 50 // Fetch reasonable amount of unread notifications
+                }
+            }
         );
-        return data;
+        return data.data;
     },
 
     /**
