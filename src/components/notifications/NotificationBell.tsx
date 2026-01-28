@@ -35,20 +35,27 @@ export function NotificationBell() {
         autoInvalidate: true,
     });
 
-    const {
-        messages,
-        unreadCount: msgUnreadCount,
-        isConnected: isMsgConnected,
-        markAsRead: markMessageAsRead,
-    } = useMessages({
-        autoConnect: true,
-    });
+    // Message system disabled - Backend endpoint not available
+    // const {
+    //     messages,
+    //     unreadCount: msgUnreadCount,
+    //     isConnected: isMsgConnected,
+    //     markAsRead: markMessageAsRead,
+    // } = useMessages({
+    //     autoConnect: true,
+    // });
+
+    const messages: Message[] = [];
+    const msgUnreadCount = 0;
+    const isMsgConnected = false;
+    const markMessageAsRead = () => { };
 
     const { data: pendingInvites = [] } = usePendingInvites();
 
     // Total unread count (notifications + pending invites + messages)
     const totalUnread = notifUnreadCount + pendingInvites.length + msgUnreadCount;
-    const isConnected = isNotifConnected && isMsgConnected;
+    // Messages disabled, so only track notification connection
+    const isConnected = isNotifConnected;
 
     // Close dropdown when clicking outside
     useEffect(() => {

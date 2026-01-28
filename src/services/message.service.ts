@@ -12,9 +12,18 @@ export const messageApi = {
      * Get all messages with pagination and filtering
      */
     async getAll(params: { page?: number; limit?: number; unread?: boolean } = {}): Promise<MessageResponse> {
+        const queryParams: any = {
+            page: params.page,
+            limit: params.limit,
+        };
+
+        if (params.unread) {
+            queryParams.status = 'unread';
+        }
+
         const { data } = await apiClient.get<MessageResponse>(
             API_CONFIG.ENDPOINTS.MESSAGES.LIST,
-            { params }
+            { params: queryParams }
         );
         return data;
     },
@@ -23,10 +32,16 @@ export const messageApi = {
      * Get unread messages
      */
     async getUnread(): Promise<Message[]> {
-        const { data } = await apiClient.get<Message[]>(
-            API_CONFIG.ENDPOINTS.MESSAGES.UNREAD
+        const { data } = await apiClient.get<MessageResponse>(
+            API_CONFIG.ENDPOINTS.MESSAGES.LIST,
+            {
+                params: {
+                    status: 'unread',
+                    limit: 50 // Fetch reasonable amount of unread messages
+                }
+            }
         );
-        return data;
+        return data.data;
     },
 
     /**

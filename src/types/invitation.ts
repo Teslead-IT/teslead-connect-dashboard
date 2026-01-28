@@ -28,7 +28,8 @@ export enum NotificationType {
     INVITE_ACCEPTED = 'INVITE_ACCEPTED',
     INVITE_REJECTED = 'INVITE_REJECTED',
     INVITE_EXPIRED = 'INVITE_EXPIRED',
-    TASK_ASSIGNED = 'TASK_ASSIGNED'
+    TASK_ASSIGNED = 'TASK_ASSIGNED',
+    TASK_COMPLETED = 'TASK_COMPLETED'
 }
 
 // ============= Request DTOs =============
