@@ -11,6 +11,7 @@ import type {
     UpdateProjectPayload,
     ProjectResponse,
     ProjectMember,
+    PaginatedProjectsResponse,
 } from '@/types/project';
 import { API_CONFIG } from '@/lib/config';
 
@@ -28,31 +29,62 @@ export const projectsApi = {
     /**
      * Get all projects for the current organization
      */
-    async getAllProjects(params?: { orgId?: string; email?: string; page?: number; limit?: number }): Promise<Project[]> {
+    async getAllProjects(params?: { orgId?: string; email?: string; page?: number; limit?: number }): Promise<PaginatedProjectsResponse> {
+        const queryParams: Record<string, any> = {};
+        if (params?.page) queryParams.page = params.page;
+        if (params?.limit) queryParams.limit = params.limit;
+
         // If orgId is explicitly 'all' or empty, use the dedicated /projects/all endpoint
         if (params?.orgId === 'all') {
-            const { data } = await apiClient.get<{ data: Project[] }>(API_CONFIG.ENDPOINTS.PROJECTS.ALL);
-            return data.data;
+            const { data } = await apiClient.get<PaginatedProjectsResponse>(API_CONFIG.ENDPOINTS.PROJECTS.ALL, {
+                params: queryParams
+            });
+            // If the API returns just an array for 'all' endpoint (legacy), we mock the meta
+            if (Array.isArray(data)) {
+                return {
+                    data: data,
+                    meta: {
+                        total: (data as Project[]).length,
+                        page: params?.page || 1,
+                        limit: params?.limit || 10,
+                        totalPages: 1,
+                        hasNextPage: false,
+                        hasPrevPage: false
+                    }
+                };
+            }
+            return data;
         }
 
         const orgId = params?.orgId || getOrgId();
 
-        // Build query params
-        const queryParams: Record<string, any> = {};
         if (params?.orgId && params.orgId !== 'all') {
             queryParams.orgId = params.orgId;
         }
-        if (params?.page) queryParams.page = params.page;
-        if (params?.limit) queryParams.limit = params.limit;
 
-        const { data } = await apiClient.get<{ data: Project[] }>('/projects', {
+        const { data } = await apiClient.get<PaginatedProjectsResponse>('/projects', {
             headers: {
                 'x-org-id': orgId,
             },
             params: queryParams
         });
 
-        return data.data; // API returns enveloped response
+        // Handle case where API might just return { data: [...] } without meta or just [...]
+        if (Array.isArray(data)) {
+            return {
+                data: data,
+                meta: {
+                    total: (data as Project[]).length,
+                    page: params?.page || 1,
+                    limit: params?.limit || 10,
+                    totalPages: 1,
+                    hasNextPage: false,
+                    hasPrevPage: false
+                }
+            };
+        }
+
+        return data;
     },
 
     /**
