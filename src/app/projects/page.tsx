@@ -57,10 +57,20 @@ export default function ProjectsPage() {
     const [selectedOrgId, setSelectedOrgId] = useState<string>('all');
     const [editingProject, setEditingProject] = useState<Project | null>(null);
 
+    // Pagination State
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(20);
+
     // React Query Hooks (pass selectedOrgId to filter)
-    const { data: projects = [], isLoading: loading, error } = useProjects({
-        orgId: selectedOrgId
+    const { data: projectsData, isLoading: loading, error, refetch } = useProjects({
+        orgId: selectedOrgId,
+        page,
+        limit
     });
+
+    const projects = projectsData?.data || [];
+    const meta = projectsData?.meta;
+
     const createProjectMutation = useCreateProject();
     const updateProjectMutation = useUpdateProject();
     const deleteProjectMutation = useDeleteProject();
@@ -76,9 +86,8 @@ export default function ProjectsPage() {
 
     const handleOrgChange = (orgId: string) => {
         setSelectedOrgId(orgId);
+        setPage(1); // Reset to first page on org change
     };
-
-    const { refetch } = useProjects();
 
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{
@@ -151,6 +160,7 @@ export default function ProjectsPage() {
     };
 
     const filteredProjects = useMemo(() => {
+        // Client-side filtering of current page
         return projects.filter(project =>
             project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -662,223 +672,388 @@ export default function ProjectsPage() {
                                 rowHeight={48}
                                 headerHeight={40}
                                 pagination={true}
-                                paginationPageSize={20}
-                                paginationPageSizeSelector={[20, 50, 100]}
+                                paginationPageSize={limit}
+                                suppressPaginationPanel={true}
                                 animateRows={true}
                                 suppressLoadingOverlay={true}
                                 onCellContextMenu={handleCellContextMenu}
                                 preventDefaultOnContextMenu={true}
                             />
                         </div>
-                    </div>
-                ) : (
-                    <div className="h-full overflow-x-auto p-6 bg-gray-50">
-                        <div className="flex gap-4 h-[calc(100vh-200px)] min-w-max">
-                            {PROJECT_STATUS_OPTIONS.map((statusOption) => {
-                                const statusProjects = filteredProjects.filter(
-                                    p => p.status === statusOption.value
-                                );
 
-                                return (
-                                    <div
-                                        key={statusOption.value}
-                                        className="flex-shrink-0 w-80 bg-white rounded-lg border border-gray-200 flex flex-col"
-                                        onDragOver={(e) => e.preventDefault()}
-                                        onDrop={(e) => {
-                                            e.preventDefault();
-                                            const projectId = e.dataTransfer.getData('projectId');
-                                            if (projectId) {
-                                                handleUpdateProjectStatus(projectId, statusOption.value);
-                                            }
+                        {/* Custom Pagination Controls */}
+                        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 bg-white shrink-0">
+                            <div className="flex flex-1 justify-between sm:hidden">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => setPage(p => p + 1)}
+                                    disabled={!meta?.hasNextPage}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="text-sm text-gray-700">
+                                        Showing <span className="font-medium">{filteredProjects.length > 0 ? (page - 1) * limit + 1 : 0}</span> to <span className="font-medium">{Math.min(page * limit, meta?.total || 0)}</span> of <span className="font-medium">{meta?.total || 0}</span> results
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
+                                        value={limit}
+                                        onChange={(e) => {
+                                            setLimit(Number(e.target.value));
+                                            setPage(1);
                                         }}
                                     >
-                                        {/* Column Header */}
-                                        <div className="p-4 border-b border-gray-200">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="font-semibold text-gray-900 text-sm">{statusOption.label}</h3>
-                                                    <span className={cn(
-                                                        "text-xs font-medium px-2 py-0.5 rounded-full",
-                                                        statusOption.color
-                                                    )}>
-                                                        {statusProjects.length}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Drop Zone */}
-                                        <div className="p-3 space-y-3 overflow-y-auto flex-1">
-                                            {statusProjects.length === 0 ? (
-                                                <div className="text-center py-8 text-gray-400 text-sm">
-                                                    No projects
-                                                </div>
-                                            ) : (
-                                                statusProjects.map((project) => (
-                                                    <div
-                                                        key={project.id}
-                                                        draggable={project.role === 'ADMIN' || project.role === 'OWNER'}
-                                                        onDragStart={(e) => {
-                                                            if (!(project.role === 'ADMIN' || project.role === 'OWNER')) {
-                                                                e.preventDefault();
-                                                                return;
-                                                            }
-                                                            e.dataTransfer.setData('projectId', project.id);
-                                                        }}
-                                                        className={cn(
-                                                            "bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow group",
-                                                            (project.role === 'ADMIN' || project.role === 'OWNER') ? "cursor-grab active:cursor-grabbing" : "cursor-default"
-                                                        )}
-                                                        onContextMenu={(e) => {
-                                                            e.preventDefault();
-                                                            setContextMenu({
-                                                                projectId: project.id,
-                                                                projectName: project.name,
-                                                                role: project.role,
-                                                                x: e.clientX,
-                                                                y: e.clientY,
-                                                            });
-                                                        }}
-                                                    >
-                                                        {/* Project Header */}
-                                                        <div className="flex items-start gap-3 mb-2">
-                                                            <div
-                                                                className="w-8 h-8 rounded-md flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
-                                                                style={{
-                                                                    backgroundColor: project.color || '#091590',
-                                                                    background: project.color
-                                                                        ? `linear-gradient(135deg, ${project.color}, ${project.color}dd)`
-                                                                        : undefined
-                                                                }}
-                                                            >
-                                                                {project.name?.charAt(0) || 'P'}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center justify-between gap-2">
-                                                                    <h4
-                                                                        className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600 cursor-pointer transition-colors flex-1"
-                                                                        onClick={() => router.push(`/projects/${project.id}`)}
-                                                                    >
-                                                                        {project.name}
-                                                                    </h4>
-                                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                        {(project.role === 'OWNER' || project.role === 'ADMIN') && (
-                                                                            <>
-                                                                                <button
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        setEditingProject(project);
-                                                                                        setIsCreateModalOpen(true);
-                                                                                    }}
-                                                                                    className="p-1 hover:bg-blue-50 hover:text-blue-600 text-gray-400 rounded transition-colors"
-                                                                                    title="Edit Project"
-                                                                                >
-                                                                                    <Pencil className="w-3 h-3" />
-                                                                                </button>
-                                                                                <button
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        setDeleteDialog({ id: project.id, name: project.name });
-                                                                                    }}
-                                                                                    className="p-1 hover:bg-red-50 hover:text-red-600 text-gray-400 rounded transition-colors"
-                                                                                    title="Delete Project"
-                                                                                >
-                                                                                    <Trash2 className="w-3 h-3" />
-                                                                                </button>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                <p className="text-xs text-gray-500">{project.projectId}</p>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Project Description */}
-                                                        {project.description && (
-                                                            <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                                                                {project.description}
-                                                            </p>
-                                                        )}
-
-                                                        {/* Project Meta */}
-                                                        <div className="flex items-center gap-2 flex-wrap text-xs">
-                                                            {/* Access Badge */}
-                                                            <span className={cn(
-                                                                "inline-flex items-center px-2 py-0.5 rounded-full font-medium",
-                                                                project.access === 'PRIVATE'
-                                                                    ? 'bg-slate-50 text-slate-600'
-                                                                    : 'bg-indigo-50 text-indigo-600'
-                                                            )}>
-                                                                {project.access}
-                                                            </span>
-
-                                                            {/* Role Badge */}
-                                                            <span className={cn(
-                                                                "inline-flex items-center px-2 py-0.5 rounded-full font-medium",
-                                                                project.role === 'ADMIN'
-                                                                    ? 'bg-purple-50 text-purple-700'
-                                                                    : 'bg-gray-50 text-gray-600'
-                                                            )}>
-                                                                {project.role}
-                                                            </span>
-
-                                                            {/* Tags */}
-                                                            {project.tags && project.tags.length > 0 && (
-                                                                <div className="flex gap-1">
-                                                                    {project.tags.slice(0, 2).map((tag, idx) => (
-                                                                        <span
-                                                                            key={idx}
-                                                                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
-                                                                            style={{
-                                                                                backgroundColor: `${tag.color}15`,
-                                                                                color: tag.color,
-                                                                            }}
-                                                                        >
-                                                                            {tag.name}
-                                                                        </span>
-                                                                    ))}
-                                                                    {project.tags.length > 2 && (
-                                                                        <span className="text-[10px] text-gray-400">
-                                                                            +{project.tags.length - 2}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Dates */}
-                                                        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                                                            {project.startDate && (
-                                                                <div className="flex items-center gap-1">
-                                                                    <Calendar className="w-3 h-3" />
-                                                                    {new Date(project.startDate).toLocaleDateString('en-US', {
-                                                                        month: 'short',
-                                                                        day: 'numeric',
-                                                                        year: 'numeric',
-                                                                    })}
-                                                                </div>
-                                                            )}
-                                                            {project.endDate && (
-                                                                <div className="flex items-center gap-1 text-red-600">
-                                                                    <Calendar className="w-3 h-3" />
-                                                                    {new Date(project.endDate).toLocaleDateString('en-US', {
-                                                                        month: 'short',
-                                                                        day: 'numeric',
-                                                                        year: 'numeric',
-                                                                    })}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                        <option value={20}>20 / page</option>
+                                        <option value={50}>50 / page</option>
+                                        <option value={100}>100 / page</option>
+                                    </select>
+                                    <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                        <button
+                                            onClick={() => setPage(1)}
+                                            disabled={page === 1}
+                                            className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="sr-only">First</span>
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                                            disabled={page === 1}
+                                            className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="sr-only">Previous</span>
+                                            <span aria-hidden="true">&lsaquo;</span>
+                                        </button>
+                                        <button
+                                            className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                                        >
+                                            {page}
+                                        </button>
+                                        <button
+                                            onClick={() => setPage(p => p + 1)}
+                                            disabled={!meta?.hasNextPage}
+                                            className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="sr-only">Next</span>
+                                            <span aria-hidden="true">&rsaquo;</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setPage(meta?.totalPages || 1)}
+                                            disabled={!meta?.totalPages || page === meta.totalPages}
+                                            className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="sr-only">Last</span>
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </button>
+                                    </nav>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                )}
+                ) : (
+                    <div className="h-full flex flex-col bg-gray-50">
+                        <div className="flex-1 overflow-x-auto p-6">
+                            <div className="flex gap-4 h-full min-w-max">
+                                {PROJECT_STATUS_OPTIONS.map((statusOption) => {
+                                    const statusProjects = filteredProjects.filter(
+                                        p => p.status === statusOption.value
+                                    );
+
+                                    return (
+                                        <div
+                                            key={statusOption.value}
+                                            className="flex-shrink-0 w-80 bg-white rounded-lg border border-gray-200 flex flex-col"
+                                            onDragOver={(e) => e.preventDefault()}
+                                            onDrop={(e) => {
+                                                e.preventDefault();
+                                                const projectId = e.dataTransfer.getData('projectId');
+                                                if (projectId) {
+                                                    handleUpdateProjectStatus(projectId, statusOption.value);
+                                                }
+                                            }}
+                                        >
+                                            {/* Column Header */}
+                                            <div className="p-4 border-b border-gray-200">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="font-semibold text-gray-900 text-sm">{statusOption.label}</h3>
+                                                        <span className={cn(
+                                                            "text-xs font-medium px-2 py-0.5 rounded-full",
+                                                            statusOption.color
+                                                        )}>
+                                                            {statusProjects.length}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Drop Zone */}
+                                            <div className="p-3 space-y-3 overflow-y-auto flex-1">
+                                                {statusProjects.length === 0 ? (
+                                                    <div className="text-center py-8 text-gray-400 text-sm">
+                                                        No projects
+                                                    </div>
+                                                ) : (
+                                                    statusProjects.map((project) => (
+                                                        <div
+                                                            key={project.id}
+                                                            draggable={project.role === 'ADMIN' || project.role === 'OWNER'}
+                                                            onDragStart={(e) => {
+                                                                if (!(project.role === 'ADMIN' || project.role === 'OWNER')) {
+                                                                    e.preventDefault();
+                                                                    return;
+                                                                }
+                                                                e.dataTransfer.setData('projectId', project.id);
+                                                            }}
+                                                            className={cn(
+                                                                "bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow group",
+                                                                (project.role === 'ADMIN' || project.role === 'OWNER') ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+                                                            )}
+                                                            onContextMenu={(e) => {
+                                                                e.preventDefault();
+                                                                setContextMenu({
+                                                                    projectId: project.id,
+                                                                    projectName: project.name,
+                                                                    role: project.role,
+                                                                    x: e.clientX,
+                                                                    y: e.clientY,
+                                                                });
+                                                            }}
+                                                        >
+                                                            {/* Project Header */}
+                                                            <div className="flex items-start gap-3 mb-2">
+                                                                <div
+                                                                    className="w-8 h-8 rounded-md flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                                                                    style={{
+                                                                        backgroundColor: project.color || '#091590',
+                                                                        background: project.color
+                                                                            ? `linear-gradient(135deg, ${project.color}, ${project.color}dd)`
+                                                                            : undefined
+                                                                    }}
+                                                                >
+                                                                    {project.name?.charAt(0) || 'P'}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center justify-between gap-2">
+                                                                        <h4
+                                                                            className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600 cursor-pointer transition-colors flex-1"
+                                                                            onClick={() => router.push(`/projects/${project.id}`)}
+                                                                        >
+                                                                            {project.name}
+                                                                        </h4>
+                                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                            {(project.role === 'OWNER' || project.role === 'ADMIN') && (
+                                                                                <>
+                                                                                    <button
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            setEditingProject(project);
+                                                                                            setIsCreateModalOpen(true);
+                                                                                        }}
+                                                                                        className="p-1 hover:bg-blue-50 hover:text-blue-600 text-gray-400 rounded transition-colors"
+                                                                                        title="Edit Project"
+                                                                                    >
+                                                                                        <Pencil className="w-3 h-3" />
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            setDeleteDialog({ id: project.id, name: project.name });
+                                                                                        }}
+                                                                                        className="p-1 hover:bg-red-50 hover:text-red-600 text-gray-400 rounded transition-colors"
+                                                                                        title="Delete Project"
+                                                                                    >
+                                                                                        <Trash2 className="w-3 h-3" />
+                                                                                    </button>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className="text-xs text-gray-500">{project.projectId}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Project Description */}
+                                                            {project.description && (
+                                                                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                                                                    {project.description}
+                                                                </p>
+                                                            )}
+
+                                                            {/* Project Meta */}
+                                                            <div className="flex items-center gap-2 flex-wrap text-xs">
+                                                                {/* Access Badge */}
+                                                                <span className={cn(
+                                                                    "inline-flex items-center px-2 py-0.5 rounded-full font-medium",
+                                                                    project.access === 'PRIVATE'
+                                                                        ? 'bg-slate-50 text-slate-600'
+                                                                        : 'bg-indigo-50 text-indigo-600'
+                                                                )}>
+                                                                    {project.access}
+                                                                </span>
+
+                                                                {/* Role Badge */}
+                                                                <span className={cn(
+                                                                    "inline-flex items-center px-2 py-0.5 rounded-full font-medium",
+                                                                    project.role === 'ADMIN'
+                                                                        ? 'bg-purple-50 text-purple-700'
+                                                                        : 'bg-gray-50 text-gray-600'
+                                                                )}>
+                                                                    {project.role}
+                                                                </span>
+
+                                                                {/* Tags */}
+                                                                {project.tags && project.tags.length > 0 && (
+                                                                    <div className="flex gap-1">
+                                                                        {project.tags.slice(0, 2).map((tag, idx) => (
+                                                                            <span
+                                                                                key={idx}
+                                                                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                                                                style={{
+                                                                                    backgroundColor: `${tag.color}15`,
+                                                                                    color: tag.color,
+                                                                                }}
+                                                                            >
+                                                                                {tag.name}
+                                                                            </span>
+                                                                        ))}
+                                                                        {project.tags.length > 2 && (
+                                                                            <span className="text-[10px] text-gray-400">
+                                                                                +{project.tags.length - 2}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Dates */}
+                                                            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                                                                {project.startDate && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Calendar className="w-3 h-3" />
+                                                                        {new Date(project.startDate).toLocaleDateString('en-US', {
+                                                                            month: 'short',
+                                                                            day: 'numeric',
+                                                                            year: 'numeric',
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                                {project.endDate && (
+                                                                    <div className="flex items-center gap-1 text-red-600">
+                                                                        <Calendar className="w-3 h-3" />
+                                                                        {new Date(project.endDate).toLocaleDateString('en-US', {
+                                                                            month: 'short',
+                                                                            day: 'numeric',
+                                                                            year: 'numeric',
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Pagination Controls */}
+                        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 bg-white shrink-0">
+                            <div className="flex flex-1 justify-between sm:hidden">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => setPage(p => p + 1)}
+                                    disabled={!meta?.hasNextPage}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="text-sm text-gray-700">
+                                        Showing <span className="font-medium">{filteredProjects.length > 0 ? (page - 1) * limit + 1 : 0}</span> to <span className="font-medium">{Math.min(page * limit, meta?.total || 0)}</span> of <span className="font-medium">{meta?.total || 0}</span> results
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
+                                        value={limit}
+                                        onChange={(e) => {
+                                            setLimit(Number(e.target.value));
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value={20}>20 / page</option>
+                                        <option value={50}>50 / page</option>
+                                        <option value={100}>100 / page</option>
+                                    </select>
+                                    <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                        <button
+                                            onClick={() => setPage(1)}
+                                            disabled={page === 1}
+                                            className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="sr-only">First</span>
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                                            disabled={page === 1}
+                                            className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="sr-only">Previous</span>
+                                            <span aria-hidden="true">&lsaquo;</span>
+                                        </button>
+                                        <button
+                                            className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                                        >
+                                            {page}
+                                        </button>
+                                        <button
+                                            onClick={() => setPage(p => p + 1)}
+                                            disabled={!meta?.hasNextPage}
+                                            className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="sr-only">Next</span>
+                                            <span aria-hidden="true">&rsaquo;</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setPage(meta?.totalPages || 1)}
+                                            disabled={!meta?.totalPages || page === meta.totalPages}
+                                            className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="sr-only">Last</span>
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </button>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>)}
             </div>
 
             {contextMenu && (

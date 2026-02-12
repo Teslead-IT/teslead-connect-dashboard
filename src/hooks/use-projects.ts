@@ -21,6 +21,7 @@ export function useProjects(params?: { orgId?: string; page?: number; limit?: nu
     return useQuery({
         queryKey: [...projectKeys.all, params?.orgId || 'all', params?.page, params?.limit],
         queryFn: () => projectsApi.getAllProjects(params || { orgId: 'all' }),
+        placeholderData: (previousData) => previousData,
     });
 }
 

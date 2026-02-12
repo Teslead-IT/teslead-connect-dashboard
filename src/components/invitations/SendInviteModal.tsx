@@ -34,7 +34,8 @@ export function SendInviteModal({
     projectName,
 }: SendInviteModalProps) {
     // Fetch all projects dynamically
-    const { data: projects = [], isLoading: projectsLoading } = useProjects();
+    const { data: projectsData, isLoading: projectsLoading } = useProjects();
+    const projects = projectsData?.data || [];
     const [mounted, setMounted] = useState(false);
 
     const [formData, setFormData] = useState<SendInviteDto>({
