@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
 import { useUser } from '@/hooks/use-auth';
@@ -19,6 +19,8 @@ function AcceptInviteContent() {
 
     const [status, setStatus] = useState<'validating' | 'accepting' | 'success' | 'error'>('validating');
     const [message, setMessage] = useState('Verifying invitation...');
+
+    const acceptingRef = useRef(false);
 
     useEffect(() => {
         // 1. Check if token exists
@@ -43,10 +45,12 @@ function AcceptInviteContent() {
         }
 
         // 4. If logged in, automatically accept the invite
-        if (isAuthenticated) {
+        // Prevent double-firing with ref
+        if (isAuthenticated && !acceptingRef.current && status !== 'success' && status !== 'accepting' && status !== 'error') {
+            acceptingRef.current = true;
             handleAccept();
         }
-    }, [auth0User, backendUser, isAuth0Loading, isBackendLoading, isBackendFetching, token, router]);
+    }, [auth0User, backendUser, isAuth0Loading, isBackendLoading, isBackendFetching, token, router, status]);
 
     const handleAccept = async () => {
         if (!token) return;
@@ -65,9 +69,28 @@ function AcceptInviteContent() {
             }, 2000);
         } catch (error: any) {
             setStatus('error');
-            // Extract error message safely
-            const errorMsg = error?.response?.data?.message || error?.message || 'Failed to accept invitation.';
-            setMessage(errorMsg);
+            const status = error?.response?.status;
+            const errorData = error?.response?.data;
+            const backendMsg = errorData?.message || error?.message || '';
+
+            let userMsg = 'Failed to accept invitation.';
+
+            if (status === 404) {
+                userMsg = 'This invitation link is invalid or has already been used.';
+            } else if (status === 403) {
+                userMsg = 'Please log in with the email this invitation was sent to.';
+            } else if (status === 400) {
+                if (backendMsg.includes('expired')) {
+                    userMsg = 'This invitation has expired. Ask for a new one.';
+                } else if (backendMsg.includes('processed') || backendMsg.includes('accepted')) {
+                    userMsg = 'You have already accepted this invitation.';
+                } else {
+                    userMsg = backendMsg || 'Invalid invitation.';
+                }
+            } else {
+                userMsg = backendMsg || 'An error occurred. Please try again.';
+            }
+            setMessage(userMsg);
         }
     };
 

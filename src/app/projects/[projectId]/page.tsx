@@ -743,9 +743,9 @@ const StatusRenderer = (props: ICellRendererParams) => {
 
     if (!isEditable) {
         return (
-            <div className="status-select-wrapper">
+            <div className="status-select-wrapper h-full w-full flex items-center">
                 <span
-                    className="status-select-base inline-flex items-center justify-center cursor-default hover:opacity-100"
+                    className="status-select-base flex items-center justify-center cursor-default hover:opacity-100"
                     style={statusStyle}
                 >
                     {statusName}
@@ -755,7 +755,7 @@ const StatusRenderer = (props: ICellRendererParams) => {
     }
 
     return (
-        <div className="status-select-wrapper" onClick={(e) => e.stopPropagation()}>
+        <div className="status-select-wrapper h-full w-full" onClick={(e) => e.stopPropagation()}>
             <select
                 value={task.status.id}
                 onChange={handleStatusChange}
@@ -1031,6 +1031,9 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                     font-size: 13px;
                     font-weight: 500;
                     overflow: visible !important; /* Critical: Allow dropdowns to overflow limits */
+                }
+                .custom-ag-grid .ag-cell[col-id="status"] {
+                    padding: 0 !important;
                 }
                 
                 .custom-ag-grid .ag-row-selected {

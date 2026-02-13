@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useUser } from '@/hooks/use-auth';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
 import { Search, HelpCircle, Building2, UserPlus } from 'lucide-react';
@@ -28,6 +29,7 @@ export function TopNav() {
     const currentOrgId = backendUser?.currentOrgId || backendUser?.memberships?.[0]?.orgId;
     const currentMembership = backendUser?.memberships?.find(m => m.orgId === currentOrgId);
     const orgName = currentMembership?.orgName;
+    const email = backendUser?.email;
     const userRole = currentMembership?.role || backendUser?.role; // Don't default to 'Member' yet
 
     return (
@@ -69,22 +71,31 @@ export function TopNav() {
                 <div className="flex items-center gap-3">
                     {/* Organization Badge if exists */}
                     {orgName && (
-                        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-gray-50/50 border border-gray-100 rounded-full">
-                            <Building2 className="w-3.5 h-3.5 text-gray-400" />
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{orgName}</span>
-                        </div>
+                        <Link
+                            href="/dashboard/settings/organization"
+                            className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-gray-50/50 hover:bg-blue-50/50 border border-gray-100 hover:border-blue-100 rounded-full transition-all group/org"
+                        >
+                            <Building2 className="w-3.5 h-3.5 text-gray-400 group-hover/org:text-[#091590] transition-colors" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-gray-500 group-hover/org:text-[#091590] uppercase tracking-tight transition-colors">{orgName}</span>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{email}</span>
+                            </div>
+                        </Link>
                     )}
 
                     {/* Action Group */}
                     <div className="flex items-center gap-1 pr-4 border-r border-gray-100">
                         {/* 👥 Invite Button */}
-                        <button
-                            onClick={() => setIsInviteModalOpen(true)}
-                            className="p-2 text-gray-400 hover:text-[#091590] hover:bg-blue-50 rounded-lg transition-all active:scale-95 group"
-                            title="Invite Members"
-                        >
-                            <UserPlus className="w-5 h-5 group-hover:scale-110 transition-transform cursor-pointer" />
-                        </button>
+                        {/* 👥 Invite Button - Only for Owners */}
+                        {userRole === 'OWNER' && (
+                            <button
+                                onClick={() => setIsInviteModalOpen(true)}
+                                className="p-2 text-gray-400 hover:text-[#091590] hover:bg-blue-50 rounded-lg transition-all active:scale-95 group"
+                                title="Invite Members"
+                            >
+                                <UserPlus className="w-5 h-5 group-hover:scale-110 transition-transform cursor-pointer" />
+                            </button>
+                        )}
 
                         <button
                             className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all active:scale-95 cursor-pointer"

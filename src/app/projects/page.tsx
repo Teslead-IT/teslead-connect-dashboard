@@ -216,12 +216,12 @@ export default function ProjectsPage() {
         const isPrivate = access === 'PRIVATE';
 
         return (
-            <div className="h-full flex items-center">
+            <div className="h-full w-full flex items-center">
                 <span className={cn(
-                    "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
+                    "flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide border-0",
                     isPrivate
-                        ? 'bg-slate-50 text-slate-600 border-slate-200'
-                        : 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                        ? 'bg-slate-100 text-slate-600'
+                        : 'bg-indigo-100 text-indigo-800'
                 )}>
                     {access}
                 </span>
@@ -234,12 +234,12 @@ export default function ProjectsPage() {
         const isAdmin = role === 'ADMIN';
 
         return (
-            <div className="h-full flex items-center">
+            <div className="h-full w-full flex items-center">
                 <span className={cn(
-                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border",
+                    "flex items-center justify-center w-full h-full px-2 text-[10px] font-bold border-0",
                     isAdmin
-                        ? 'bg-purple-50/50 text-purple-700 border-purple-100'
-                        : 'bg-gray-50 text-gray-600 border-gray-100'
+                        ? 'bg-purple-100/50 text-purple-700'
+                        : 'bg-gray-100 text-gray-600'
                 )}>
                     {role}
                 </span>
@@ -302,9 +302,9 @@ export default function ProjectsPage() {
 
         if (!canEdit) {
             return (
-                <div className="h-full flex items-center">
+                <div className="h-full w-full flex items-center">
                     <span className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm",
+                        "flex items-center justify-center w-full h-full px-3 text-[10px] font-bold tracking-wide border-0",
                         statusConfig.color
                     )}>
                         {statusConfig.label}
@@ -314,7 +314,7 @@ export default function ProjectsPage() {
         }
 
         return (
-            <div className="status-select-wrapper group/status" onClick={(e) => e.stopPropagation()}>
+            <div className="status-select-wrapper h-full w-full group/status" onClick={(e) => e.stopPropagation()}>
                 <select
                     value={status}
                     onChange={handleChange}
@@ -651,6 +651,11 @@ export default function ProjectsPage() {
                                     color: #0f172a;
                                     font-size: 13px;
                                     font-weight: 500;
+                                }
+                                .custom-ag-grid .ag-cell[col-id="status"],
+                                .custom-ag-grid .ag-cell[col-id="access"],
+                                .custom-ag-grid .ag-cell[col-id="role"] {
+                                    padding: 0 !important;
                                 }
                                 .custom-ag-grid .ag-row:hover {
                                     background-color: #f8fafc !important;
