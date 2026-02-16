@@ -16,9 +16,10 @@ export interface DropdownProps {
     onChange: (value: string) => void;
     placeholder?: string;
     className?: string;
+    customTrigger?: React.ReactNode;
 }
 
-export function Dropdown({ options, value, onChange, placeholder = 'Select...', className }: DropdownProps) {
+export function Dropdown({ options, value, onChange, placeholder = 'Select...', className, customTrigger }: DropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -37,32 +38,41 @@ export function Dropdown({ options, value, onChange, placeholder = 'Select...', 
 
     return (
         <div ref={dropdownRef} className={cn('relative inline-block', className)}>
-            <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className={cn(
-                    'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg',
-                    'bg-[var(--color-surface)] border border-[var(--color-border-primary)]',
-                    'text-[var(--color-text-primary)] hover:border-[var(--color-border-secondary)]',
-                    'transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]'
-                )}
-            >
-                <span className="flex items-center gap-2">
-                    {selectedOption?.icon}
-                    {selectedOption?.label || placeholder}
-                </span>
-                <ChevronDown
-                    className={cn('w-4 h-4 transition-transform', isOpen && 'rotate-180')}
-                />
-            </button>
+            {customTrigger ? (
+                <div onClick={() => setIsOpen(!isOpen)}>{customTrigger}</div>
+            ) : (
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={cn(
+                        'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg',
+                        'bg-[var(--color-surface)] border border-[var(--color-border-primary)]',
+                        'text-[var(--color-text-primary)] hover:border-[var(--color-border-secondary)]',
+                        'transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]'
+                    )}
+                >
+                    <span className="flex items-center gap-2">
+                        {selectedOption?.icon}
+                        {selectedOption?.label || placeholder}
+                    </span>
+                    <ChevronDown
+                        className={cn('w-4 h-4 transition-transform', isOpen && 'rotate-180')}
+                    />
+                </button>
+            )}
 
             {isOpen && (
                 <div
                     className={cn(
-                        'absolute z-50 w-full mt-1 rounded-lg',
-                        'bg-[var(--color-surface-elevated)] border border-[var(--color-border-primary)]',
-                        'shadow-lg max-h-60 overflow-auto'
+                        'fixed z-[100] mt-1 rounded-lg right-auto',
+                        'bg-white border border-gray-200',
+                        'shadow-xl min-w-[160px] max-h-60 overflow-auto',
+                        'animate-in fade-in zoom-in-95 duration-150'
                     )}
+                    style={{
+                        top: dropdownRef.current ? dropdownRef.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
+                        left: dropdownRef.current ? dropdownRef.current.getBoundingClientRect().right - 160 + window.scrollX : 0,
+                    }}
                 >
                     {options.map((option) => (
                         <button
@@ -73,10 +83,10 @@ export function Dropdown({ options, value, onChange, placeholder = 'Select...', 
                                 setIsOpen(false);
                             }}
                             className={cn(
-                                'w-full flex items-center gap-2 px-3 py-2 text-left',
-                                'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]',
+                                'w-full flex items-center gap-2 px-3 py-2 text-sm text-left',
+                                'text-gray-700 hover:bg-gray-50',
                                 'transition-colors first:rounded-t-lg last:rounded-b-lg',
-                                value === option.value && 'bg-[var(--color-bg-tertiary)]'
+                                value === option.value && 'bg-gray-100 font-medium'
                             )}
                         >
                             {option.icon}

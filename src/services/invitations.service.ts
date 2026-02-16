@@ -29,6 +29,7 @@ const INVITE_ENDPOINTS = {
     REJECT: '/invites/reject',
     RESEND: (orgId: string) => `/invites/resend/${orgId}`,
     SEARCH_USERS: '/invites/users',
+    UPDATE_MEMBER_ROLE: (orgId: string, userId: string) => `/organizations/${orgId}/members/${userId}`,
 } as const;
 
 export const invitationsApi = {
@@ -133,10 +134,30 @@ export const invitationsApi = {
         limit?: number;
         page?: number;
         projectId?: string;
+        orgId?: string;
     }): Promise<UserSearchResponse> {
         const { data } = await apiClient.get<UserSearchResponse>(
             INVITE_ENDPOINTS.SEARCH_USERS,
-            { params }
+            { params: { ...params, orgId: params.orgId } }
+        );
+        return data;
+    },
+
+    /**
+     * Update organization member role
+     * 
+     * @param orgId - Organization ID
+     * @param userId - User ID to update
+     * @param role - New role (OWNER, ADMIN, MEMBER)
+     */
+    async updateMemberRole(
+        orgId: string,
+        userId: string,
+        role: string
+    ): Promise<{ message: string }> {
+        const { data } = await apiClient.patch(
+            INVITE_ENDPOINTS.UPDATE_MEMBER_ROLE(orgId, userId),
+            { role }
         );
         return data;
     },

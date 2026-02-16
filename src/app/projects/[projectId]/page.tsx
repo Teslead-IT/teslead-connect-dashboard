@@ -85,11 +85,11 @@ const PRIORITY_LABELS = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    NOT_STARTED: 'bg-gray-100 text-gray-700',
-    IN_PROGRESS: 'bg-blue-100 text-blue-700',
-    ON_HOLD: 'bg-yellow-100 text-yellow-700',
-    COMPLETED: 'bg-green-100 text-green-700',
-    CANCELLED: 'bg-red-100 text-red-700',
+    NOT_STARTED: 'bg-slate-200 text-slate-800 border-slate-300',
+    IN_PROGRESS: 'bg-blue-100 text-blue-700 border-blue-200',
+    ON_HOLD: 'bg-amber-100 text-amber-700 border-amber-200',
+    COMPLETED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    CANCELLED: 'bg-rose-100 text-rose-700 border-rose-200',
 };
 
 export default function ProjectDetailPage() {
@@ -743,9 +743,9 @@ const StatusRenderer = (props: ICellRendererParams) => {
 
     if (!isEditable) {
         return (
-            <div className="status-select-wrapper">
+            <div className="status-select-wrapper h-full w-full flex items-center">
                 <span
-                    className="status-select-base inline-flex items-center justify-center cursor-default hover:opacity-100"
+                    className="status-select-base flex items-center justify-center cursor-default hover:opacity-100"
                     style={statusStyle}
                 >
                     {statusName}
@@ -755,7 +755,7 @@ const StatusRenderer = (props: ICellRendererParams) => {
     }
 
     return (
-        <div className="status-select-wrapper" onClick={(e) => e.stopPropagation()}>
+        <div className="status-select-wrapper h-full w-full" onClick={(e) => e.stopPropagation()}>
             <select
                 value={task.status.id}
                 onChange={handleStatusChange}
@@ -1031,6 +1031,9 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                     font-size: 13px;
                     font-weight: 500;
                     overflow: visible !important; /* Critical: Allow dropdowns to overflow limits */
+                }
+                .custom-ag-grid .ag-cell[col-id="status"] {
+                    padding: 0 !important;
                 }
                 
                 .custom-ag-grid .ag-row-selected {
