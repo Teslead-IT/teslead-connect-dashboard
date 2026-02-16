@@ -85,11 +85,11 @@ const PRIORITY_LABELS = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    NOT_STARTED: 'bg-gray-100 text-gray-700',
-    IN_PROGRESS: 'bg-blue-100 text-blue-700',
-    ON_HOLD: 'bg-yellow-100 text-yellow-700',
-    COMPLETED: 'bg-green-100 text-green-700',
-    CANCELLED: 'bg-red-100 text-red-700',
+    NOT_STARTED: 'bg-slate-200 text-slate-800 border-slate-300',
+    IN_PROGRESS: 'bg-blue-100 text-blue-700 border-blue-200',
+    ON_HOLD: 'bg-amber-100 text-amber-700 border-amber-200',
+    COMPLETED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    CANCELLED: 'bg-rose-100 text-rose-700 border-rose-200',
 };
 
 export default function ProjectDetailPage() {

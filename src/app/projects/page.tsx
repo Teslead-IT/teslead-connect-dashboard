@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, RowDragEndEvent, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
@@ -18,8 +18,6 @@ import {
     MoreVertical,
     Calendar,
     Filter,
-    SlidersHorizontal,
-    ArrowUpRight,
     ChevronDown,
     Pencil,
     Trash2
@@ -34,18 +32,20 @@ import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } fro
 import { useAuth, useUser, useSwitchOrg } from '@/hooks/use-auth';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { Dialog } from '@/components/ui/Dialog';
+import { useOrganizationMembers } from '@/hooks/use-organization-members';
 import type { Project, Tag } from '@/types/project';
+import { getProjectPermissions, type OrgRole, type ProjectRole } from '@/lib/permissions';
 
 // ==================== TYPE DEFINITIONS ====================
 type ViewMode = 'list' | 'kanban';
 
 // ==================== MAIN COMPONENT ====================
 const PROJECT_STATUS_OPTIONS = [
-    { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-slate-50 text-slate-700 border-slate-200' },
-    { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-    { value: 'ON_HOLD', label: 'On Hold', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-    { value: 'COMPLETED', label: 'Completed', color: 'bg-green-50 text-green-700 border-green-200' },
-    { value: 'CANCELLED', label: 'Cancelled', color: 'bg-red-50 text-red-700 border-red-200' },
+    { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-slate-200 text-slate-800 border-slate-300' },
+    { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    { value: 'ON_HOLD', label: 'On Hold', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+    { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+    { value: 'CANCELLED', label: 'Cancelled', color: 'bg-rose-100 text-rose-700 border-rose-200' },
 ];
 
 
@@ -89,11 +89,23 @@ export default function ProjectsPage() {
         setPage(1); // Reset to first page on org change
     };
 
+    // Fetch members to get owner names
+    const { members: orgMembers } = useOrganizationMembers(
+        selectedOrgId !== 'all' ? selectedOrgId : (user?.currentOrgId || memberships[0]?.orgId || ''),
+        ''
+    );
+
+    const memberMap = useMemo(() => {
+        const map: Record<string, string> = {};
+        orgMembers.forEach((m: any) => {
+            if (m.id && m.name) map[m.id] = m.name;
+        });
+        return map;
+    }, [orgMembers]);
+
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{
-        projectId: string;
-        projectName: string;
-        role: string;
+        project: Project;
         x: number;
         y: number;
     } | null>(null);
@@ -111,9 +123,7 @@ export default function ProjectsPage() {
         if (event) {
             event.preventDefault();
             setContextMenu({
-                projectId: params.data.id,
-                projectName: params.data.name,
-                role: params.data.role,
+                project: params.data,
                 x: event.clientX,
                 y: event.clientY,
             });
@@ -130,7 +140,7 @@ export default function ProjectsPage() {
 
     const handleDeleteClick = () => {
         if (contextMenu) {
-            setDeleteDialog({ id: contextMenu.projectId, name: contextMenu.projectName });
+            setDeleteDialog({ id: contextMenu.project.id, name: contextMenu.project.name });
             setContextMenu(null);
         }
     };
@@ -179,6 +189,80 @@ export default function ProjectsPage() {
         }
     }, [updateProjectMutation, toast]);
 
+    // ==================== PERMISSIONS HELPERS ====================
+    /**
+     * Resolves the organization and project roles for a given project.
+     * Handles Global vs Specific Org view contexts.
+     */
+    const getProjectRoles = useCallback((project: Project) => {
+        // 1. Try finding membership by project's own orgId (most accurate)
+        // Check multiple possible field names and nested structure for organization ID to be robust
+        const projectOrgId =
+            project.orgId ||
+            (project as any).organizationId ||
+            (project as any).org_id ||
+            (project as any).organization?.id ||
+            (project as any).org?.id;
+
+        let membership = memberships.find(m => m.orgId === projectOrgId);
+
+        // 2. Fallback: If project has no orgId and we are in a single org view, use that org
+        if (!membership && selectedOrgId !== 'all') {
+            membership = memberships.find(m => m.orgId === selectedOrgId);
+        }
+
+        // 3. Fallback: If still not found and user has only one membership
+        if (!membership && memberships.length === 1) {
+            membership = memberships[0];
+        }
+
+        const orgRole = (membership?.role as OrgRole) || 'MEMBER';
+        const projectRole = (project.role as ProjectRole) || 'VIEWER';
+
+        // Improved Global Permission Check: 
+        // 1. If we can't map to a specific org, but user is an Admin/Owner in ALL their orgs.
+        // 2. If we are in 'all' view and the project's own role is elevated, trust it
+        //    if the user is an admin of ANY organization.
+        const isEveryOrgAdmin = memberships.length > 0 && memberships.every(m => m.role === 'OWNER' || m.role === 'ADMIN');
+        const hasAnyOrgAdmin = memberships.some(m => m.role === 'OWNER' || m.role === 'ADMIN');
+
+        const isOrgOwnerOrAdmin =
+            orgRole === 'OWNER' ||
+            orgRole === 'ADMIN' ||
+            (selectedOrgId === 'all' && isEveryOrgAdmin) ||
+            (selectedOrgId === 'all' && !membership && hasAnyOrgAdmin && (projectRole === 'ADMIN' || projectRole === 'OWNER'));
+
+        return {
+            orgRole,
+            projectRole,
+            isOrgOwnerOrAdmin,
+            // Display Role: prioritize Org Role if it's elevated
+            displayRole: isOrgOwnerOrAdmin ? (orgRole === 'MEMBER' && hasAnyOrgAdmin ? (memberships.find(m => m.role === 'OWNER' || m.role === 'ADMIN')?.role || 'ADMIN') : orgRole) : projectRole
+        };
+    }, [memberships, selectedOrgId]);
+
+    /**
+     * Calculates UI-specific action permissions for a project
+     */
+    const getProjectPermissionsForUI = useCallback((project: Project) => {
+        const { orgRole, projectRole, isOrgOwnerOrAdmin } = getProjectRoles(project);
+
+        const projectPerms = getProjectPermissions(
+            user?.id || '',
+            project,
+            projectRole,
+            orgRole
+        );
+
+        return {
+            canDelete: isOrgOwnerOrAdmin || project.ownerId === user?.id,
+            canEdit: isOrgOwnerOrAdmin || projectPerms.canEditProjectSettings,
+            canInvite: isOrgOwnerOrAdmin || projectPerms.canAddMembers,
+            isOrgOwnerOrAdmin,
+            orgRole
+        };
+    }, [getProjectRoles, user?.id]);
+
     // ==================== CELL RENDERERS ====================
     const ProjectNameRenderer = (props: ICellRendererParams) => {
         const { name, color, id, description } = props.data;
@@ -190,7 +274,7 @@ export default function ProjectsPage() {
         };
 
         return (
-            <div className="flex items-center gap-3 py-1 group cursor-pointer w-full overflow-hidden" onClick={handleClick}>
+            <div className="flex items-center gap-3  group cursor-pointer w-full overflow-hidden" onClick={handleClick}>
                 <div
                     className="w-8 h-8 rounded-md shadow-sm flex items-center justify-center text-white font-bold text-xs flex-shrink-0 transition-transform group-hover:scale-105"
                     style={{
@@ -202,9 +286,19 @@ export default function ProjectsPage() {
                 </div>
                 <div className="min-w-0 flex flex-col justify-center flex-1">
                     <div className="flex items-center gap-1.5 w-full">
-                        <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-xs block w-full" title={name}>
+                        <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-xs block" title={name}>
                             {name}
                         </span>
+                        {user?.id && (
+                            <span className={cn(
+                                "flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight border",
+                                props.data.ownerId === user?.id
+                                    ? "bg-blue-50 text-blue-600 border-blue-100"
+                                    : "bg-gray-50 text-gray-500 border-gray-100"
+                            )}>
+                                {props.data.ownerId === user?.id ? "Your's" : (memberMap[props.data.ownerId] || props.data.ownerName || "Owner")}
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
@@ -230,18 +324,19 @@ export default function ProjectsPage() {
     };
 
     const RoleRenderer = (props: ICellRendererParams) => {
-        const role = props.value;
-        const isAdmin = role === 'ADMIN';
+        const { displayRole, isOrgOwnerOrAdmin } = getProjectRoles(props.data);
 
         return (
             <div className="h-full w-full flex items-center">
                 <span className={cn(
                     "flex items-center justify-center w-full h-full px-2 text-[10px] font-bold border-0",
-                    isAdmin
-                        ? 'bg-purple-100/50 text-purple-700'
-                        : 'bg-gray-100 text-gray-600'
+                    isOrgOwnerOrAdmin
+                        ? 'bg-purple-100 text-purple-800'
+                        : displayRole === 'ADMIN'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-slate-100 text-slate-700'
                 )}>
-                    {role}
+                    {displayRole}
                 </span>
             </div>
         );
@@ -281,10 +376,7 @@ export default function ProjectsPage() {
 
     const StatusRenderer = (props: ICellRendererParams) => {
         const { value: status, data } = props;
-        const role = data.role;
-        // User requested: "inline status edit allowed to only for role admin...for member and viewer dont allow"
-        // We include OWNER as they should have full permissions.
-        const canEdit = role === 'ADMIN' || role === 'OWNER';
+        const { canEdit } = getProjectPermissionsForUI(data);
         const { onUpdateStatus } = props.context || {};
 
         const statusConfig = PROJECT_STATUS_OPTIONS.find(s => s.value === status) || {
@@ -583,7 +675,8 @@ export default function ProjectsPage() {
 
                             <button
                                 onClick={() => setIsCreateModalOpen(true)}
-                                className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-4 h-8 text-xs rounded-md ml-1 sm:ml-2 transition-colors duration-200 border border-transparent shadow-sm whitespace-nowrap"
+                                className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white active:scale-[0.98] font-medium px-4 h-8 text-xs rounded-md ml-1 sm:ml-2 transition-colors duration-200 border border-transparent shadow-sm whitespace-nowrap"
+                                title="Create New Project"
                             >
                                 <Plus className="w-3.5 h-3.5 sm:mr-1.5" />
                                 <span className="hidden sm:inline">New Project</span>
@@ -812,56 +905,57 @@ export default function ProjectsPage() {
                                                         No projects
                                                     </div>
                                                 ) : (
-                                                    statusProjects.map((project) => (
-                                                        <div
-                                                            key={project.id}
-                                                            draggable={project.role === 'ADMIN' || project.role === 'OWNER'}
-                                                            onDragStart={(e) => {
-                                                                if (!(project.role === 'ADMIN' || project.role === 'OWNER')) {
+                                                    statusProjects.map((project) => {
+                                                        const { canEdit, canDelete, isOrgOwnerOrAdmin } = getProjectPermissionsForUI(project);
+                                                        const { displayRole } = getProjectRoles(project);
+
+                                                        return (
+                                                            <div
+                                                                key={project.id}
+                                                                draggable={canEdit}
+                                                                onDragStart={(e) => {
+                                                                    if (!canEdit) {
+                                                                        e.preventDefault();
+                                                                        return;
+                                                                    }
+                                                                    e.dataTransfer.setData('projectId', project.id);
+                                                                }}
+                                                                className={cn(
+                                                                    "bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow group",
+                                                                    canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+                                                                )}
+                                                                onContextMenu={(e) => {
                                                                     e.preventDefault();
-                                                                    return;
-                                                                }
-                                                                e.dataTransfer.setData('projectId', project.id);
-                                                            }}
-                                                            className={cn(
-                                                                "bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow group",
-                                                                (project.role === 'ADMIN' || project.role === 'OWNER') ? "cursor-grab active:cursor-grabbing" : "cursor-default"
-                                                            )}
-                                                            onContextMenu={(e) => {
-                                                                e.preventDefault();
-                                                                setContextMenu({
-                                                                    projectId: project.id,
-                                                                    projectName: project.name,
-                                                                    role: project.role,
-                                                                    x: e.clientX,
-                                                                    y: e.clientY,
-                                                                });
-                                                            }}
-                                                        >
-                                                            {/* Project Header */}
-                                                            <div className="flex items-start gap-3 mb-2">
-                                                                <div
-                                                                    className="w-8 h-8 rounded-md flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
-                                                                    style={{
-                                                                        backgroundColor: project.color || '#091590',
-                                                                        background: project.color
-                                                                            ? `linear-gradient(135deg, ${project.color}, ${project.color}dd)`
-                                                                            : undefined
-                                                                    }}
-                                                                >
-                                                                    {project.name?.charAt(0) || 'P'}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center justify-between gap-2">
-                                                                        <h4
-                                                                            className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600 cursor-pointer transition-colors flex-1"
-                                                                            onClick={() => router.push(`/projects/${project.id}`)}
-                                                                        >
-                                                                            {project.name}
-                                                                        </h4>
-                                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                            {(project.role === 'OWNER' || project.role === 'ADMIN') && (
-                                                                                <>
+                                                                    setContextMenu({
+                                                                        project: project,
+                                                                        x: e.clientX,
+                                                                        y: e.clientY,
+                                                                    });
+                                                                }}
+                                                            >
+                                                                {/* Project Header */}
+                                                                <div className="flex items-start gap-3 mb-2">
+                                                                    <div
+                                                                        className="w-8 h-8 rounded-md flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                                                                        style={{
+                                                                            backgroundColor: project.color || '#091590',
+                                                                            background: project.color
+                                                                                ? `linear-gradient(135deg, ${project.color}, ${project.color}dd)`
+                                                                                : undefined
+                                                                        }}
+                                                                    >
+                                                                        {project.name?.charAt(0) || 'P'}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center justify-between gap-2">
+                                                                            <h4
+                                                                                className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600 cursor-pointer transition-colors flex-1"
+                                                                                onClick={() => router.push(`/projects/${project.id}`)}
+                                                                            >
+                                                                                {project.name}
+                                                                            </h4>
+                                                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                                {canEdit && (
                                                                                     <button
                                                                                         onClick={(e) => {
                                                                                             e.stopPropagation();
@@ -873,6 +967,8 @@ export default function ProjectsPage() {
                                                                                     >
                                                                                         <Pencil className="w-3 h-3" />
                                                                                     </button>
+                                                                                )}
+                                                                                {canDelete && (
                                                                                     <button
                                                                                         onClick={(e) => {
                                                                                             e.stopPropagation();
@@ -883,92 +979,104 @@ export default function ProjectsPage() {
                                                                                     >
                                                                                         <Trash2 className="w-3 h-3" />
                                                                                     </button>
-                                                                                </>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between">
+                                                                            <p className="text-xs text-gray-500 font-mono">{project.projectId}</p>
+                                                                            {user?.id && (
+                                                                                <span className={cn(
+                                                                                    "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight border",
+                                                                                    project.ownerId === user?.id
+                                                                                        ? "bg-blue-50 text-blue-600 border-blue-100"
+                                                                                        : "bg-gray-50 text-gray-500 border-gray-100"
+                                                                                )}>
+                                                                                    {project.ownerId === user?.id ? "Your's" : (memberMap[project.ownerId || ''] || (project as any).ownerName || "Owner")}
+                                                                                </span>
                                                                             )}
                                                                         </div>
                                                                     </div>
-                                                                    <p className="text-xs text-gray-500">{project.projectId}</p>
+                                                                </div>
+
+                                                                {/* Project Description */}
+                                                                {project.description && (
+                                                                    <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                                                                        {project.description}
+                                                                    </p>
+                                                                )}
+
+                                                                {/* Project Meta */}
+                                                                <div className="flex items-center gap-2 flex-wrap text-xs">
+                                                                    {/* Access Badge */}
+                                                                    <span className={cn(
+                                                                        "inline-flex items-center px-2 py-0.5 rounded-full font-medium shadow-sm",
+                                                                        project.access === 'PRIVATE'
+                                                                            ? 'bg-slate-100 text-slate-700'
+                                                                            : 'bg-indigo-100 text-indigo-700'
+                                                                    )}>
+                                                                        {project.access}
+                                                                    </span>
+
+                                                                    {/* Role Badge */}
+                                                                    <span className={cn(
+                                                                        "inline-flex items-center px-2 py-0.5 rounded-full font-medium shadow-sm",
+                                                                        isOrgOwnerOrAdmin || project.role === 'ADMIN'
+                                                                            ? 'bg-purple-100 text-purple-800'
+                                                                            : 'bg-slate-100 text-slate-700'
+                                                                    )}>
+                                                                        {displayRole}
+                                                                    </span>
+
+                                                                    {/* Tags */}
+                                                                    {project.tags && project.tags.length > 0 && (
+                                                                        <div className="flex gap-1">
+                                                                            {project.tags.slice(0, 2).map((tag, idx) => (
+                                                                                <span
+                                                                                    key={idx}
+                                                                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                                                                    style={{
+                                                                                        backgroundColor: `${tag.color}15`,
+                                                                                        color: tag.color,
+                                                                                    }}
+                                                                                >
+                                                                                    {tag.name}
+                                                                                </span>
+                                                                            ))}
+                                                                            {project.tags.length > 2 && (
+                                                                                <span className="text-[10px] text-gray-400">
+                                                                                    +{project.tags.length - 2}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Dates */}
+                                                                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                                                                    {project.startDate && (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <Calendar className="w-3 h-3" />
+                                                                            {new Date(project.startDate).toLocaleDateString('en-US', {
+                                                                                month: 'short',
+                                                                                day: 'numeric',
+                                                                                year: 'numeric',
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+                                                                    {project.endDate && (
+                                                                        <div className="flex items-center gap-1 text-red-600">
+                                                                            <Calendar className="w-3 h-3" />
+                                                                            {new Date(project.endDate).toLocaleDateString('en-US', {
+                                                                                month: 'short',
+                                                                                day: 'numeric',
+                                                                                year: 'numeric',
+                                                                            })}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
-
-                                                            {/* Project Description */}
-                                                            {project.description && (
-                                                                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                                                                    {project.description}
-                                                                </p>
-                                                            )}
-
-                                                            {/* Project Meta */}
-                                                            <div className="flex items-center gap-2 flex-wrap text-xs">
-                                                                {/* Access Badge */}
-                                                                <span className={cn(
-                                                                    "inline-flex items-center px-2 py-0.5 rounded-full font-medium",
-                                                                    project.access === 'PRIVATE'
-                                                                        ? 'bg-slate-50 text-slate-600'
-                                                                        : 'bg-indigo-50 text-indigo-600'
-                                                                )}>
-                                                                    {project.access}
-                                                                </span>
-
-                                                                {/* Role Badge */}
-                                                                <span className={cn(
-                                                                    "inline-flex items-center px-2 py-0.5 rounded-full font-medium",
-                                                                    project.role === 'ADMIN'
-                                                                        ? 'bg-purple-50 text-purple-700'
-                                                                        : 'bg-gray-50 text-gray-600'
-                                                                )}>
-                                                                    {project.role}
-                                                                </span>
-
-                                                                {/* Tags */}
-                                                                {project.tags && project.tags.length > 0 && (
-                                                                    <div className="flex gap-1">
-                                                                        {project.tags.slice(0, 2).map((tag, idx) => (
-                                                                            <span
-                                                                                key={idx}
-                                                                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
-                                                                                style={{
-                                                                                    backgroundColor: `${tag.color}15`,
-                                                                                    color: tag.color,
-                                                                                }}
-                                                                            >
-                                                                                {tag.name}
-                                                                            </span>
-                                                                        ))}
-                                                                        {project.tags.length > 2 && (
-                                                                            <span className="text-[10px] text-gray-400">
-                                                                                +{project.tags.length - 2}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Dates */}
-                                                            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                                                                {project.startDate && (
-                                                                    <div className="flex items-center gap-1">
-                                                                        <Calendar className="w-3 h-3" />
-                                                                        {new Date(project.startDate).toLocaleDateString('en-US', {
-                                                                            month: 'short',
-                                                                            day: 'numeric',
-                                                                            year: 'numeric',
-                                                                        })}
-                                                                    </div>
-                                                                )}
-                                                                {project.endDate && (
-                                                                    <div className="flex items-center gap-1 text-red-600">
-                                                                        <Calendar className="w-3 h-3" />
-                                                                        {new Date(project.endDate).toLocaleDateString('en-US', {
-                                                                            month: 'short',
-                                                                            day: 'numeric',
-                                                                            year: 'numeric',
-                                                                        })}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))
+                                                        );
+                                                    })
                                                 )}
                                             </div>
                                         </div>
@@ -1061,34 +1169,36 @@ export default function ProjectsPage() {
                     </div>)}
             </div>
 
-            {contextMenu && (
-                <ProjectContextMenu
-                    x={contextMenu.x}
-                    y={contextMenu.y}
-                    onClose={() => setContextMenu(null)}
-                    onViewDetails={() => {
-                        router.push(`/projects/${contextMenu.projectId}`);
-                        setContextMenu(null);
-                    }}
-                    onDelete={(contextMenu.role === 'OWNER' || contextMenu.role === 'ADMIN') ? handleDeleteClick : undefined}
-                    onEdit={(contextMenu.role === 'OWNER' || contextMenu.role === 'ADMIN') ? () => {
-                        const project = projects.find(p => p.id === contextMenu.projectId);
-                        if (project) {
-                            setEditingProject(project);
+            {contextMenu && (() => {
+                // Calculate permissions for the specific project in the context menu
+                const { canEdit, canDelete, canInvite } = getProjectPermissionsForUI(contextMenu.project);
+
+                return (
+                    <ProjectContextMenu
+                        x={contextMenu.x}
+                        y={contextMenu.y}
+                        onClose={() => setContextMenu(null)}
+                        onViewDetails={() => {
+                            router.push(`/projects/${contextMenu.project.id}`);
+                            setContextMenu(null);
+                        }}
+                        onDelete={canDelete ? handleDeleteClick : undefined}
+                        onEdit={canEdit ? () => {
+                            setEditingProject(contextMenu.project);
                             setIsCreateModalOpen(true);
-                        }
-                        setContextMenu(null);
-                    } : undefined}
-                    onInvite={(contextMenu.role === 'OWNER' || contextMenu.role === 'ADMIN') ? () => {
-                        setInviteModalState({
-                            isOpen: true,
-                            projectId: contextMenu.projectId,
-                            projectName: contextMenu.projectName
-                        });
-                        setContextMenu(null);
-                    } : undefined}
-                />
-            )}
+                            setContextMenu(null);
+                        } : undefined}
+                        onInvite={canInvite ? () => {
+                            setInviteModalState({
+                                isOpen: true,
+                                projectId: contextMenu.project.id,
+                                projectName: contextMenu.project.name
+                            });
+                            setContextMenu(null);
+                        } : undefined}
+                    />
+                );
+            })()}
 
             {inviteModalState.projectId && (
                 <SendProjectInviteModal

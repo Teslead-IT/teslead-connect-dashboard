@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/hooks/use-auth';
 import { useOrganizationMembers } from '@/hooks/use-organization-members';
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { OrgRole } from '@/types/invitation';
 import { Modal } from '@/components/ui/Modal';
+import { useOrgPermissions, type OrgRole as PermissionOrgRole } from '@/lib/permissions';
 
 const TABS: TabItem[] = [
     { id: 'members', label: 'Members', icon: <Users className="w-4 h-4" /> },
@@ -42,7 +43,18 @@ export default function OrganizationSettingsPage() {
     const [searchQuery, setSearchQuery] = useState('');
 
     const currentMembership = user?.memberships?.find(m => m.orgId === orgId);
-    const isOwner = currentMembership?.role === 'OWNER';
+
+    // Get organization context for permissions
+    const org = useMemo(() => ({
+        ownerId: currentMembership?.ownerId
+    }), [currentMembership]);
+
+    // Calculate permissions using centralized system
+    const permissions = useOrgPermissions(
+        user?.id,
+        org,
+        currentMembership?.role as PermissionOrgRole | undefined
+    );
 
     // Role Change States
     const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
@@ -125,7 +137,7 @@ export default function OrganizationSettingsPage() {
                                                     <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Member</th>
                                                     <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Role</th>
                                                     <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                                    {isOwner && (
+                                                    {permissions.canUpdateMemberRole && (
                                                         <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                                                     )}
                                                 </tr>
@@ -137,14 +149,14 @@ export default function OrganizationSettingsPage() {
                                                             <td className="px-6 py-4"><div className="h-10 w-48 bg-gray-100 rounded"></div></td>
                                                             <td className="px-6 py-4"><div className="h-6 w-20 bg-gray-100 rounded-full"></div></td>
                                                             <td className="px-6 py-4"><div className="h-6 w-16 bg-gray-100 rounded-full"></div></td>
-                                                            {isOwner && (
+                                                            {permissions.canUpdateMemberRole && (
                                                                 <td className="px-6 py-4"><div className="h-8 w-8 bg-gray-100 rounded float-right"></div></td>
                                                             )}
                                                         </tr>
                                                     ))
                                                 ) : members.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={isOwner ? 4 : 3} className="px-6 py-12 text-center">
+                                                        <td colSpan={permissions.canUpdateMemberRole ? 4 : 3} className="px-6 py-12 text-center">
                                                             <div className="flex flex-col items-center gap-2">
                                                                 <Users className="w-12 h-12 text-gray-300" />
                                                                 <p className="text-sm font-medium text-gray-500">No members found</p>
@@ -193,7 +205,7 @@ export default function OrganizationSettingsPage() {
                                                                     <span className="text-xs font-medium text-green-600">Active</span>
                                                                 </div>
                                                             </td>
-                                                            {isOwner && (
+                                                            {permissions.canUpdateMemberRole && (
                                                                 <td className="px-6 py-4 text-right relative">
                                                                     <Dropdown
                                                                         className="w-40"

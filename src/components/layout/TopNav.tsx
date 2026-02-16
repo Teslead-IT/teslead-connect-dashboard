@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-auth';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notifications';
 import { SendInviteModal } from '@/components/invitations';
 import { AppsMenu } from './AppsMenu';
+import { useOrgPermissions, type OrgRole } from '@/lib/permissions';
 
 export function TopNav() {
     const { data: backendUser, isLoading } = useUser();
@@ -30,7 +31,17 @@ export function TopNav() {
     const currentMembership = backendUser?.memberships?.find(m => m.orgId === currentOrgId);
     const orgName = currentMembership?.orgName;
     const email = backendUser?.email;
-    const userRole = currentMembership?.role || backendUser?.role; // Don't default to 'Member' yet
+    const userRole = currentMembership?.role as OrgRole | undefined;
+
+    // Get organization context for permissions
+    const org = useMemo(() => {
+        // TODO: Once backend provides ownerId in memberships, use it here
+        // For now, we'll need to fetch it from org details or use fallback
+        return { ownerId: currentMembership?.ownerId };
+    }, [currentMembership]);
+
+    // Calculate permissions using centralized system
+    const permissions = useOrgPermissions(backendUser?.id, org, userRole);
 
     return (
         <header
@@ -85,9 +96,8 @@ export function TopNav() {
 
                     {/* Action Group */}
                     <div className="flex items-center gap-1 pr-4 border-r border-gray-100">
-                        {/* 👥 Invite Button */}
-                        {/* 👥 Invite Button - Only for Owners */}
-                        {userRole === 'OWNER' && (
+                        {/* 👥 Invite Button - Only for Org Creators */}
+                        {permissions.canInviteToOrg && (
                             <button
                                 onClick={() => setIsInviteModalOpen(true)}
                                 className="p-2 text-gray-400 hover:text-[#091590] hover:bg-blue-50 rounded-lg transition-all active:scale-95 group"
