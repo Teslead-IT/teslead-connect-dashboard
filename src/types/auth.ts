@@ -5,6 +5,7 @@ export interface Membership {
     slug: string;
     status: string;
     role: string;
+    ownerId?: string; // Organization creator/owner ID for permission checks
 }
 
 export interface User {

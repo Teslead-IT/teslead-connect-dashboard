@@ -8,10 +8,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
-import { X, Send, Mail, Building2, FolderKanban, Shield } from 'lucide-react';
+import { X, Send, Mail, Building2, Shield } from 'lucide-react';
 import { useSendInvite } from '@/hooks/use-invitations';
-import { useProjects } from '@/hooks/use-projects';
-import { OrgRole, ProjectRole, type SendInviteDto } from '@/types/invitation';
+import { OrgRole, type SendInviteDto } from '@/types/invitation';
 import { useUserSearch } from '@/hooks/use-user-search';
 import { getInitials, getAvatarColor } from '@/lib/utils';
 
@@ -20,9 +19,6 @@ interface SendInviteModalProps {
     onClose: () => void;
     orgId: string;
     orgName: string;
-    /** Optional: Pre-select a project for assignment */
-    id?: string;
-    projectName?: string;
 }
 
 export function SendInviteModal({
@@ -30,22 +26,15 @@ export function SendInviteModal({
     onClose,
     orgId,
     orgName,
-    id,
-    projectName,
 }: SendInviteModalProps) {
-    // Fetch all projects dynamically
-    const { data: projectsData, isLoading: projectsLoading } = useProjects();
-    const projects = projectsData?.data || [];
     const [mounted, setMounted] = useState(false);
 
     const [formData, setFormData] = useState<SendInviteDto>({
         email: '',
         orgRole: OrgRole.MEMBER,
-        id: id,
-        projectRole: id ? ProjectRole.VIEWER : undefined,
     });
 
-    const { mutate: sendInvite, isPending, isError, error, isSuccess, reset } = useSendInvite(orgId);
+    const { mutate: sendInvite, isPending, isError, error, isSuccess, data, reset } = useSendInvite(orgId);
 
     // User Search Logic
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -79,8 +68,6 @@ export function SendInviteModal({
                 setFormData({
                     email: '',
                     orgRole: OrgRole.MEMBER,
-                    id: id,
-                    projectRole: id ? ProjectRole.VIEWER : undefined,
                 });
                 reset();
             }, 300);
@@ -89,41 +76,32 @@ export function SendInviteModal({
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [isOpen, id, reset]);
+    }, [isOpen, reset]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         // Validate
         if (!formData.email) return;
-        if (formData.id && !formData.projectRole) {
-            // Simple alert fallback or UI error
-            return;
-        }
 
         console.log(formData);
 
         sendInvite(formData, {
-            onSuccess: () => {
+            onSuccess: (data) => {
+                // If user is already in org, don't clear form and don't close modal automatically
+                if (data?.message === "User already in our organization") {
+                    return;
+                }
+
                 // Reset form
                 setFormData({
                     email: '',
                     orgRole: OrgRole.MEMBER,
-                    id: id,
-                    projectRole: id ? ProjectRole.VIEWER : undefined,
                 });
                 // Close modal after short delay
                 setTimeout(onClose, 1500);
             },
         });
-    };
-
-    const handleProjectChange = (newProjectId: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            id: newProjectId || undefined,
-            projectRole: newProjectId ? ProjectRole.VIEWER : undefined,
-        }));
     };
 
     if (!mounted) return null;
@@ -261,57 +239,10 @@ export function SendInviteModal({
                             </p>
                         </div>
 
-                        <div className="h-px bg-gray-200" />
 
-                        {/* Project Assignment */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Assign to Project (Optional)</label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FolderKanban className="h-4 w-4 text-gray-400" />
-                                </div>
-                                <select
-                                    value={formData.id || ''}
-                                    onChange={(e) => handleProjectChange(e.target.value)}
-                                    className="block w-full pl-10 pr-10 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all text-sm shadow-sm appearance-none"
-                                    disabled={isPending}
-                                >
-                                    <option value="">No project assignment</option>
-                                    {projects.map((project: any) => (
-                                        <option key={project.id} value={project.id}>
-                                            {project.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Project Role */}
-                        {formData.id && (
-                            <div className="pl-4 border-l-2 border-gray-200">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Project Role</label>
-                                <select
-                                    value={formData.projectRole || ProjectRole.VIEWER}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, projectRole: e.target.value as ProjectRole })
-                                    }
-                                    className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all text-sm shadow-sm"
-                                    disabled={isPending}
-                                >
-                                    <option value={ProjectRole.VIEWER}>Viewer</option>
-                                    <option value={ProjectRole.MEMBER}>Member</option>
-                                    <option value={ProjectRole.ADMIN}>Admin</option>
-                                </select>
-                            </div>
-                        )}
 
                         {/* Success Message */}
-                        {isSuccess && (
+                        {isSuccess && data?.message !== "User already in our organization" && (
                             <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
                                 <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                                     <svg className="w-3 h-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -325,6 +256,19 @@ export function SendInviteModal({
                             </div>
                         )}
 
+                        {/* Already in Org Message */}
+                        {isSuccess && data?.message === "User already in our organization" && (
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+                                <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <Building2 className="w-3 h-3 text-blue-600" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-medium text-blue-800">Already a Member</h4>
+                                    <p className="text-xs text-blue-600 mt-0.5">{data.message}</p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Error Message */}
                         {isError && (
                             <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
@@ -334,7 +278,13 @@ export function SendInviteModal({
                                 <div>
                                     <h4 className="text-sm font-medium text-red-800">Failed to send</h4>
                                     <p className="text-xs text-red-600 mt-0.5">
-                                        {(error as any)?.response?.data?.message || (error as Error)?.message || 'Something went wrong.'}
+                                        {(() => {
+                                            const msg = (error as any)?.response?.data?.message || (error as Error)?.message || 'Something went wrong.';
+                                            if (msg.includes("Only the organization creator can send invitations")) {
+                                                return "Only the organization creator can invite members.";
+                                            }
+                                            return msg;
+                                        })()}
                                     </p>
                                 </div>
                             </div>

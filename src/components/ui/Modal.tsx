@@ -66,17 +66,17 @@ export function Modal({
                 <div
                     className={cn(
                         'w-full rounded-xl pointer-events-auto',
-                        'bg-[var(--color-surface-elevated)] border border-[var(--color-border-primary)]',
-                        'shadow-2xl animate-in zoom-in-95 ease-out duration-200',
+                        'bg-white border border-gray-200',
+                        'shadow-2xl animate-in zoom-in-95 ease-out duration-200 overflow-hidden',
                         sizeStyles[size]
                     )}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
                     {(title || showCloseButton) && (
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-primary)]">
+                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-gray-50">
                             {title && (
-                                <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
+                                <h2 className="text-lg font-bold text-gray-900">
                                     {title}
                                 </h2>
                             )}
@@ -84,20 +84,20 @@ export function Modal({
                                 <button
                                     onClick={onClose}
                                     className={cn(
-                                        'p-1 rounded-lg text-[var(--color-text-secondary)]',
-                                        'hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]',
-                                        'transition-colors'
+                                        'p-1.5 rounded-lg text-gray-400',
+                                        'hover:bg-gray-200 hover:text-gray-600',
+                                        'transition-colors duration-200'
                                     )}
                                     aria-label="Close modal"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
                     )}
 
                     {/* Content */}
-                    <div className="p-6">{children}</div>
+                    <div className="p-5">{children}</div>
                 </div>
             </div>
         </>
