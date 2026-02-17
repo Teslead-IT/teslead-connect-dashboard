@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { Pencil, Trash2, Plus, Eye, UserPlus, UserMinus } from 'lucide-react';
+import { useContextMenuPosition } from '@/hooks/use-context-menu-position';
 
 interface TaskContextMenuProps {
     x: number;
@@ -31,11 +32,14 @@ export function TaskContextMenu({
     onAssignUsers,
     onRevokeAssignee,
 }: TaskContextMenuProps) {
+    const { position, menuRef } = useContextMenuPosition(x, y);
+
     return (
         <>
             <div
+                ref={menuRef}
                 className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[200px]"
-                style={{ top: y, left: x }}
+                style={{ top: position.y, left: position.x }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {onViewDetails && (
