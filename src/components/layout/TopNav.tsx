@@ -44,11 +44,11 @@ export function TopNav() {
     const permissions = useOrgPermissions(backendUser?.id, org, userRole);
 
     return (
-        <header
-            className={cn(
-                "fixed top-0 right-0 left-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 z-30 transition-all duration-300 ease-in-out",
-                isCollapsed ? "lg:left-20" : "lg:left-64"
-            )}
+        <motion.header
+            initial={false}
+            animate={{ left: isCollapsed ? 80 : 256 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="fixed top-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 z-30"
         >
             <div className="h-full px-6 flex items-center justify-between gap-6">
                 {/* Search Bar & Sticky Title */}
@@ -163,6 +163,6 @@ export function TopNav() {
                 orgId={currentOrgId || ''}
                 orgName={orgName || 'Organization'}
             />
-        </header>
+        </motion.header>
     );
 }
