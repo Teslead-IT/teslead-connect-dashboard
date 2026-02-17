@@ -10,7 +10,7 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { Loader } from '@/components/ui/Loader';
 
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
-import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const { isCollapsed } = useSidebar();
@@ -19,16 +19,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         <div className="min-h-screen bg-gray-50">
             <Sidebar />
             <TopNav />
-            <main
-                className={cn(
-                    "pt-16 transition-all duration-300 ease-in-out",
-                    isCollapsed ? "lg:ml-20" : "lg:ml-64"
-                )}
+            <motion.main
+                initial={false}
+                animate={{ marginLeft: isCollapsed ? 80 : 256 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="pt-16"
             >
                 <div className="p-4 lg:p-6">
                     {children}
                 </div>
-            </main>
+            </motion.main>
         </div>
     );
 }

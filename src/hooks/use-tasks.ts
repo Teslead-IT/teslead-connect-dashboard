@@ -6,7 +6,16 @@ import type { CreateTaskPayload, UpdateTaskPayload } from '@/types/task';
 export const taskKeys = {
     all: (projectId: string) => ['tasks', projectId] as const,
     workflow: (projectId: string) => ['workflow', projectId] as const,
+    myTasks: (page?: number, limit?: number) => ['tasks', 'my-tasks', page, limit] as const,
 };
+
+export function useMyTasks(params?: { page?: number; limit?: number }) {
+    return useQuery({
+        queryKey: taskKeys.myTasks(params?.page, params?.limit),
+        queryFn: () => taskService.getMyTasks(params),
+        placeholderData: (previousData) => previousData,
+    });
+}
 
 export function useProjectTasks(projectId: string) {
     return useQuery({

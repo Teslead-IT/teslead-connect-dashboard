@@ -78,3 +78,56 @@ export interface TasksResponse {
     tasks: Task[];
     total: number;
 }
+
+/** My Tasks API response - GET /tasks/my-tasks */
+export interface MyTaskAssignee {
+    assignedAt: string;
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string;
+}
+
+export interface MyTaskTag {
+    id: string;
+    name: string;
+    color: string;
+}
+
+export interface MyTaskStatus {
+    id: string;
+    name: string;
+    color: string;
+    stageId: string;
+    stageName: string;
+}
+
+export interface MyTask {
+    id: string;
+    title: string;
+    description?: string;
+    priority: number;
+    order: number;
+    dueDate: string | null;
+    parentId: string | null;
+    projectId: string;
+    projectName: string;
+    projectColor: string | null;
+    status: MyTaskStatus;
+    assignees: MyTaskAssignee[];
+    tags: MyTaskTag[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface MyTasksMeta {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
+
+export interface MyTasksResponse {
+    data: MyTask[];
+    meta: MyTasksMeta;
+}
