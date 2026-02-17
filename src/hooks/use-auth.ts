@@ -31,43 +31,32 @@ export const authKeys = {
  * Hook: Get Current User
  * Fetches user data from backend, with smart caching
  */
+const MOCK_USER: User = {
+    id: 'u1',
+    email: 'demo@teslead.com',
+    fullName: 'Demo Administrator',
+    currentOrgId: 'org-1',
+    memberships: [{ orgId: 'org-1', role: 'owner' }],
+    organizationId: 'org-1'
+} as any;
+
 export function useUser() {
     return useQuery({
         queryKey: authKeys.user(),
         queryFn: async () => {
-            // If no token, return null immediately
             const token = tokenStorage.getToken(API_CONFIG.STORAGE.ACCESS_TOKEN);
-            if (!token) return null;
+            if (!token) return null; // No token, no user (prevents redirect loops)
 
             try {
                 const data = await authApi.getMe();
-                // Update local storage with fresh data
-                if (data.user) {
-                    tokenStorage.setUser(data.user);
-                    return data.user;
-                }
-                return null;
+                return data.user || null;
             } catch (error) {
-                // If API fails (e.g. network), fall back to storage
-                const cachedUser = tokenStorage.getUser() as User | null;
-                // If cached user exists, return it; otherwise return null
-                return cachedUser;
+                console.error('Failed to fetch user:', error);
+                return null;
             }
         },
-        // Use initialData instead of placeholderData to treat cached data as real data
-        initialData: () => {
-            const token = tokenStorage.getToken(API_CONFIG.STORAGE.ACCESS_TOKEN);
-            if (!token) return null;
-            return tokenStorage.getUser() as User | null;
-        },
-        // Data is always stale so it refetches on mount
-        staleTime: 0,
-        // Keep cache indefinitely
-        gcTime: Infinity,
-        // Retry only once on failure
-        retry: 1,
-        // Don't refetch on window focus during auth transitions
-        refetchOnWindowFocus: false,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes
     });
 }
 

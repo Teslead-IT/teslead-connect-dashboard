@@ -24,6 +24,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { ToastContainer } from "@/components/ui/Toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,10 +33,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
         <Providers>
           <ThemeProvider>
             {children}
+            <ToastContainer position="top-right" />
           </ThemeProvider>
         </Providers>
       </body>

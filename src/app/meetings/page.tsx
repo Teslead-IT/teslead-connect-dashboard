@@ -7,10 +7,11 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMeetings } from '@/hooks/use-meetings';
+import { useMeetings, useCreateMeetingDraft } from '@/hooks/use-meetings';
 import { CreateMeetingModal } from '@/components/meetings/CreateMeetingModal';
 import { MeetingsTable } from '@/components/meetings/MeetingsTable';
-import { ConfirmationModal } from '@/components/meetings/ConfirmationModal';
+import { Dialog } from '@/components/ui/Dialog';
+import { useProjects } from '@/hooks/use-projects';
 
 export default function MeetingsPage() {
     const router = useRouter();
@@ -19,10 +20,11 @@ export default function MeetingsPage() {
     const [selectedDate, setSelectedDate] = useState<string | undefined>();
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [selectedDateForDraft, setSelectedDateForDraft] = useState<string | undefined>();
-    const [isCreatingDraft, setIsCreatingDraft] = useState(false);
 
     // Fetch meetings from backend
     const { data: meetings, isLoading } = useMeetings();
+    const { mutateAsync: createDraft, isPending: isCreatingDraft } = useCreateMeetingDraft();
+    const { data: projects } = useProjects();
 
     // Transform meetings to FullCalendar events
     const calendarEvents = meetings?.map((meeting) => ({
@@ -45,16 +47,43 @@ export default function MeetingsPage() {
     const handleConfirmCreate = async () => {
         if (!selectedDateForDraft) return;
 
-        setIsCreatingDraft(true);
         try {
-            // For now, just redirect to a mock ID (will be real after backend integration)
-            const mockId = `draft_${Date.now()}`;
-            router.push(`/meetings/${mockId}`);
-        } catch (error) {
+            // Check if user has any projects
+            if (!projects?.data || projects.data.length === 0) {
+                alert('Please create a project first before creating a meeting.');
+                setShowConfirmModal(false);
+                setSelectedDateForDraft(undefined);
+                return;
+            }
+
+            // Use first project from paginated response
+            const defaultProjectId = projects.data[0].id;
+
+            console.log('Creating meeting with:', {
+                meetingDate: selectedDateForDraft,
+                projectId: defaultProjectId,
+            });
+
+            const meeting = await createDraft({
+                meetingDate: selectedDateForDraft,
+                projectId: defaultProjectId,
+            });
+
+            console.log('Meeting created successfully:', meeting);
+
+            // Redirect to edit page with real meeting ID
+            router.push(`/meetings/${meeting.id}`);
+        } catch (error: any) {
             console.error('Failed to create meeting:', error);
-            alert('Failed to create meeting');
+            console.error('Error details:', {
+                message: error?.message,
+                response: error?.response?.data,
+                status: error?.response?.status,
+            });
+
+            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to create meeting. Please try again.';
+            alert(errorMessage);
         } finally {
-            setIsCreatingDraft(false);
             setShowConfirmModal(false);
             setSelectedDateForDraft(undefined);
         }
@@ -72,104 +101,138 @@ export default function MeetingsPage() {
 
 
     return (
-        <>
-            <div className="flex flex-col h-full bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="flex flex-col h-[calc(100vh-100px)] bg-[#f8fafc] p-4 gap-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full">
                 {/* Header */}
-                <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+                <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#091590] rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-[#091590] to-[#2563eb] rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-900/10">
                                 <CalendarIcon className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-                                    Meetings
+                                <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+                                    Meeting Scheduler
                                 </h1>
-                                <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest">
-                                    {view === 'calendar' ? 'Calendar View' : 'All Meetings Table'}
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">
+                                    {view === 'calendar' ? 'Events & Availability' : 'Data Repository'}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                             {/* View Toggle */}
-                            <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                            <div className="flex items-center bg-gray-100/80 p-1.5 rounded-xl border border-gray-200/50">
                                 <button
                                     onClick={() => setView('calendar')}
                                     className={cn(
-                                        "px-3 py-1 rounded text-xs font-bold transition-all",
+                                        "px-4 py-2 rounded-lg text-xs font-black transition-all duration-200",
                                         view === 'calendar'
-                                            ? "bg-white text-[#091590] shadow-sm"
-                                            : "text-gray-400 hover:text-gray-600"
+                                            ? "bg-white text-[#091590] shadow-sm ring-1 ring-black/5"
+                                            : "text-gray-500 hover:text-gray-700"
                                     )}
                                 >
-                                    Calendar
+                                    CALENDAR
                                 </button>
                                 <button
                                     onClick={() => setView('list')}
                                     className={cn(
-                                        "px-3 py-1 rounded text-xs font-bold transition-all",
+                                        "px-4 py-2 rounded-lg text-xs font-black transition-all duration-200",
                                         view === 'list'
-                                            ? "bg-white text-[#091590] shadow-sm"
-                                            : "text-gray-400 hover:text-gray-600"
+                                            ? "bg-white text-[#091590] shadow-sm ring-1 ring-black/5"
+                                            : "text-gray-500 hover:text-gray-700"
                                     )}
                                 >
-                                    Table
+                                    LIST
                                 </button>
                             </div>
 
-                            <button
+                            {/* <button
                                 onClick={handleNewMeeting}
-                                className="inline-flex items-center gap-1.5 bg-[#091590] text-white hover:bg-[#071170] cursor-pointer active:scale-95 font-bold px-4 h-9 text-xs rounded-lg transition-all shadow-sm border border-transparent"
+                                className="inline-flex items-center gap-2 bg-[#091590] text-white hover:bg-[#071170] cursor-pointer active:scale-95 font-black px-6 h-11 text-xs rounded-xl transition-all shadow-md shadow-blue-900/20 border border-transparent"
                             >
-                                <Plus className="w-3.5 h-3.5" />
-                                New Meeting
-                            </button>
+                                <Plus className="w-4 h-4" />
+                                NEW SESSION
+                            </button> */}
                         </div>
                     </div>
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-hidden p-4">
+                <div className="flex-1 overflow-hidden p-6 bg-white">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
-                            <div className="flex flex-col items-center gap-3">
-                                <div className="w-8 h-8 border-4 border-[#091590] border-t-transparent rounded-full animate-spin"></div>
-                                <p className="text-sm font-medium text-gray-500">Loading meetings...</p>
+                            <div className="flex flex-col items-center gap-6">
+                                <div className="relative">
+                                    <div className="w-16 h-16 border-4 border-[#091590]/10 rounded-full"></div>
+                                    <div className="absolute top-0 w-16 h-16 border-4 border-[#091590] border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                                <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Initialising Schedule...</p>
                             </div>
                         </div>
                     ) : view === 'calendar' ? (
-                        <div className="h-full bg-white rounded-lg p-2 custom-calendar">
+                        <div className="h-full bg-white rounded-xl p-2 custom-calendar">
                             <style jsx global>{`
                                 .custom-calendar .fc {
                                     font-family: inherit;
                                     --fc-border-color: #f1f5f9;
                                     --fc-today-bg-color: #f8fafc;
-                                    --fc-button-bg-color: #091590;
-                                    --fc-button-border-color: #091590;
-                                    --fc-button-hover-bg-color: #071170;
-                                    --fc-button-hover-border-color: #071170;
-                                    --fc-button-active-bg-color: #050d55;
+                                    --fc-button-bg-color: transparent;
+                                    --fc-button-border-color: #e2e8f0;
+                                    --fc-button-hover-bg-color: #f8fafc;
+                                    --fc-button-hover-border-color: #cbd5e1;
+                                    --fc-button-active-bg-color: #f1f5f9;
+                                    --fc-button-active-border-color: #cbd5e1;
+                                    --fc-button-text-color: #475569;
                                     --fc-page-bg-color: #ffffff;
                                 }
+                                .custom-calendar .fc .fc-button-primary:not(:disabled).fc-button-active,
+                                .custom-calendar .fc .fc-button-primary:not(:disabled):active {
+                                    background-color: #091590;
+                                    border-color: #091590;
+                                    color: white;
+                                }
                                 .custom-calendar .fc-toolbar-title {
-                                    font-size: 1.1rem !important;
+                                    font-size: 1.25rem !important;
                                     font-weight: 800 !important;
                                     color: #0f172a;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.05em;
+                                    letter-spacing: -0.025em;
                                 }
                                 .custom-calendar .fc-button {
                                     font-weight: 700 !important;
-                                    font-size: 0.75rem !important;
+                                    font-size: 0.7rem !important;
                                     text-transform: uppercase !important;
-                                    padding: 0.5rem 0.75rem !important;
-                                    border-radius: 6px !important;
+                                    padding: 0.6rem 1rem !important;
+                                    border-radius: 10px !important;
+                                    transition: all 0.2s ease !important;
                                 }
                                 .custom-calendar .fc-daygrid-day-number {
-                                    font-weight: 700;
+                                    font-weight: 800;
+                                    color: #94a3b8;
+                                    font-size: 0.75rem;
+                                    padding: 10px !important;
+                                }
+                                .custom-calendar .fc-col-header-cell-cushion {
+                                    font-weight: 800;
+                                    text-transform: uppercase;
+                                    font-size: 0.65rem;
+                                    letter-spacing: 0.1em;
                                     color: #64748b;
-                                    font-size: 0.8rem;
+                                    padding: 12px 0 !important;
+                                }
+                                .custom-calendar .fc-day-today {
+                                    background: #f8fafc !important;
+                                }
+                                .custom-calendar .fc-day-today .fc-daygrid-day-number {
+                                    color: #091590;
+                                    background: #eff6ff;
+                                    border-radius: 0 0 0 10px;
+                                }
+                                .custom-calendar .fc-event {
+                                    border-radius: 6px !important;
+                                    border: none !important;
+                                    padding: 2px 4px !important;
+                                    margin: 2px !important;
                                 }
                             `}</style>
                             <FullCalendar
@@ -185,8 +248,9 @@ export default function MeetingsPage() {
                                 }}
                                 height="100%"
                                 eventContent={(eventInfo) => (
-                                    <div className="p-1 text-[10px] font-bold cursor-pointer bg-[#091590] text-white rounded shadow-sm truncate">
-                                        {eventInfo.event.title}
+                                    <div className="flex items-center gap-1.5 px-2 py-1 cursor-pointer bg-blue-50 text-[#091590] rounded-md border-l-4 border-[#091590] shadow-sm hover:bg-blue-100 transition-colors">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#091590] animate-pulse"></div>
+                                        <span className="text-[10px] font-black truncate">{eventInfo.event.title}</span>
                                     </div>
                                 )}
                             />
@@ -199,19 +263,21 @@ export default function MeetingsPage() {
                 </div>
             </div>
 
-            {/* Confirmation Modal */}
-            {showConfirmModal && (
-                <ConfirmationModal
-                    title="Create MOM"
-                    message="Are you sure you want to create a new Minutes of Meeting?"
-                    onConfirm={handleConfirmCreate}
-                    onCancel={() => {
-                        setShowConfirmModal(false);
-                        setSelectedDateForDraft(undefined);
-                    }}
-                    isLoading={isCreatingDraft}
-                />
-            )}
+            {/* Confirmation Dialog */}
+            <Dialog
+                isOpen={showConfirmModal}
+                onClose={() => {
+                    setShowConfirmModal(false);
+                    setSelectedDateForDraft(undefined);
+                }}
+                type="info"
+                title="Initialize Session"
+                message="Would you like to generate a new Minutes of Meeting for the selected date? This will create a fresh workspace for your discussion points."
+                confirmText="Yes, Proceed"
+                cancelText="Dismiss"
+                onConfirm={handleConfirmCreate}
+                isLoading={isCreatingDraft}
+            />
 
             {/* Create Meeting Modal */}
             <CreateMeetingModal
@@ -222,6 +288,6 @@ export default function MeetingsPage() {
                 }}
                 selectedDate={selectedDate}
             />
-        </>
+        </div>
     );
 }

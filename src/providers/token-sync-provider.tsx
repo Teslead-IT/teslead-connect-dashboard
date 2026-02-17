@@ -45,12 +45,19 @@ export function TokenSyncProvider({ children }: { children: React.ReactNode }) {
                             await queryClient.invalidateQueries({ queryKey: authKeys.user() });
 
                             setSyncComplete(true);
+                        } else {
+                            // Case where session exists but no access token returned
+                            setSyncComplete(true);
                         }
                     } else {
-                        console.error('Failed to fetch backend token');
+                        console.error('Failed to fetch backend token:', res.status);
+                        // Mark as complete anyway to prevent infinite retry loop
+                        setSyncComplete(true);
                     }
                 } catch (error) {
                     console.error('Failed to sync token', error);
+                    // Mark as complete anyway to prevent infinite retry loop
+                    setSyncComplete(true);
                 } finally {
                     setIsSyncing(false);
                 }

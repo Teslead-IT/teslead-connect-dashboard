@@ -21,6 +21,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Bell,
+    Calendar,
 } from 'lucide-react';
 
 interface NavItem {
@@ -39,6 +40,11 @@ const navItems: NavItem[] = [
         label: 'Projects',
         href: '/projects',
         icon: <FolderKanban className="w-5 h-5 flex-shrink-0" />,
+    },
+    {
+        label: 'Meetings',
+        href: '/meetings',
+        icon: <Calendar className="w-5 h-5 flex-shrink-0" />,
     },
     {
         label: 'Documents',

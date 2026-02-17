@@ -378,7 +378,7 @@ export default function ProjectDetailPage() {
                                                 STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-700'
                                             )}
                                         >
-                                            {project.status.replace('_', ' ')}
+                                            {(project.status || '').replace('_', ' ')}
                                         </span>
                                     </div>
                                 </div>

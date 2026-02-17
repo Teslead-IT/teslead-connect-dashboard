@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, AlertCircle, CheckCircle, Info, AlertTriangle, HelpCircle } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, Info, AlertTriangle, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type DialogType = 'confirmation' | 'info' | 'warning' | 'error' | 'success' | 'help';
@@ -38,52 +38,52 @@ interface DialogProps {
 
 const typeConfig = {
     confirmation: {
-        icon: CheckCircle,
-        color: 'bg-[#091590]/5 dark:bg-[#091590]/20',
-        borderColor: 'border-[#091590]/10 dark:border-[#091590]/30',
-        headerColor: 'text-[#091590] dark:text-blue-300',
-        iconBg: 'bg-[#091590]/10 dark:bg-[#091590]/30',
-        iconColor: 'text-[#091590] dark:text-blue-400',
+        icon: CheckCircle2,
+        color: 'bg-[#091590] dark:bg-[#091590]',
+        borderColor: 'border-[#091590]/20',
+        headerColor: 'text-white',
+        iconBg: 'bg-white/20',
+        iconColor: 'text-white',
     },
     info: {
         icon: Info,
-        color: 'bg-gradient-to-br from-cyan-50 to-cyan-100/50 dark:from-cyan-950 dark:to-cyan-900/50',
-        borderColor: 'border-cyan-200/60 dark:border-cyan-800/60',
-        headerColor: 'text-cyan-700 dark:text-cyan-300',
-        iconBg: 'bg-cyan-100 dark:bg-cyan-900/50',
-        iconColor: 'text-cyan-600 dark:text-cyan-400',
+        color: 'bg-blue-600 dark:bg-blue-700',
+        borderColor: 'border-blue-500/20',
+        headerColor: 'text-white',
+        iconBg: 'bg-white/20',
+        iconColor: 'text-white',
     },
     warning: {
         icon: AlertTriangle,
-        color: 'bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950 dark:to-amber-900/50',
-        borderColor: 'border-amber-200/60 dark:border-amber-800/60',
-        headerColor: 'text-amber-700 dark:text-amber-300',
-        iconBg: 'bg-amber-100 dark:bg-amber-900/50',
-        iconColor: 'text-amber-600 dark:text-amber-400',
+        color: 'bg-[#3c1e13] dark:bg-[#3c1e13]',
+        borderColor: 'border-[#4c2e23]',
+        headerColor: 'text-amber-500',
+        iconBg: 'bg-amber-500/10',
+        iconColor: 'text-amber-500',
     },
     error: {
         icon: AlertCircle,
-        color: 'bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950 dark:to-red-900/50',
-        borderColor: 'border-red-200/60 dark:border-red-800/60',
-        headerColor: 'text-red-700 dark:text-red-300',
-        iconBg: 'bg-red-100 dark:bg-red-900/50',
-        iconColor: 'text-red-600 dark:text-red-400',
+        color: 'bg-red-950 dark:bg-red-950',
+        borderColor: 'border-red-900',
+        headerColor: 'text-red-500',
+        iconBg: 'bg-red-500/10',
+        iconColor: 'text-red-500',
     },
     success: {
         icon: CheckCircle,
-        color: 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950 dark:to-emerald-900/50',
-        borderColor: 'border-emerald-200/60 dark:border-emerald-800/60',
-        headerColor: 'text-emerald-700 dark:text-emerald-300',
-        iconBg: 'bg-emerald-100 dark:bg-emerald-900/50',
-        iconColor: 'text-emerald-600 dark:text-emerald-400',
+        color: 'bg-emerald-950 dark:bg-emerald-950',
+        borderColor: 'border-emerald-900',
+        headerColor: 'text-emerald-500',
+        iconBg: 'bg-emerald-500/10',
+        iconColor: 'text-emerald-500',
     },
     help: {
         icon: HelpCircle,
-        color: 'bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/50',
-        borderColor: 'border-purple-200/60 dark:border-purple-800/60',
-        headerColor: 'text-purple-700 dark:text-purple-300',
-        iconBg: 'bg-purple-100 dark:bg-purple-900/50',
-        iconColor: 'text-purple-600 dark:text-purple-400',
+        color: 'bg-purple-950 dark:bg-purple-950',
+        borderColor: 'border-purple-900',
+        headerColor: 'text-purple-500',
+        iconBg: 'bg-purple-500/10',
+        iconColor: 'text-purple-500',
     },
 };
 
@@ -118,7 +118,7 @@ export const Dialog: React.FC<DialogProps> = ({
     closeOnEscape = true,
     isLoading = false,
     customIcon,
-    isDark = false,
+    isDark = true, // Default to dark for the premium look
     borderColor,
     className,
     headerClassName,
@@ -184,7 +184,7 @@ export const Dialog: React.FC<DialogProps> = ({
     return (
         <div
             className={cn(
-                'fixed inset-0 z-50 flex transition-all duration-300',
+                'fixed inset-0 z-[100] flex transition-all duration-300',
                 positionConfig[position],
                 isOpen && isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none',
             )}
@@ -193,8 +193,8 @@ export const Dialog: React.FC<DialogProps> = ({
             {/* Backdrop */}
             <div
                 className={cn(
-                    'absolute inset-0 backdrop-blur-md transition-opacity duration-300',
-                    isDark ? 'bg-black/60' : 'bg-black/40',
+                    'absolute inset-0 backdrop-blur-sm transition-opacity duration-300',
+                    'bg-slate-900/40 dark:bg-black/60',
                     isOpen && isAnimating ? 'opacity-100' : 'opacity-0',
                 )}
                 onClick={handleBackdropClick}
@@ -203,8 +203,9 @@ export const Dialog: React.FC<DialogProps> = ({
             {/* Dialog Content */}
             <div
                 className={cn(
-                    'relative w-full mx-4 bg-white dark:bg-slate-900 rounded-xl shadow-lg',
+                    'relative w-full mx-4 rounded-xl shadow-2xl overflow-hidden',
                     'border transition-all duration-300',
+                    'bg-[#0f172a] dark:bg-[#0f172a]', // Match Image 1 dark background
                     sizeConfig[size],
                     borderColor || config.borderColor,
                     className,
@@ -217,73 +218,70 @@ export const Dialog: React.FC<DialogProps> = ({
                 {/* Header with Icon */}
                 <div
                     className={cn(
-                        'relative p-5 pb-4',
+                        'relative px-6 py-4 flex items-center gap-4',
                         config.color,
                         'border-b',
                         borderColor || config.borderColor,
                         headerClassName,
                     )}
                 >
+                    <div
+                        className={cn(
+                            'p-1.5 rounded-lg flex-shrink-0',
+                            config.iconBg,
+                        )}
+                    >
+                        {customIcon ? (
+                            customIcon
+                        ) : (
+                            <Icon className={cn('w-5 h-5', config.iconColor)} />
+                        )}
+                    </div>
+
+                    <div className="flex-1">
+                        <h2
+                            className={cn(
+                                'text-base font-bold tracking-tight',
+                                config.headerColor,
+                            )}
+                        >
+                            {title}
+                        </h2>
+                    </div>
+
                     {showCloseButton && (
                         <button
                             onClick={onClose}
                             className={cn(
-                                'absolute top-4 right-4 p-1 rounded-lg transition-all duration-200',
-                                'hover:bg-black/8 dark:hover:bg-white/10 active:scale-95',
+                                'p-1 rounded-md transition-all duration-200',
+                                'hover:bg-black/10 dark:hover:bg-white/10 text-white/40 hover:text-white',
                             )}
                             aria-label="Close dialog"
                         >
-                            <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                            <X className="w-4 h-4" />
                         </button>
                     )}
-
-                    <div className="flex items-start gap-3">
-                        <div
-                            className={cn(
-                                'p-2 rounded-lg flex-shrink-0 mt-0.5',
-                                config.iconBg,
-                            )}
-                        >
-                            {customIcon ? (
-                                customIcon
-                            ) : (
-                                <Icon className={cn('w-5 h-5', config.iconColor)} />
-                            )}
-                        </div>
-
-                        <div className="flex-1 pr-6">
-                            <h2
-                                className={cn(
-                                    'text-base font-bold',
-                                    config.headerColor,
-                                    headerClassName,
-                                )}
-                            >
-                                {title}
-                            </h2>
-                            {description && (
-                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                                    {description}
-                                </p>
-                            )}
-                        </div>
-                    </div>
                 </div>
 
                 {/* Content */}
-                <div className={cn('p-5', contentClassName)}>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                <div className={cn('px-6 py-8', contentClassName)}>
+                    <p className="text-[13px] text-gray-300 leading-relaxed font-medium">
                         {message}
                     </p>
+                    {description && (
+                        <p className="text-xs text-gray-500 mt-2">
+                            {description}
+                        </p>
+                    )}
                 </div>
 
                 {/* Footer */}
                 <div
                     className={cn(
-                        'flex gap-2.5 px-5 py-4 bg-gray-50/50 dark:bg-slate-800/50',
+                        'flex gap-3 px-6 py-4 bg-slate-900/50',
                         'border-t',
                         borderColor || config.borderColor,
-                        'rounded-b-xl justify-end',
+                        'justify-end',
                         footerClassName,
                     )}
                 >
@@ -292,10 +290,10 @@ export const Dialog: React.FC<DialogProps> = ({
                             onClick={handleCancel}
                             disabled={isLoading}
                             className={cn(
-                                'px-4 py-1.5 rounded-md font-medium transition-all duration-200',
-                                'bg-gray-200 dark:bg-slate-700 text-gray-900 dark:text-gray-100',
-                                'hover:bg-gray-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed',
-                                'active:scale-95 text-xs',
+                                'px-5 py-2 rounded-lg font-bold transition-all duration-200',
+                                'bg-[#1e293b] text-gray-300 hover:bg-[#334155]',
+                                'disabled:opacity-50 disabled:cursor-not-allowed',
+                                'active:scale-95 text-[11px] uppercase tracking-wider',
                             )}
                         >
                             {cancelText}
@@ -307,18 +305,16 @@ export const Dialog: React.FC<DialogProps> = ({
                             onClick={handleConfirm}
                             disabled={isLoading}
                             className={cn(
-                                'px-4 py-1.5 rounded-md font-medium transition-all duration-200',
-                                'disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 text-xs',
-                                'flex items-center gap-2 min-w-max',
+                                'px-5 py-2 rounded-lg font-bold transition-all duration-200',
+                                'disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 text-[11px] uppercase tracking-wider',
+                                'flex items-center gap-2 min-w-max shadow-lg',
                                 confirmVariant === 'destructive'
-                                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                                    : confirmVariant === 'secondary'
-                                        ? 'bg-gray-300 dark:bg-slate-600 text-gray-900 dark:text-gray-100 hover:bg-gray-400 dark:hover:bg-slate-500'
-                                        : `${config.iconBg} ${config.iconColor} hover:shadow-md`,
+                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-900/20'
+                                    : 'bg-[#091590] hover:bg-[#071170] text-white shadow-blue-900/20',
                             )}
                         >
                             {isLoading && (
-                                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             )}
                             {confirmText}
                         </button>
