@@ -204,14 +204,17 @@ export default function ProjectDetailPage() {
     };
 
     const handleTaskSubmit = async (taskData: CreateTaskPayload) => {
+        const toastId = toast.loading(editingTask ? 'Updating task...' : 'Creating task...');
         try {
             if (editingTask) {
                 await updateTaskMutation.mutateAsync({
                     taskId: editingTask.id,
                     data: taskData
                 });
+                toast.success('Task updated successfully', undefined, { id: toastId });
             } else {
                 await createTaskMutation.mutateAsync(taskData);
+                toast.success('Task created successfully', undefined, { id: toastId });
                 // Auto-expand parent if creating subtask
                 if (taskData.parentId) {
                     setExpandedIds(prev => new Set(prev).add(taskData.parentId!));
@@ -224,6 +227,8 @@ export default function ProjectDetailPage() {
             setIsReadOnly(false);
         } catch (error: any) {
             console.error('Failed to save task:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to save task';
+            toast.error('Failed to save task', Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage, { id: toastId });
             throw error;
         }
     };
