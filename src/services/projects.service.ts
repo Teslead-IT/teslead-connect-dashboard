@@ -22,7 +22,7 @@ import { API_CONFIG } from '@/lib/config';
 function getOrgId(): string {
     const user = tokenStorage.getUser();
     // Use correct property names from User type (aligned with backend)
-    return user?.currentOrgId || user?.memberships?.[0]?.orgId || user?.organizationId || '';
+    return user?.orgId || user?.organizations?.[0]?.id || '';
 }
 
 export const projectsApi = {
