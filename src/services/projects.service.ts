@@ -21,7 +21,7 @@ import { API_CONFIG } from '@/lib/config';
  */
 function getOrgId(): string {
     const user = tokenStorage.getUser();
-    // Assuming the user object has orgId or organizations array
+    // Use correct property names from User type (aligned with backend)
     return user?.orgId || user?.organizations?.[0]?.id || '';
 }
 

@@ -59,12 +59,12 @@ interface ToastContainerProps {
 const typeConfig = {
     success: {
         icon: CheckCircle,
-        color: 'from-emerald-500/20 to-green-500/20 dark:from-emerald-500/10 dark:to-green-500/10',
-        textColor: 'text-emerald-700 dark:text-emerald-300',
-        iconColor: 'text-emerald-600 dark:text-emerald-400',
-        bgColor: 'bg-white dark:bg-slate-900 shadow-md',
-        borderColor: 'border-emerald-200 dark:border-emerald-800',
-        progressColor: 'bg-gradient-to-r from-emerald-500 to-green-500',
+        color: 'from-emerald-600 to-green-600',
+        textColor: 'text-white',
+        iconColor: 'text-emerald-100',
+        bgColor: 'bg-emerald-950 shadow-2xl',
+        borderColor: 'border-emerald-900',
+        progressColor: 'bg-emerald-400',
     },
     error: {
         icon: AlertCircle,
@@ -292,7 +292,7 @@ class ToastManager {
         return ToastManager.instance;
     }
 
-    subscribe(listener: (toasts: ToastItem[]) => void) {
+    subscribe = (listener: (toasts: ToastItem[]) => void) => {
         this.listeners.add(listener);
         return () => {
             this.listeners.delete(listener);
@@ -303,7 +303,7 @@ class ToastManager {
         this.listeners.forEach((listener) => listener([...this.toasts]));
     }
 
-    show(options: Omit<ToastProps, 'onClose'>): string {
+    show = (options: Omit<ToastProps, 'onClose'>): string => {
         const id = options.id || Math.random().toString(36).substr(2, 9);
         const toast: ToastItem = {
             ...options,
@@ -323,37 +323,37 @@ class ToastManager {
         return id;
     }
 
-    success(title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) {
+    success = (title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) => {
         return this.show({ ...options, type: 'success', title, message });
     }
 
-    error(title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) {
+    error = (title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) => {
         return this.show({ ...options, type: 'error', title, message });
     }
 
-    warning(title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) {
+    warning = (title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) => {
         return this.show({ ...options, type: 'warning', title, message });
     }
 
-    info(title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) {
+    info = (title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) => {
         return this.show({ ...options, type: 'info', title, message });
     }
 
-    loading(title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) {
+    loading = (title: string, message?: string, options?: Omit<ToastProps, 'type' | 'title' | 'message'>) => {
         return this.show({ ...options, type: 'loading', title, message });
     }
 
-    remove(id: string) {
+    remove = (id: string) => {
         this.toasts = this.toasts.filter((toast) => toast.id !== id);
         this.notify();
     }
 
-    removeAll() {
+    removeAll = () => {
         this.toasts = [];
         this.notify();
     }
 
-    getToasts(): ToastItem[] {
+    getToasts = (): ToastItem[] => {
         return [...this.toasts];
     }
 }

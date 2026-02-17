@@ -1,7 +1,5 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi } from '@/services/projects.service';
-import type { CreateProjectPayload, UpdateProjectPayload } from '@/types/project';
 
 export const projectKeys = {
     all: ['projects'] as const,
@@ -20,8 +18,7 @@ export function useProjectMembers(projectId: string) {
 export function useProjects(params?: { orgId?: string; page?: number; limit?: number }) {
     return useQuery({
         queryKey: [...projectKeys.all, params?.orgId || 'all', params?.page, params?.limit],
-        queryFn: () => projectsApi.getAllProjects(params || { orgId: 'all' }),
-        placeholderData: (previousData) => previousData,
+        queryFn: () => projectsApi.getAllProjects(params),
     });
 }
 
@@ -37,7 +34,7 @@ export function useCreateProject() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: CreateProjectPayload) => projectsApi.createProject(data),
+        mutationFn: projectsApi.createProject,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: projectKeys.all });
         },
@@ -48,8 +45,7 @@ export function useUpdateProject() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: UpdateProjectPayload }) =>
-            projectsApi.updateProject(id, data),
+        mutationFn: ({ id, data }: { id: string; data: any }) => projectsApi.updateProject(id, data),
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: projectKeys.all });
             queryClient.invalidateQueries({ queryKey: projectKeys.detail(data.id) });
@@ -61,7 +57,7 @@ export function useDeleteProject() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (id: string) => projectsApi.deleteProject(id),
+        mutationFn: projectsApi.deleteProject,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: projectKeys.all });
         },

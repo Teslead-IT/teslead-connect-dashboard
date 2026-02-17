@@ -22,6 +22,7 @@ import {
     ChevronRight,
     ChevronDown,
     Bell,
+    Calendar,
     ListTodo,
 } from 'lucide-react';
 
@@ -55,6 +56,11 @@ const navItems: NavItem[] = [
             { label: 'Projects', href: '/projects', icon: <FolderKanban className="w-4 h-4 flex-shrink-0" /> },
             { label: 'Tasks', href: '/projects/tasks', icon: <ListTodo className="w-4 h-4 flex-shrink-0" /> },
         ],
+    },
+    {
+        label: 'Meetings',
+        href: '/meetings',
+        icon: <Calendar className="w-5 h-5 flex-shrink-0" />,
     },
     {
         label: 'Documents',
