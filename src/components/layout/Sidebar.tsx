@@ -23,6 +23,7 @@ import {
     ChevronDown,
     Bell,
     Calendar,
+    ListTodo,
 } from 'lucide-react';
 
 interface NavItemBase {
