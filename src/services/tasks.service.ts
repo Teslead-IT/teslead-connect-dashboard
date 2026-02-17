@@ -6,6 +6,7 @@ import type {
     UpdateTaskPayload,
     TasksResponse,
     TaskResponse,
+    MyTasksResponse,
 } from '@/types/task';
 
 /**
@@ -101,5 +102,17 @@ export const taskService = {
     async removeAssignee(taskId: string, userId: string): Promise<{ message: string }> {
         const response = await apiClient.delete<{ message: string }>(`/tasks/${taskId}/assignees/${userId}`);
         return response.data;
+    },
+
+    /**
+     * Get my tasks (paginated)
+     * @param params - page and limit
+     * @returns Paginated list of tasks assigned to current user
+     */
+    async getMyTasks(params?: { page?: number; limit?: number }): Promise<MyTasksResponse> {
+        const { data } = await apiClient.get<MyTasksResponse>('/tasks/my-tasks', {
+            params: { page: params?.page ?? 1, limit: params?.limit ?? 20 },
+        });
+        return data;
     },
 };
