@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 
@@ -95,6 +95,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ProjectDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const projectId = params.projectId as string;
 
     const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
@@ -356,7 +357,13 @@ export default function ProjectDetailPage() {
                 <div className="flex flex-wrap items-center justify-between gap-y-2">
                     <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
                         <button
-                            onClick={() => router.push('/projects')}
+                            onClick={() => {
+                                if (window.history.length > 1) {
+                                    router.back();
+                                } else {
+                                    router.push('/projects');
+                                }
+                            }}
                             className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-500 hover:text-gray-700 flex-shrink-0"
                         >
                             <ArrowLeft className="w-5 h-5" />
