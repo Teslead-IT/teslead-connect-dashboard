@@ -227,7 +227,7 @@ export function MeetingForm({
                         type="text"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="Meeting Title (Required)"
+                        placeholder="Enter The Meeting Title (Required)"
                         className="text-lg font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]"
                     />
                 </div>
@@ -257,7 +257,7 @@ export function MeetingForm({
                         ) : (
                             <>
                                 <Save className="w-3 h-3" />
-                                <span>{isNew ? 'Create' : 'Save'}</span>
+                                <span>{isNew ? 'Create' : 'Update'}</span>
                             </>
                         )}
                     </button>

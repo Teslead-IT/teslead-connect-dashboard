@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
 
 export function MeetingsTable() {
-    const { data: meetingsData, isLoading } = useMeetings();
+    const { data: meetingsData, isLoading } = useMeetings({ limit: 1000 });
     const meetings = meetingsData?.data || [];
 
     const exportToExcel = async () => {

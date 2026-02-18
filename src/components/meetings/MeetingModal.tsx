@@ -31,6 +31,7 @@ export function MeetingModal({
 }: MeetingModalProps) {
     const [activeMeetingId, setActiveMeetingId] = useState<string | null>(selectedMeetingId);
     const [isCreateMode, setIsCreateMode] = useState(createMode);
+    const [createKey, setCreateKey] = useState(0);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     const { success, error: showError } = useToast();
@@ -40,6 +41,7 @@ export function MeetingModal({
     const { data: meetingsData, isLoading, refetch } = useMeetings({
         fromDate: selectedDate,
         toDate: selectedDate,
+        limit: 100,
     });
 
     const meetings = meetingsData?.data || [];
@@ -67,14 +69,16 @@ export function MeetingModal({
     };
 
     const handleCreateNew = () => {
+        setCreateKey(prev => prev + 1);
         setIsCreateMode(true);
         setActiveMeetingId(null);
     };
 
     const handleCreated = (newMeeting: any) => {
         refetch();
-        setIsCreateMode(false);
-        setActiveMeetingId(newMeeting.id);
+        setCreateKey(prev => prev + 1);
+        setIsCreateMode(true);
+        setActiveMeetingId(null);
     };
 
     const handleDeleted = () => {
@@ -258,7 +262,7 @@ export function MeetingModal({
                     <div className="flex-1 overflow-hidden">
                         {isCreateMode ? (
                             <MeetingForm
-                                key="create-new"
+                                key={`create-new-${createKey}`}
                                 meetingId={null}
                                 defaultDate={selectedDate}
                                 onCreated={handleCreated}
