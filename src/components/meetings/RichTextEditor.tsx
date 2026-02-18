@@ -289,14 +289,14 @@ export function RichTextEditor({
                     line-height: 1.4;
                 }
                 .mention-user {
-                    background-color: #f8fafc;
-                    color: #0f172a;
-                    border: 1px solid #e2e8f0;
+                    background-color: #fef3c7;
+                    color: #92400e;
+                    border: 1px solid #fde68a;
                 }
                 .mention-project {
-                    background-color: #eff6ff;
-                    color: #1d4ed8;
-                    border: 1px solid #dbeafe;
+                    background-color: #dcfce7;
+                    color: #166534;
+                    border: 1px solid #bbf7d0;
                     transition: all 0.5s ease;
                 }
                 .highlight-targeted {

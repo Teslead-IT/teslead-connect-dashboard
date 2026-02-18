@@ -227,8 +227,8 @@ export function MeetingForm({
                         type="text"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="Meeting Title"
-                        className="text-sm font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]"
+                        placeholder="Meeting Title (Required)"
+                        className="text-lg font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]"
                     />
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
