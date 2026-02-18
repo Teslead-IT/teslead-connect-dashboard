@@ -20,13 +20,11 @@ function MeetingsLayoutContent({ children }: { children: React.ReactNode }) {
             <TopNav />
             <main
                 className={cn(
-                    "pt-16 transition-all duration-300 ease-in-out min-h-screen",
+                    "pt-16 transition-all duration-300 ease-in-out h-screen",
                     isCollapsed ? "lg:ml-20" : "lg:ml-64"
                 )}
             >
-                <div>
-                    {children}
-                </div>
+                {children}
             </main>
         </div>
     );

@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useMeeting, useUpdateMeeting, useDeleteMeeting } from '@/hooks/use-meetings';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useMeeting, useUpdateMeeting, useDeleteMeeting, usePublishMeeting, useCreateMeeting } from '@/hooks/use-meetings';
 import { RichTextEditor } from '@/components/meetings/RichTextEditor';
 import Dialog from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import {
     Save,
     Trash2,
@@ -18,70 +17,185 @@ import {
     UserX,
     FileText,
     ArrowLeft,
-    CheckCircle2,
+    Send,
     MessageSquare,
-    X,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 
+
 export default function MeetingDetailPage() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const router = useRouter();
     const meetingId = params?.id as string;
+    const isNew = meetingId === 'new';
+    const dateParam = searchParams.get('date');
 
-    const { data: meeting, isLoading } = useMeeting(meetingId);
-    const { mutateAsync: updateMeeting, isPending: isSaving } = useUpdateMeeting();
+    // Only fetch if it's an existing meeting
+    const { data: meeting, isLoading } = useMeeting(isNew ? '' : meetingId);
+
+    // Mutations
+    const { mutateAsync: createMeeting, isPending: isCreating } = useCreateMeeting();
+    const { mutateAsync: updateMeeting, isPending: isUpdating } = useUpdateMeeting();
     const { mutateAsync: deleteMeeting, isPending: isDeleting } = useDeleteMeeting();
+    const { mutateAsync: publishMeeting, isPending: isPublishing } = usePublishMeeting();
+
+    const isSaving = isCreating || isUpdating;
 
     const { success, error: showError } = useToast();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        title: string;
+        location: string;
+        purpose: string;
+        numberOfPeople: number;
+        attendedBy: string;
+        absentees: string;
+        content: any;
+        meetingDate: string;
+        time: string;
+    }>({
+        title: '',
         location: '',
         purpose: '',
-        noOfPeople: 0,
+        numberOfPeople: 0,
         attendedBy: '',
         absentees: '',
-        description: '',
+        content: null,
         meetingDate: '',
+        time: '',
     });
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-    const isInitializedRef = React.useRef(false);
-    const lastMeetingIdRef = React.useRef(meetingId);
+    const [isHighlighted, setIsHighlighted] = useState(false);
+    const [highlightProjectId, setHighlightProjectId] = useState<string | null>(null);
 
     useEffect(() => {
-        // Reset initialization if meeting ID changed
+        const highlight = searchParams.get('highlight');
+        const projectId = searchParams.get('projectId');
+
+        if (highlight === 'true') {
+            setIsHighlighted(true);
+            if (projectId) setHighlightProjectId(projectId);
+
+            const timer = setTimeout(() => {
+                setIsHighlighted(false);
+                setHighlightProjectId(null);
+                // Clean up URL without refreshing
+                const newParams = new URLSearchParams(window.location.search);
+                newParams.delete('highlight');
+                newParams.delete('projectId');
+                const newUrl = `${window.location.pathname}${newParams.toString() ? `?${newParams.toString()}` : ''}`;
+                window.history.replaceState({}, '', newUrl);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [searchParams]);
+
+    const isInitializedRef = useRef(false);
+    const lastMeetingIdRef = useRef(meetingId);
+
+    // Effect for initializing form data
+    useEffect(() => {
+        // Reset when ID changes (e.g. from 'new' to actual ID or vice versa)
         if (meetingId !== lastMeetingIdRef.current) {
             isInitializedRef.current = false;
             lastMeetingIdRef.current = meetingId;
+            // If switching to new, reset form
+            if (meetingId === 'new') {
+                setFormData({
+                    title: '',
+                    location: '',
+                    purpose: '',
+                    numberOfPeople: 0,
+                    attendedBy: '',
+                    absentees: '',
+                    content: null,
+                    meetingDate: dateParam || '',
+                    time: '',
+                });
+            }
         }
 
-        if (meeting && !isInitializedRef.current) {
+        // Initialize for New Meeting with Date Param
+        if (isNew && !isInitializedRef.current && dateParam) {
+            setFormData(prev => ({ ...prev, meetingDate: dateParam }));
+            isInitializedRef.current = true;
+        }
+
+        // Initialize for Existing Meeting
+        if (!isNew && meeting && !isInitializedRef.current) {
             setFormData({
+                title: meeting.title || '',
                 location: meeting.location || '',
                 purpose: meeting.purpose || '',
-                noOfPeople: meeting.noOfPeople || 0,
+                numberOfPeople: meeting.numberOfPeople || 0,
                 attendedBy: meeting.attendedBy || '',
                 absentees: meeting.absentees || '',
-                description: meeting.description || '',
-                meetingDate: meeting.meetingDate ? new Date(meeting.meetingDate).toISOString().split('T')[0] : '',
+                content: meeting.content || null,
+                meetingDate: meeting.meetingDate
+                    ? new Date(meeting.meetingDate).toISOString().split('T')[0]
+                    : '',
+                time: meeting.time || '',
             });
             isInitializedRef.current = true;
         }
-    }, [meeting, meetingId]);
+    }, [meeting, meetingId, isNew, dateParam]);
 
     const handleSave = async () => {
+        if (!formData.title.trim()) {
+            showError('Validation Error', 'Please enter a meeting title');
+            return;
+        }
+
         try {
-            await updateMeeting({
-                id: meetingId,
-                ...formData,
-            });
-            success('Meeting saved successfully');
+            if (isNew) {
+                // Create
+                const newMeeting = await createMeeting({
+                    title: formData.title,
+                    meetingDate: formData.meetingDate || new Date().toISOString().split('T')[0],
+                    content: formData.content,
+                    location: formData.location || undefined,
+                    purpose: formData.purpose || undefined,
+                    numberOfPeople: formData.numberOfPeople || undefined,
+                    attendedBy: formData.attendedBy || undefined,
+                    absentees: formData.absentees || undefined,
+                    time: formData.time || undefined,
+                    // status: 'PUBLISHED',
+                });
+                success('Meeting created successfully');
+                router.replace(`/meetings/${newMeeting.id}`);
+            } else {
+                // Update
+                await updateMeeting({
+                    id: meetingId,
+                    title: formData.title,
+                    content: formData.content,
+                    location: formData.location,
+                    purpose: formData.purpose,
+                    numberOfPeople: formData.numberOfPeople,
+                    attendedBy: formData.attendedBy,
+                    absentees: formData.absentees,
+                    meetingDate: formData.meetingDate,
+                    time: formData.time,
+                });
+                success('Meeting saved successfully');
+            }
         } catch (error) {
             console.error('Failed to save meeting:', error);
-            showError('Failed to Save', 'Something went wrong while updating the record.');
+            showError('Failed to Save', 'Something went wrong while saving the record.');
+        }
+    };
+
+    const handlePublish = async () => {
+        if (isNew) return; // Cannot publish new meeting without saving first
+        try {
+            await publishMeeting(meetingId);
+            success('Meeting published successfully');
+        } catch (error) {
+            console.error('Failed to publish meeting:', error);
+            showError('Failed to Publish', 'Something went wrong while publishing.');
         }
     };
 
@@ -95,12 +209,13 @@ export default function MeetingDetailPage() {
             router.push('/meetings');
         } catch (error) {
             console.error('Failed to delete meeting:', error);
-            alert('Failed to delete meeting');
+            showError('Failed to Delete', 'Something went wrong while deleting the record.');
             setShowDeleteModal(false);
         }
     };
 
-    if (isLoading) {
+    // Loading state for fetching existing meeting
+    if (isLoading && !isNew) {
         return (
             <div className="flex items-center justify-center h-screen bg-gray-50">
                 <div className="flex flex-col items-center gap-4">
@@ -111,12 +226,13 @@ export default function MeetingDetailPage() {
         );
     }
 
-    if (!meeting) {
+    // Not found state
+    if (!meeting && !isNew) {
         return (
             <div className="flex items-center justify-center h-screen bg-gray-50">
                 <div className="text-center">
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">Meeting Not Found</h1>
-                    <p className="text-gray-600 mb-4">This meeting doesn't exist or you don't have access to it.</p>
+                    <p className="text-gray-600 mb-4">This meeting doesn&apos;t exist or you don&apos;t have access to it.</p>
                     <button
                         onClick={() => router.push('/meetings')}
                         className="px-4 py-2 bg-[#091590] text-white rounded-lg hover:bg-[#071170] font-bold text-sm"
@@ -128,11 +244,12 @@ export default function MeetingDetailPage() {
         );
     }
 
-    const meetingDate = new Date(meeting.meetingDate);
+    const meetingDateObj = formData.meetingDate ? new Date(formData.meetingDate) : new Date();
+    const isDraft = isNew || meeting?.status === 'DRAFT';
 
     return (
         <div className="h-full flex flex-col bg-white">
-            {/* Compact Combined Header (Matching Projects UI) */}
+            {/* Header */}
             <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-200 px-3 py-2 sm:px-4 sm:py-1.5 flex-shrink-0">
                 <div className="flex flex-wrap items-center justify-between gap-y-2">
                     <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
@@ -152,13 +269,22 @@ export default function MeetingDetailPage() {
 
                             <div className="flex flex-col min-w-0 flex-1">
                                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                                    <div className="px-2 py-0.5 bg-[#091590]/5 border border-[#091590]/10 rounded-md text-[#091590] font-bold text-[11px] uppercase tracking-wider flex-shrink-0">
-                                        Minutes of Meeting
-                                    </div>
+                                    <input
+                                        type="text"
+                                        value={formData.title}
+                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                        placeholder="Meeting Title"
+                                        className="text-sm font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]"
+                                    />
                                     <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {isDraft && (
+                                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                                DRAFT
+                                            </span>
+                                        )}
                                         <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 flex-shrink-0 flex items-center gap-1.5">
                                             <Calendar className="w-3 h-3 text-gray-400" />
-                                            {meetingDate.toLocaleDateString('en-US', {
+                                            {meetingDateObj.toLocaleDateString('en-US', {
                                                 year: 'numeric',
                                                 month: 'short',
                                                 day: 'numeric',
@@ -171,18 +297,18 @@ export default function MeetingDetailPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {/* 
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                            className="w-10 h-10 p-0 text-gray-400 hover:text-red-500 border border-gray-200 bg-white"
-                            title="Delete Meeting"
-                        >
-                            <Trash2 className="w-5 h-5" />
-                        </Button>
-                        */}
+                        {!isNew && isDraft && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handlePublish}
+                                disabled={isPublishing || isSaving}
+                                className="h-8 px-3 font-bold text-[11px] uppercase tracking-wider text-green-600 border border-green-200 hover:bg-green-50"
+                            >
+                                <Send className="w-3.5 h-3.5 mr-1" />
+                                {isPublishing ? 'Publishing...' : 'Publish'}
+                            </Button>
+                        )}
                         <Button
                             variant="primary"
                             size="sm"
@@ -193,12 +319,12 @@ export default function MeetingDetailPage() {
                             {isSaving ? (
                                 <>
                                     <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    <span>Saving...</span>
+                                    <span>{isNew ? 'Creating Meeting...' : 'Saving...'}</span>
                                 </>
                             ) : (
                                 <>
                                     <Save className="w-3.5 h-3.5" />
-                                    <span>Save Record</span>
+                                    <span>{isNew ? 'Create Meeting' : 'Save Record'}</span>
                                 </>
                             )}
                         </Button>
@@ -208,15 +334,15 @@ export default function MeetingDetailPage() {
 
             <div className="flex-1 overflow-auto bg-gray-50/30 py-2 px-2 sm:px-4">
                 <div className="w-full space-y-4 pb-8">
-                    {/* Integrated Metadata Canvas (Free UI) */}
+                    {/* Metadata Fields */}
                     <div className="space-y-4">
                         {/* Row 1: Quick Info */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* location */}
+                            {/* Location */}
                             <div className="space-y-1.5">
                                 <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <MapPin className="w-3 h-3 text-[#091590] inline-block mr-1.5 -mt-0.5" />
-                                    location
+                                    Location
                                 </label>
                                 <input
                                     type="text"
@@ -227,16 +353,16 @@ export default function MeetingDetailPage() {
                                 />
                             </div>
 
-                            {/* Number of peoples */}
+                            {/* Number of People */}
                             <div className="space-y-1.5">
                                 <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <Users className="w-3 h-3 text-[#091590] inline-block mr-1.5 -mt-0.5" />
-                                    Number of peoples
+                                    Number of People
                                 </label>
                                 <input
                                     type="number"
-                                    value={formData.noOfPeople}
-                                    onChange={(e) => setFormData({ ...formData, noOfPeople: parseInt(e.target.value) || 0 })}
+                                    value={formData.numberOfPeople}
+                                    onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
                                     placeholder="0"
                                     min="0"
                                     className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 shadow-sm"
@@ -251,20 +377,20 @@ export default function MeetingDetailPage() {
                                 </label>
                                 <input
                                     type="time"
-                                    value={formData.meetingDate.includes('T') ? formData.meetingDate.split('T')[1].substring(0, 5) : formData.meetingDate}
-                                    onChange={(e) => setFormData({ ...formData, meetingDate: e.target.value })}
+                                    value={formData.time || new Date().toISOString().split('T')[1]}
+                                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                                     className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 shadow-sm"
                                 />
                             </div>
                         </div>
 
-                        {/* Row 2: Detailed Info (Textareas) */}
+                        {/* Row 2: Detailed Info */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Purpose of meeting */}
+                            {/* Purpose */}
                             <div className="space-y-1.5">
                                 <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <FileText className="w-3 h-3 text-[#091590] inline-block mr-1.5 -mt-0.5" />
-                                    Purpose of meeting
+                                    Purpose of Meeting
                                 </label>
                                 <textarea
                                     value={formData.purpose}
@@ -290,11 +416,11 @@ export default function MeetingDetailPage() {
                                 />
                             </div>
 
-                            {/* Absenties */}
+                            {/* Absentees */}
                             <div className="space-y-1.5">
                                 <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <UserX className="w-3 h-3 text-red-500 inline-block mr-1.5 -mt-0.5" />
-                                    Absenties
+                                    Absentees
                                 </label>
                                 <textarea
                                     value={formData.absentees}
@@ -307,59 +433,22 @@ export default function MeetingDetailPage() {
                         </div>
                     </div>
 
-                    {/* Rich Text Editor Section (Container removed per user request) */}
-                    <div className="pt-2 space-y-1">
+                    {/* Rich Text Editor Section */}
+                    <div className={cn(
+                        "pt-2 space-y-1 transition-all duration-700 rounded-xl p-1",
+                        isHighlighted ? "ring-4 ring-[#091590] bg-blue-50/30 shadow-2xl shadow-blue-900/10 scale-[1.01]" : ""
+                    )}>
                         <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider px-1">
                             <MessageSquare className="w-3 h-3 text-[#091590] inline-block mr-1.5 -mt-0.5" />
-                            Discussion area
+                            Discussion Area
                         </label>
                         <RichTextEditor
-                            content={formData.description}
-                            onChange={(html) => setFormData({ ...formData, description: html })}
-                            placeholder="Document action items, decisions, and key insights..."
+                            content={formData.content}
+                            onChange={(json) => setFormData({ ...formData, content: json })}
+                            placeholder="Document action items, decisions, and key insights... Use @ to mention users and # to mention projects"
+                            highlightId={highlightProjectId || undefined}
                         />
                     </div>
-
-                    {/* Stats Preview Card (Commented out per user request) */}
-                    {/* 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 p-6 shadow-sm">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                    <Users className="w-5 h-5 text-[#091590]" />
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-black text-gray-900">{formData.noOfPeople}</p>
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Participants</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-100 p-6 shadow-sm">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                    <FileText className="w-5 h-5 text-purple-600" />
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-black text-gray-900">{formData.description.length}</p>
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Characters</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100 p-6 shadow-sm">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                </div>
-                                <div>
-                                    <p className="text-lg font-black text-green-600">READY</p>
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    */}
                 </div>
             </div>
 
