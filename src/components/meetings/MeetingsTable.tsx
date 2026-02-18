@@ -7,7 +7,8 @@ import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
 
 export function MeetingsTable() {
-    const { data: meetings, isLoading } = useMeetings();
+    const { data: meetingsData, isLoading } = useMeetings();
+    const meetings = meetingsData?.data || [];
 
     const exportToExcel = async () => {
         if (!meetings || meetings.length === 0) {
@@ -49,7 +50,7 @@ export function MeetingsTable() {
                 meetingDate: format(new Date(meeting.meetingDate), 'dd-MM-yyyy'),
                 location: meeting.location,
                 purpose: meeting.purpose || '',
-                noOfPeople: meeting.noOfPeople,
+                noOfPeople: (meeting as any).numberOfPeople || (meeting as any).noOfPeople,
                 attendedBy: meeting.attendedBy || '',
                 absentees: meeting.absentees || '',
             });
@@ -91,7 +92,7 @@ export function MeetingsTable() {
         );
     }
 
-    if (!meetings || meetings.length === 0) {
+    if (meetings.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-16">
                 <Calendar className="w-16 h-16 text-gray-300 mb-4" />
@@ -151,7 +152,7 @@ export function MeetingsTable() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {meetings.map((meeting, index) => (
+                            {meetings.map((meeting: any, index: number) => (
                                 <tr key={meeting.id} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-4 py-3 text-sm font-medium text-gray-900">
                                         {index + 1}
@@ -163,7 +164,7 @@ export function MeetingsTable() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-gray-900">
-                                                    {meeting.project?.name || 'N/A'}
+                                                    {meeting.title || meeting.project?.name || 'N/A'}
                                                 </p>
                                                 <p className="text-xs text-gray-500">
                                                     ID: {meeting.projectId}
@@ -194,7 +195,7 @@ export function MeetingsTable() {
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-700 font-bold text-xs rounded-full">
-                                            {meeting.noOfPeople}
+                                            {meeting.numberOfPeople || meeting.noOfPeople || 0}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3">

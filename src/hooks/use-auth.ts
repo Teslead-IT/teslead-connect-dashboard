@@ -49,6 +49,10 @@ export function useUser() {
 
             try {
                 const data = await authApi.getMe();
+                // Sync latest user data to storage so services can access it synchronously
+                if (data.user) {
+                    tokenStorage.setUser(data.user);
+                }
                 return data.user || null;
             } catch (error) {
                 console.error('Failed to fetch user:', error);

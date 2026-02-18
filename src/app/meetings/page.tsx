@@ -7,29 +7,27 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMeetings, useCreateMeetingDraft } from '@/hooks/use-meetings';
-import { CreateMeetingModal } from '@/components/meetings/CreateMeetingModal';
+import { useMeetings } from '@/hooks/use-meetings';
+
 import { MeetingsTable } from '@/components/meetings/MeetingsTable';
 import { Dialog } from '@/components/ui/Dialog';
-import { useProjects } from '@/hooks/use-projects';
+
 
 export default function MeetingsPage() {
     const router = useRouter();
     const [view, setView] = useState<'calendar' | 'list'>('calendar');
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<string | undefined>();
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [selectedDateForDraft, setSelectedDateForDraft] = useState<string | undefined>();
 
     // Fetch meetings from backend
-    const { data: meetings, isLoading } = useMeetings();
-    const { mutateAsync: createDraft, isPending: isCreatingDraft } = useCreateMeetingDraft();
-    const { data: projects } = useProjects();
+    const { data: meetingsData, isLoading } = useMeetings();
+
+    const meetings = meetingsData?.data || [];
 
     // Transform meetings to FullCalendar events
-    const calendarEvents = meetings?.map((meeting) => ({
+    const calendarEvents = meetings.map((meeting: any) => ({
         id: meeting.id,
-        title: meeting.project?.name || 'Meeting',
+        title: meeting.title || meeting.project?.name || 'Meeting',
         start: meeting.meetingDate,
         backgroundColor: '#091590',
         borderColor: '#091590',
@@ -37,56 +35,19 @@ export default function MeetingsPage() {
             location: meeting.location,
             purpose: meeting.purpose,
         },
-    })) || [];
+    }));
 
     const handleDateClick = (info: any) => {
         setSelectedDateForDraft(info.dateStr);
         setShowConfirmModal(true);
     };
 
-    const handleConfirmCreate = async () => {
+    const handleConfirmCreate = () => {
         if (!selectedDateForDraft) return;
-
-        try {
-            // Check if user has any projects
-            if (!projects?.data || projects.data.length === 0) {
-                alert('Please create a project first before creating a meeting.');
-                setShowConfirmModal(false);
-                setSelectedDateForDraft(undefined);
-                return;
-            }
-
-            // Use first project from paginated response
-            const defaultProjectId = projects.data[0].id;
-
-            console.log('Creating meeting with:', {
-                meetingDate: selectedDateForDraft,
-                projectId: defaultProjectId,
-            });
-
-            const meeting = await createDraft({
-                meetingDate: selectedDateForDraft,
-                projectId: defaultProjectId,
-            });
-
-            console.log('Meeting created successfully:', meeting);
-
-            // Redirect to edit page with real meeting ID
-            router.push(`/meetings/${meeting.id}`);
-        } catch (error: any) {
-            console.error('Failed to create meeting:', error);
-            console.error('Error details:', {
-                message: error?.message,
-                response: error?.response?.data,
-                status: error?.response?.status,
-            });
-
-            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to create meeting. Please try again.';
-            alert(errorMessage);
-        } finally {
-            setShowConfirmModal(false);
-            setSelectedDateForDraft(undefined);
-        }
+        // Redirect to create page with date
+        router.push(`/meetings/new?date=${selectedDateForDraft}`);
+        setShowConfirmModal(false);
+        setSelectedDateForDraft(undefined);
     };
 
     const handleEventClick = (info: any) => {
@@ -95,8 +56,8 @@ export default function MeetingsPage() {
     };
 
     const handleNewMeeting = () => {
-        setSelectedDate(new Date().toISOString().split('T')[0]);
-        setIsCreateModalOpen(true);
+        const today = new Date().toISOString().split('T')[0];
+        router.push(`/meetings/new?date=${today}`);
     };
 
 
@@ -276,18 +237,10 @@ export default function MeetingsPage() {
                 confirmText="Yes, Proceed"
                 cancelText="Dismiss"
                 onConfirm={handleConfirmCreate}
-                isLoading={isCreatingDraft}
             />
 
             {/* Create Meeting Modal */}
-            <CreateMeetingModal
-                isOpen={isCreateModalOpen}
-                onClose={() => {
-                    setIsCreateModalOpen(false);
-                    setSelectedDate(undefined);
-                }}
-                selectedDate={selectedDate}
-            />
+
         </div>
     );
 }
