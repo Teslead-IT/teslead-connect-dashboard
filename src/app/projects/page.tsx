@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -43,7 +43,7 @@ type ViewMode = 'list' | 'kanban';
 const PROJECT_STATUS_OPTIONS = [
     { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-slate-200 text-slate-800 border-slate-300' },
     { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    { value: 'ON_HOLD', label: 'On Hold', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+    { value: 'ON_HOLD', label: 'ON_HOLD', color: 'bg-amber-100 text-amber-700 border-amber-200' },
     { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
     { value: 'CANCELLED', label: 'Cancelled', color: 'bg-rose-100 text-rose-700 border-rose-200' },
 ];
@@ -51,15 +51,18 @@ const PROJECT_STATUS_OPTIONS = [
 
 
 export default function ProjectsPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // GET State from URL (The single source of truth)
+    const selectedOrgId = searchParams.get('orgId') || 'all';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [selectedOrgId, setSelectedOrgId] = useState<string>('all');
     const [editingProject, setEditingProject] = useState<Project | null>(null);
-
-    // Pagination State
-    const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(20);
 
     // React Query Hooks (pass selectedOrgId to filter)
     const { data: projectsData, isLoading: loading, error, refetch } = useProjects({
@@ -76,7 +79,6 @@ export default function ProjectsPage() {
     const deleteProjectMutation = useDeleteProject();
     const { data: user, isLoading: isUserLoading } = useUser();
     const toast = useToast();
-    const router = useRouter();
 
     // Dialog State
     const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string } | null>(null);
@@ -85,8 +87,27 @@ export default function ProjectsPage() {
     const memberships = user?.memberships || [];
 
     const handleOrgChange = (orgId: string) => {
-        setSelectedOrgId(orgId);
-        setPage(1); // Reset to first page on org change
+        const params = new URLSearchParams(searchParams.toString());
+        if (orgId === 'all') {
+            params.delete('orgId');
+        } else {
+            params.set('orgId', orgId);
+        }
+        params.set('page', '1'); // Reset to first page on org change
+        router.push(`/projects?${params.toString()}`);
+    };
+
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', newPage.toString());
+        router.push(`/projects?${params.toString()}`);
+    };
+
+    const handleLimitChange = (newLimit: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('limit', newLimit.toString());
+        params.set('page', '1'); // Reset to first page on limit change
+        router.push(`/projects?${params.toString()}`);
     };
 
     // Fetch members to get owner names
@@ -785,7 +806,7 @@ export default function ProjectsPage() {
                                 <Button
                                     variant="secondary"
                                     size="sm"
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    onClick={() => handlePageChange(Math.max(1, page - 1))}
                                     disabled={page === 1}
                                 >
                                     Previous
@@ -793,7 +814,7 @@ export default function ProjectsPage() {
                                 <Button
                                     variant="secondary"
                                     size="sm"
-                                    onClick={() => setPage(p => p + 1)}
+                                    onClick={() => handlePageChange(page + 1)}
                                     disabled={!meta?.hasNextPage}
                                 >
                                     Next
@@ -809,10 +830,7 @@ export default function ProjectsPage() {
                                     <select
                                         className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
                                         value={limit}
-                                        onChange={(e) => {
-                                            setLimit(Number(e.target.value));
-                                            setPage(1);
-                                        }}
+                                        onChange={(e) => handleLimitChange(Number(e.target.value))}
                                     >
                                         <option value={20}>20 / page</option>
                                         <option value={50}>50 / page</option>
@@ -820,7 +838,7 @@ export default function ProjectsPage() {
                                     </select>
                                     <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                                         <button
-                                            onClick={() => setPage(1)}
+                                            onClick={() => handlePageChange(1)}
                                             disabled={page === 1}
                                             className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -828,7 +846,7 @@ export default function ProjectsPage() {
                                             <span aria-hidden="true">&laquo;</span>
                                         </button>
                                         <button
-                                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                                            onClick={() => handlePageChange(Math.max(1, page - 1))}
                                             disabled={page === 1}
                                             className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -841,7 +859,7 @@ export default function ProjectsPage() {
                                             {page}
                                         </button>
                                         <button
-                                            onClick={() => setPage(p => p + 1)}
+                                            onClick={() => handlePageChange(page + 1)}
                                             disabled={!meta?.hasNextPage}
                                             className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -849,7 +867,7 @@ export default function ProjectsPage() {
                                             <span aria-hidden="true">&rsaquo;</span>
                                         </button>
                                         <button
-                                            onClick={() => setPage(meta?.totalPages || 1)}
+                                            onClick={() => handlePageChange(meta?.totalPages || 1)}
                                             disabled={!meta?.totalPages || page === meta.totalPages}
                                             className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -1091,7 +1109,7 @@ export default function ProjectsPage() {
                                 <Button
                                     variant="secondary"
                                     size="sm"
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    onClick={() => handlePageChange(Math.max(1, page - 1))}
                                     disabled={page === 1}
                                 >
                                     Previous
@@ -1099,7 +1117,7 @@ export default function ProjectsPage() {
                                 <Button
                                     variant="secondary"
                                     size="sm"
-                                    onClick={() => setPage(p => p + 1)}
+                                    onClick={() => handlePageChange(page + 1)}
                                     disabled={!meta?.hasNextPage}
                                 >
                                     Next
@@ -1115,10 +1133,7 @@ export default function ProjectsPage() {
                                     <select
                                         className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
                                         value={limit}
-                                        onChange={(e) => {
-                                            setLimit(Number(e.target.value));
-                                            setPage(1);
-                                        }}
+                                        onChange={(e) => handleLimitChange(Number(e.target.value))}
                                     >
                                         <option value={20}>20 / page</option>
                                         <option value={50}>50 / page</option>
@@ -1126,15 +1141,15 @@ export default function ProjectsPage() {
                                     </select>
                                     <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                                         <button
-                                            onClick={() => setPage(1)}
+                                            onClick={() => handlePageChange(1)}
                                             disabled={page === 1}
-                                            className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <span className="sr-only">First</span>
                                             <span aria-hidden="true">&laquo;</span>
                                         </button>
                                         <button
-                                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                                            onClick={() => handlePageChange(Math.max(1, page - 1))}
                                             disabled={page === 1}
                                             className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -1147,7 +1162,7 @@ export default function ProjectsPage() {
                                             {page}
                                         </button>
                                         <button
-                                            onClick={() => setPage(p => p + 1)}
+                                            onClick={() => handlePageChange(page + 1)}
                                             disabled={!meta?.hasNextPage}
                                             className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -1155,7 +1170,7 @@ export default function ProjectsPage() {
                                             <span aria-hidden="true">&rsaquo;</span>
                                         </button>
                                         <button
-                                            onClick={() => setPage(meta?.totalPages || 1)}
+                                            onClick={() => handlePageChange(meta?.totalPages || 1)}
                                             disabled={!meta?.totalPages || page === meta.totalPages}
                                             className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -1166,11 +1181,11 @@ export default function ProjectsPage() {
                                 </div>
                             </div>
                         </div>
-                    </div>)}
+                    </div>
+                )}
             </div>
 
             {contextMenu && (() => {
-                // Calculate permissions for the specific project in the context menu
                 const { canEdit, canDelete, canInvite } = getProjectPermissionsForUI(contextMenu.project);
 
                 return (
@@ -1198,16 +1213,19 @@ export default function ProjectsPage() {
                         } : undefined}
                     />
                 );
-            })()}
+            })()
+            }
 
-            {inviteModalState.projectId && (
-                <SendProjectInviteModal
-                    isOpen={inviteModalState.isOpen}
-                    onClose={() => setInviteModalState({ ...inviteModalState, isOpen: false })}
-                    projectId={inviteModalState.projectId}
-                    projectName={inviteModalState.projectName || 'Project'}
-                />
-            )}
+            {
+                inviteModalState.projectId && (
+                    <SendProjectInviteModal
+                        isOpen={inviteModalState.isOpen}
+                        onClose={() => setInviteModalState({ ...inviteModalState, isOpen: false })}
+                        projectId={inviteModalState.projectId}
+                        projectName={inviteModalState.projectName || 'Project'}
+                    />
+                )
+            }
 
             <CreateProjectModal
                 isOpen={isCreateModalOpen}
@@ -1243,6 +1261,6 @@ export default function ProjectsPage() {
                 onConfirm={handleDeleteConfirm}
                 isLoading={isDeleting}
             />
-        </div>
+        </div >
     );
 }

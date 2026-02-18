@@ -83,7 +83,7 @@ export function TopNav() {
                     {/* Organization Badge if exists */}
                     {orgName && (
                         <Link
-                            href="/dashboard/settings/organization"
+                            href="/settings/organization"
                             className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-gray-50/50 hover:bg-blue-50/50 border border-gray-100 hover:border-blue-100 rounded-full transition-all group/org"
                         >
                             <Building2 className="w-3.5 h-3.5 text-gray-400 group-hover/org:text-[#091590] transition-colors" />
@@ -124,7 +124,7 @@ export function TopNav() {
                     </div>
 
                     {/* User Profile - Premium Look */}
-                    <button className="flex items-center gap-2.5 pl-1 group hover:bg-gray-50 p-1.5 rounded-xl transition-all">
+                    <Link href="/settings/account" className="flex items-center gap-2.5 pl-1 group hover:bg-gray-50 p-1.5 rounded-xl transition-all">
                         <div className="hidden md:flex flex-col items-end">
                             <span className="text-xs font-bold text-gray-900 group-hover:text-[#091590] transition-colors whitespace-nowrap">
                                 {displayName}
@@ -152,7 +152,7 @@ export function TopNav() {
                             {/* Online status indicator */}
                             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
                         </div>
-                    </button>
+                    </Link>
                 </div>
             </div>
 
