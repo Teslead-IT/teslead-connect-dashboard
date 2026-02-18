@@ -184,7 +184,7 @@ export const Dialog: React.FC<DialogProps> = ({
     return (
         <div
             className={cn(
-                'fixed inset-0 z-[100] flex transition-all duration-300',
+                'fixed inset-0 z-[100000] flex transition-all duration-300',
                 positionConfig[position],
                 isOpen && isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none',
             )}

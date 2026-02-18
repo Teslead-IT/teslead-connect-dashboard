@@ -59,7 +59,7 @@ function createSuggestion(
                 onStart: (props: any) => {
                     popup = document.createElement('div');
                     popup.style.position = 'absolute';
-                    popup.style.zIndex = '9999';
+                    popup.style.zIndex = '99999';
                     document.body.appendChild(popup);
 
                     component = new ReactRenderer(MentionList, {
@@ -123,11 +123,30 @@ export function RichTextEditor({
         suggestion: createSuggestion('user', (q) => meetingsApi.suggestUsers(q)),
     });
 
-    const ProjectMention = Mention.extend({ name: 'projectMention' }).configure({
+    const ProjectMention = Mention.extend({
+        name: 'projectMention',
+        renderHTML({ node, HTMLAttributes }) {
+            const isHighlighted = highlightId && node.attrs.id === highlightId;
+            return [
+                'span',
+                {
+                    ...this.options.HTMLAttributes,
+                    ...HTMLAttributes,
+                    class: cn(
+                        this.options.HTMLAttributes?.class,
+                        HTMLAttributes?.class,
+                        isHighlighted && 'highlight-targeted'
+                    ),
+                },
+                `#${node.attrs.label || node.attrs.id}`,
+            ];
+        },
+    }).configure({
         HTMLAttributes: { class: 'mention mention-project' },
         suggestion: {
             ...createSuggestion('project', (q) => meetingsApi.suggestProjects(q)),
             char: '#',
+            allowSpaces: true,
         },
     });
 
@@ -154,22 +173,7 @@ export function RichTextEditor({
             }),
             Placeholder.configure({ placeholder }),
             UserMention,
-            ProjectMention.extend({
-                renderHTML({ node, HTMLAttributes }) {
-                    const isHighlighted = highlightId && node.attrs.id === highlightId;
-                    return [
-                        'span',
-                        {
-                            ...HTMLAttributes,
-                            class: cn(
-                                HTMLAttributes.class,
-                                isHighlighted && 'highlight-targeted'
-                            ),
-                        },
-                        0,
-                    ];
-                },
-            }),
+            ProjectMention,
         ],
         content,
         onUpdate: ({ editor }) => {
@@ -200,6 +204,56 @@ export function RichTextEditor({
         }
     }, [content, editor]);
 
+    // Auto-scroll to highlighted mention and blink for 2 seconds then fade out
+    useEffect(() => {
+        if (!highlightId || !editor) return;
+
+        // Scroll into view after a short delay
+        const scrollTimer = setTimeout(() => {
+            const el = document.querySelector('.highlight-targeted');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 300);
+
+        // Blink: toggle background every 500ms for 2 seconds (4 toggles)
+        let blinkCount = 0;
+        const blinkInterval = setInterval(() => {
+            const els = document.querySelectorAll('.highlight-targeted');
+            els.forEach(el => {
+                const htmlEl = el as HTMLElement;
+                if (blinkCount % 2 === 0) {
+                    htmlEl.style.background = 'transparent';
+                } else {
+                    htmlEl.style.background = '#fef9c3';
+                }
+            });
+            blinkCount++;
+            if (blinkCount >= 4) {
+                clearInterval(blinkInterval);
+                // Restore yellow briefly before fade-out
+                els.forEach(el => {
+                    (el as HTMLElement).style.background = '#fef9c3';
+                });
+            }
+        }, 500);
+
+        // Remove highlight after 3 seconds total
+        const removeTimer = setTimeout(() => {
+            document.querySelectorAll('.highlight-targeted').forEach(el => {
+                (el as HTMLElement).style.background = '';
+                el.classList.add('highlight-fade-out');
+                el.classList.remove('highlight-targeted');
+            });
+        }, 3000);
+
+        return () => {
+            clearTimeout(scrollTimer);
+            clearInterval(blinkInterval);
+            clearTimeout(removeTimer);
+        };
+    }, [highlightId, editor]);
+
     if (!editor) {
         return null;
     }
@@ -224,34 +278,38 @@ export function RichTextEditor({
             {/* Mention Styles */}
             <style jsx global>{`
                 .mention {
-                    padding: 2px 6px;
-                    border-radius: 6px;
+                    padding: 0px 5px;
+                    border-radius: 5px;
                     font-weight: 600;
-                    font-size: 0.875rem;
+                    font-size: 0.75rem;
                     cursor: default;
                     box-decoration-break: clone;
+                    margin: 0 1px;
+                    display: inline-block;
+                    line-height: 1.4;
                 }
                 .mention-user {
-                    background-color: #eff6ff;
-                    color: #091590;
-                    border: 1px solid #bfdbfe;
+                    background-color: #f8fafc;
+                    color: #0f172a;
+                    border: 1px solid #e2e8f0;
                 }
                 .mention-project {
-                    background-color: #f0fdf4;
-                    color: #15803d;
-                    border: 1px solid #bbf7d0;
+                    background-color: #eff6ff;
+                    color: #1d4ed8;
+                    border: 1px solid #dbeafe;
                     transition: all 0.5s ease;
                 }
                 .highlight-targeted {
-                    background-color: #091590 !important;
-                    color: white !important;
-                    border-color: #091590 !important;
-                    box-shadow: 0 0 0 4px rgba(9, 21, 144, 0.2);
-                    animation: highlight-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+                    background: #fef9c3;
+                    color: #0f172a !important;
+                    border-color: #fde047 !important;
+                    padding: 2px 4px;
+                    border-radius: 4px;
                 }
-                @keyframes highlight-pulse {
-                    0%, 100% { opacity: 1; transform: scale(1.05); }
-                    50% { opacity: 0.8; transform: scale(1); }
+                .highlight-fade-out {
+                    background: transparent !important;
+                    border-color: #dbeafe !important;
+                    transition: all 0.6s ease-out !important;
                 }
             `}</style>
 

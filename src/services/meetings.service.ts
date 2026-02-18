@@ -88,9 +88,15 @@ export const meetingsApi = {
         toDate?: string;
     }): Promise<PaginatedMeetingsResponse> {
         const orgId = getOrgId();
+        // Strip out empty/falsy values so they don't get sent as empty query params
+        const cleanParams = params
+            ? Object.fromEntries(
+                Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+            )
+            : undefined;
         const { data } = await apiClient.get<PaginatedMeetingsResponse>(
             `/organizations/${orgId}/meetings`,
-            { params }
+            { params: cleanParams }
         );
         return data;
     },

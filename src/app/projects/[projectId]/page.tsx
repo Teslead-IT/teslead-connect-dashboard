@@ -44,6 +44,7 @@ import {
     useRevokeAssignee,
 } from '@/hooks/use-tasks';
 import { useProjectMeetings } from '@/hooks/use-meetings';
+import { MeetingModal } from '@/components/meetings/MeetingModal';
 import { ProjectMembersTable } from '@/components/projects/ProjectMembersTable';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { TaskContextMenu } from '@/components/tasks/TaskContextMenu';
@@ -1295,7 +1296,20 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
 
 function ProjectMOMTab({ projectId }: { projectId: string }) {
     const { data: momData, isLoading } = useProjectMeetings(projectId);
-    const router = useRouter();
+    const [meetingModal, setMeetingModal] = useState<{
+        isOpen: boolean;
+        date: string;
+        meetingId: string | null;
+    }>({ isOpen: false, date: '', meetingId: null });
+
+    const handleMOMClick = (item: any) => {
+        const meetingDate = new Date(item.meetingDate).toISOString().split('T')[0];
+        setMeetingModal({
+            isOpen: true,
+            date: meetingDate,
+            meetingId: item.meetingId,
+        });
+    };
 
     if (isLoading) {
         return (
@@ -1320,58 +1334,70 @@ function ProjectMOMTab({ projectId }: { projectId: string }) {
     }
 
     return (
-        <div className="h-full overflow-y-auto bg-white p-2 sm:p-4">
-            <div className="w-full">
-                <div className="grid gap-2">
-                    {items.map((item: any) => (
-                        <div
-                            key={item.mentionIds || item.meetingId || Math.random()}
-                            onClick={() => router.push(`/meetings/${item.meetingId}?highlight=true&projectId=${projectId}`)}
-                            className="bg-white border border-gray-100 rounded-lg p-3 hover:bg-blue-50/30 hover:border-blue-200 transition-all cursor-pointer group flex items-center gap-4"
-                        >
-                            <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:shadow-sm transition-all flex-shrink-0 border border-transparent group-hover:border-blue-100">
-                                <Calendar className="w-5 h-5" />
-                            </div>
-
-                            <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                <div className="min-w-0 flex-1">
-                                    <h3 className="font-bold text-gray-900 group-hover:text-[#091590] transition-colors truncate text-sm">
-                                        {item.title}
-                                    </h3>
-                                    <div className="flex items-center gap-3">
-                                        <p className="text-[11px] text-gray-400 flex items-center gap-1 font-medium">
-                                            {new Date(item.meetingDate).toLocaleDateString('en-US', {
-                                                month: 'short',
-                                                day: 'numeric',
-                                                year: 'numeric'
-                                            })}
-                                        </p>
-                                        <div className="h-3 w-px bg-gray-200"></div>
-                                        <p className="text-[11px] text-gray-500 font-bold truncate">
-                                            {item.createdBy?.name || 'Unknown'}
-                                        </p>
-                                    </div>
+        <>
+            <div className="h-full overflow-y-auto bg-white p-2 sm:p-4">
+                <div className="w-full">
+                    <div className="grid gap-2">
+                        {items.map((item: any) => (
+                            <div
+                                key={item.mentionIds || item.meetingId || Math.random()}
+                                onClick={() => handleMOMClick(item)}
+                                className="bg-white border border-gray-100 rounded-lg p-3 hover:bg-blue-50/30 hover:border-blue-200 transition-all cursor-pointer group flex items-center gap-4"
+                            >
+                                <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:shadow-sm transition-all flex-shrink-0 border border-transparent group-hover:border-blue-100">
+                                    <Calendar className="w-5 h-5" />
                                 </div>
 
-                                {item.snippet && (
-                                    <div className="flex-1 max-w-sm hidden md:block">
-                                        <p className="text-[11px] text-gray-500 italic truncate leading-normal">
-                                            &quot;{item.snippet}&quot;
-                                        </p>
+                                <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                        <h3 className="font-bold text-gray-900 group-hover:text-[#091590] transition-colors truncate text-sm">
+                                            {item.title}
+                                        </h3>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-[11px] text-gray-400 flex items-center gap-1 font-medium">
+                                                {new Date(item.meetingDate).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric'
+                                                })}
+                                            </p>
+                                            <div className="h-3 w-px bg-gray-200"></div>
+                                            <p className="text-[11px] text-gray-500 font-bold truncate">
+                                                {item.createdBy?.name || 'Unknown'}
+                                            </p>
+                                        </div>
                                     </div>
-                                )}
 
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    <span className="text-[10px] font-bold text-[#091590] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                        Open
-                                        <ChevronRight className="w-3 h-3" />
-                                    </span>
+                                    {/* {item.snippet && (
+                                        <div className="flex-1 max-w-sm hidden md:block">
+                                            <p className="text-[11px] text-gray-500 italic truncate leading-normal">
+                                                &quot;{item.snippet}&quot;
+                                            </p>
+                                        </div>
+                                    )} */}
+
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <span className="text-[10px] font-bold text-[#091590] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                            Open
+                                            <ChevronRight className="w-3 h-3" />
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
+
+            {/* Meeting Modal */}
+            <MeetingModal
+                isOpen={meetingModal.isOpen}
+                onClose={() => setMeetingModal({ isOpen: false, date: '', meetingId: null })}
+                selectedDate={meetingModal.date}
+                selectedMeetingId={meetingModal.meetingId}
+                highlightProjectId={projectId}
+            />
+        </>
     );
 }
+
