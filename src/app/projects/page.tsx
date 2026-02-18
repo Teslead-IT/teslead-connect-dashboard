@@ -43,7 +43,7 @@ type ViewMode = 'list' | 'kanban';
 const PROJECT_STATUS_OPTIONS = [
     { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-slate-200 text-slate-800 border-slate-300' },
     { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    { value: 'ON_HOLD', label: 'On Hold', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+    { value: 'ON_HOLD', label: 'ON_HOLD', color: 'bg-amber-100 text-amber-700 border-amber-200' },
     { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
     { value: 'CANCELLED', label: 'Cancelled', color: 'bg-rose-100 text-rose-700 border-rose-200' },
 ];

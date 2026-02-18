@@ -67,7 +67,7 @@ export function Modal({
                     className={cn(
                         'w-full rounded-xl pointer-events-auto',
                         'bg-white border border-gray-200',
-                        'shadow-2xl animate-in zoom-in-95 ease-out duration-200 overflow-hidden',
+                        'shadow-2xl animate-in zoom-in-95 ease-out duration-200',
                         sizeStyles[size]
                     )}
                     onClick={(e) => e.stopPropagation()}

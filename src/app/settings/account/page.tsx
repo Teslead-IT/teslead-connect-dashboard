@@ -128,28 +128,28 @@ export default function AccountSettingsPage() {
 
             <div className="px-6 py-4">
                 {activeTab === 'profile' && (
-                    <div key={user?.id || 'loading'} className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div key={user?.id || 'loading'} className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {/* Profile Header */}
-                        <div className="flex items-start gap-6 pb-8 border-b border-gray-100">
+                        <div className="flex items-start gap-8 pb-8 border-b border-gray-100">
                             <div className="relative group">
                                 <Avatar
                                     src={user?.avatarUrl || undefined}
                                     name={user?.fullName || user?.email || 'User'}
                                     size="lg"
-                                    className="w-24 h-24 text-2xl ring-4 ring-white shadow-md"
+                                    className="w-32 h-32 text-4xl ring-4 ring-white shadow-md"
                                 />
-                                <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full border border-gray-200 shadow-sm text-gray-500 hover:text-[#091590] hover:border-[#091590] transition-colors">
-                                    <Camera className="w-4 h-4" />
+                                <button className="absolute bottom-2 right-2 p-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-gray-500 hover:text-[#091590] hover:border-[#091590] transition-colors z-10">
+                                    <Camera className="w-5 h-5" />
                                 </button>
                             </div>
-                            <div className="flex-1 pt-2">
-                                <h2 className="text-xl font-bold text-gray-900">{user?.fullName || 'User'}</h2>
-                                <p className="text-sm text-gray-500 mb-3">{user?.email}</p>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="info" className="bg-blue-50 text-[#091590] border-blue-100">
-                                        {user?.memberships?.[0]?.role || 'Member'}
+                            <div className="flex-1 pt-4">
+                                <h2 className="text-2xl font-bold text-gray-900">{user?.fullName || 'User'}</h2>
+                                <p className="text-base text-gray-500 mb-4">{user?.email}</p>
+                                <div className="flex items-center gap-3">
+                                    <Badge variant="info" className="px-3 py-1 bg-blue-50 text-[#091590] border-blue-100 font-semibold uppercase text-xs tracking-wider">
+                                        {user?.memberships?.[0]?.role || 'Owner'}
                                     </Badge>
-                                    <Badge variant="success" className="bg-green-50 text-green-700 border-green-100">
+                                    <Badge variant="success" className="px-3 py-1 bg-green-50 text-green-700 border-green-100 font-semibold uppercase text-xs tracking-wider">
                                         Verified
                                     </Badge>
                                 </div>
@@ -157,40 +157,40 @@ export default function AccountSettingsPage() {
                         </div>
 
                         {/* Profile Details Form */}
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Full Name</label>
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <div className="space-y-12">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-24 gap-y-12">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                                    <label className="text-sm font-bold text-gray-700 sm:w-32 flex-shrink-0">Full Name</label>
+                                    <div className="relative group flex-1">
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#091590] transition-colors" />
                                         <input
                                             type="text"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all"
+                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#091590]/10 focus:border-[#091590] transition-all"
                                             placeholder="Enter your full name"
                                         />
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Email Address</label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                                    <label className="text-sm font-bold text-gray-700 sm:w-32 flex-shrink-0">Email Address</label>
+                                    <div className="relative group flex-1">
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#091590] transition-colors" />
                                         <input
                                             type="email"
                                             defaultValue={user?.email}
                                             disabled
-                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-500 cursor-not-allowed"
+                                            className="w-full pl-12 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500 cursor-not-allowed opacity-80"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex justify-end pt-4">
+                            <div className="flex justify-end pt-12">
                                 <button
                                     onClick={handleProfileUpdate}
                                     disabled={isUpdatingProfile || !name}
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-[#091590] text-white text-sm font-semibold rounded-lg hover:bg-[#071170] shadow-sm transition-all focus:ring-4 focus:ring-[#091590]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex items-center gap-2 px-8 py-3 bg-[#091590] text-white text-sm font-bold rounded-xl hover:bg-[#071170] shadow-lg shadow-[#091590]/20 hover:shadow-[#091590]/30 transition-all hover:-translate-y-0.5 active:translate-y-0 focus:ring-4 focus:ring-[#091590]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                                 >
                                     {isUpdatingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                     Save Changes
