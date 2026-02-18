@@ -34,6 +34,7 @@ interface DialogProps {
     contentClassName?: string;
     footerClassName?: string;
     showAnimation?: boolean;
+    children?: React.ReactNode;
 }
 
 const typeConfig = {
@@ -125,6 +126,7 @@ export const Dialog: React.FC<DialogProps> = ({
     contentClassName,
     footerClassName,
     showAnimation = true,
+    children,
 }) => {
     const [isAnimating, setIsAnimating] = useState(false);
 
@@ -273,6 +275,7 @@ export const Dialog: React.FC<DialogProps> = ({
                             {description}
                         </p>
                     )}
+                    {children}
                 </div>
 
                 {/* Footer */}

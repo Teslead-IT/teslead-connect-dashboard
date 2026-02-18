@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { UserPlus, Pencil, Trash2, Eye } from 'lucide-react';
+import { useContextMenuPosition } from '@/hooks/use-context-menu-position';
 
 interface ProjectContextMenuProps {
     x: number;
@@ -27,11 +28,14 @@ export function ProjectContextMenu({
     onEdit,
     onDelete,
 }: ProjectContextMenuProps) {
+    const { position, menuRef } = useContextMenuPosition(x, y);
+
     return (
         <>
             <div
+                ref={menuRef}
                 className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[200px]"
-                style={{ top: y, left: x }}
+                style={{ top: position.y, left: position.x }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {onViewDetails && (

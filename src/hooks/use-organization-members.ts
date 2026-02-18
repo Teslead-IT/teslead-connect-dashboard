@@ -23,10 +23,6 @@ export function useOrganizationMembers(orgId: string, query: string = '') {
             invitationsApi.updateMemberRole(orgId, userId, role),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['organization-members', orgId] });
-            toast.success('Success', 'Member role updated successfully');
-        },
-        onError: (error: any) => {
-            toast.error('Error', error?.response?.data?.message || 'Failed to update member role');
         }
     });
 
@@ -35,6 +31,7 @@ export function useOrganizationMembers(orgId: string, query: string = '') {
         isLoading: membersQuery.isLoading,
         isError: membersQuery.isError,
         updateRole: updateRoleMutation.mutate,
+        updateRoleAsync: updateRoleMutation.mutateAsync,
         isUpdating: updateRoleMutation.isPending,
     };
 }

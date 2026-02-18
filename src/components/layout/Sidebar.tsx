@@ -24,6 +24,7 @@ import {
     Bell,
     Calendar,
     ListTodo,
+    Building2,
 } from 'lucide-react';
 
 interface NavItemBase {
@@ -81,6 +82,10 @@ const navItems: NavItem[] = [
         label: 'Settings',
         href: '/settings',
         icon: <Settings className="w-5 h-5 flex-shrink-0" />,
+        children: [
+            { label: 'Account Settings', href: '/settings/account', icon: <Settings className="w-4 h-4 flex-shrink-0" /> },
+            { label: 'Organization Settings', href: '/settings/organization', icon: <Building2 className="w-4 h-4 flex-shrink-0" /> },
+        ],
     },
 ];
 
@@ -91,13 +96,20 @@ export function Sidebar() {
         if (typeof window === 'undefined') return true;
         return window.location.pathname.startsWith('/projects');
     });
+    const [settingsSubmenuOpen, setSettingsSubmenuOpen] = useState(() => {
+        if (typeof window === 'undefined') return true;
+        return window.location.pathname.startsWith('/settings');
+    });
     const { isCollapsed, toggleSidebar } = useSidebar();
     const pathname = usePathname();
 
-    // Keep submenu open when on projects routes
+    // Keep submenu open when on projects or settings routes
     React.useEffect(() => {
         if (pathname.startsWith('/projects')) {
             setProjectsSubmenuOpen(true);
+        }
+        if (pathname.startsWith('/settings')) {
+            setSettingsSubmenuOpen(true);
         }
     }, [pathname]);
 
@@ -144,7 +156,12 @@ export function Sidebar() {
                                 onClick={(e) => {
                                     if (hasChildrenItem && !isCollapsed) {
                                         e.preventDefault();
-                                        setProjectsSubmenuOpen((prev) => !prev);
+                                        // Toggle the appropriate submenu based on which item was clicked
+                                        if (item.href === '/projects') {
+                                            setProjectsSubmenuOpen((prev) => !prev);
+                                        } else if (item.href === '/settings') {
+                                            setSettingsSubmenuOpen((prev) => !prev);
+                                        }
                                     }
                                     if (mobileOpen) setMobileOpen(false);
                                 }}
@@ -177,7 +194,7 @@ export function Sidebar() {
 
                                 {!isCollapsed && hasChildrenItem && (
                                     <motion.div
-                                        animate={{ rotate: projectsSubmenuOpen ? 180 : 0 }}
+                                        animate={{ rotate: (item.href === '/projects' ? projectsSubmenuOpen : settingsSubmenuOpen) ? 180 : 0 }}
                                         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                                         className={cn(
                                             "flex-shrink-0",
@@ -202,7 +219,7 @@ export function Sidebar() {
                             {/* Submenu - Optimized for smoothness */}
                             {hasChildrenItem && !isCollapsed && (
                                 <AnimatePresence initial={false}>
-                                    {projectsSubmenuOpen && (
+                                    {(item.href === '/projects' ? projectsSubmenuOpen : settingsSubmenuOpen) && (
                                         <motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
