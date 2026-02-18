@@ -93,22 +93,21 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                 statusId: status.id,
             });
 
-            // Update local state
-            setTasks(prevTasks =>
-                prevTasks.map(t => (t.id === updatedTask.id ? updatedTask : t))
-            );
+            // Update local state and regroup
+            setTasks(prevTasks => {
+                const updatedTasks = prevTasks.map(t => (t.id === updatedTask.id ? updatedTask : t));
 
-            // Regroup tasks
-            const newGrouped: GroupedTasks = {};
-            workflow.forEach(stage => {
-                newGrouped[stage.id] = tasks
-                    .map(t => (t.id === updatedTask.id ? updatedTask : t))
-                    .filter(task => {
+                // Regroup tasks using the updated array
+                const newGrouped: GroupedTasks = {};
+                workflow.forEach(stage => {
+                    newGrouped[stage.id] = updatedTasks.filter(task => {
                         return stage.statuses.some(s => s.id === task.status.id);
                     });
-            });
+                });
+                setGroupedTasks(newGrouped);
 
-            setGroupedTasks(newGrouped);
+                return updatedTasks;
+            });
         } catch (err) {
             console.error('Failed to update task status:', err);
             setError('Failed to update task. Please try again.');
