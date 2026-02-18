@@ -9,7 +9,6 @@ import {
     Save,
     Trash2,
     Calendar,
-    Clock,
     MapPin,
     Users,
     UserCheck,
@@ -288,24 +287,31 @@ export function MeetingForm({
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <Calendar className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
-                                    Date
+                                    Date & Time
                                 </label>
                                 <input
-                                    type="date"
-                                    value={formData.meetingDate}
-                                    onChange={(e) => setFormData({ ...formData, meetingDate: e.target.value })}
+                                    type="datetime-local"
+                                    value={formData.meetingDate && formData.time ? `${formData.meetingDate}T${formData.time}` : ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val) {
+                                            const [date, time] = val.split('T');
+                                            setFormData({ ...formData, meetingDate: date, time: time });
+                                        }
+                                    }}
                                     className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900"
                                 />
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
-                                    <Clock className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
-                                    Time
+                                    <Users className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
+                                    People
                                 </label>
                                 <input
-                                    type="time"
-                                    value={formData.time}
-                                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                                    type="number"
+                                    value={formData.numberOfPeople}
+                                    onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
+                                    min="0"
                                     className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900"
                                 />
                             </div>
@@ -354,20 +360,7 @@ export function MeetingForm({
                             </div>
                         </div>
 
-                        {/* People count inline */}
-                        <div className="flex items-center gap-3">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                                <Users className="w-3 h-3 text-[#091590]" />
-                                People
-                            </label>
-                            <input
-                                type="number"
-                                value={formData.numberOfPeople}
-                                onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
-                                min="0"
-                                className="w-20 bg-white px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900"
-                            />
-                        </div>
+
                     </div>
 
                     {/* Rich Text Editor */}
