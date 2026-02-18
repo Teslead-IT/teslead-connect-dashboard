@@ -43,6 +43,8 @@ import {
     useDeleteTask,
     useRevokeAssignee,
 } from '@/hooks/use-tasks';
+import { useProjectMeetings } from '@/hooks/use-meetings';
+import { MeetingModal } from '@/components/meetings/MeetingModal';
 import { ProjectMembersTable } from '@/components/projects/ProjectMembersTable';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { TaskContextMenu } from '@/components/tasks/TaskContextMenu';
@@ -59,6 +61,7 @@ type ViewMode = 'board' | 'list';
 const TAB_ITEMS: TabItem[] = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'users', label: 'Users' },
+    { id: 'mom', label: 'MOM' },
     { id: 'reports', label: 'Reports' },
     { id: 'documents', label: 'Documents' },
     { id: 'tasks', label: 'Tasks' },
@@ -525,6 +528,8 @@ export default function ProjectDetailPage() {
                     </div>
                 ) : activeTab === 'users' ? (
                     <ProjectMembersTable members={members} isLoading={membersLoading} projectId={projectId} currentUserRole={project?.role} />
+                ) : activeTab === 'mom' ? (
+                    <ProjectMOMTab projectId={projectId} />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
@@ -1299,5 +1304,112 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
     );
 }
 
-// Create Task Modal
+// ==================== MOM TAB COMPONENT ====================
+
+function ProjectMOMTab({ projectId }: { projectId: string }) {
+    const { data: momData, isLoading } = useProjectMeetings(projectId);
+    const [meetingModal, setMeetingModal] = useState<{
+        isOpen: boolean;
+        date: string;
+        meetingId: string | null;
+    }>({ isOpen: false, date: '', meetingId: null });
+
+    const handleMOMClick = (item: any) => {
+        const meetingDate = new Date(item.meetingDate).toISOString().split('T')[0];
+        setMeetingModal({
+            isOpen: true,
+            date: meetingDate,
+            meetingId: item.meetingId,
+        });
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full min-h-[400px]">
+                <Loader />
+            </div>
+        );
+    }
+
+    const items = (momData as any)?.data || [];
+
+    if (items.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-gray-400 bg-gray-50/10">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
+                    <Calendar className="w-8 h-8 text-gray-300" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No MOMs found</h3>
+                <p className="text-sm">There are no meetings associated with this project yet.</p>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            <div className="h-full overflow-y-auto bg-white p-2 sm:p-4">
+                <div className="w-full">
+                    <div className="grid gap-2">
+                        {items.map((item: any) => (
+                            <div
+                                key={item.mentionIds || item.meetingId || Math.random()}
+                                onClick={() => handleMOMClick(item)}
+                                className="bg-white border border-gray-100 rounded-lg p-3 hover:bg-blue-50/30 hover:border-blue-200 transition-all cursor-pointer group flex items-center gap-4"
+                            >
+                                <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:shadow-sm transition-all flex-shrink-0 border border-transparent group-hover:border-blue-100">
+                                    <Calendar className="w-5 h-5" />
+                                </div>
+
+                                <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                        <h3 className="font-bold text-gray-900 group-hover:text-[#091590] transition-colors truncate text-sm">
+                                            {item.title}
+                                        </h3>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-[11px] text-gray-400 flex items-center gap-1 font-medium">
+                                                {new Date(item.meetingDate).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric'
+                                                })}
+                                            </p>
+                                            <div className="h-3 w-px bg-gray-200"></div>
+                                            <p className="text-[11px] text-gray-500 font-bold truncate">
+                                                {item.createdBy?.name || 'Unknown'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* {item.snippet && (
+                                        <div className="flex-1 max-w-sm hidden md:block">
+                                            <p className="text-[11px] text-gray-500 italic truncate leading-normal">
+                                                &quot;{item.snippet}&quot;
+                                            </p>
+                                        </div>
+                                    )} */}
+
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <span className="text-[10px] font-bold text-[#091590] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                            Open
+                                            <ChevronRight className="w-3 h-3" />
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Meeting Modal */}
+            <MeetingModal
+                isOpen={meetingModal.isOpen}
+                onClose={() => setMeetingModal({ isOpen: false, date: '', meetingId: null })}
+                selectedDate={meetingModal.date}
+                selectedMeetingId={meetingModal.meetingId}
+                highlightProjectId={projectId}
+            />
+        </>
+    );
+}
 
