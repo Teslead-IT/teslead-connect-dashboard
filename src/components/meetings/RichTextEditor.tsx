@@ -12,6 +12,8 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Mention from '@tiptap/extension-mention';
 import { MentionList } from './MentionList';
 import { meetingsApi } from '@/services/meetings.service';
+import { ColorPicker } from 'primereact/colorpicker';
+import { Palette } from 'lucide-react';
 import {
     Bold,
     Italic,
@@ -417,6 +419,21 @@ export function RichTextEditor({
                     </ToolbarButton>
 
                     <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
+
+
+                    <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
+
+                    <div className="flex items-center gap-2 group transition-all">
+                        <Palette className="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
+                        <div className="custom-primereact-colorpicker">
+                            <ColorPicker
+                                value={editor.isActive('textStyle') ? (editor.getAttributes('textStyle').color || '000000').replace('#', '') : '000000'}
+                                onChange={(e) => {
+                                    (editor.chain().focus() as any).setColor?.('#' + e.value).run();
+                                }}
+                            />
+                        </div>
+                    </div>
 
                     {/* Mention hints */}
                     <div className="ml-auto flex items-center gap-2 text-[10px] text-gray-400 font-medium">

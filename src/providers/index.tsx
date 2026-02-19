@@ -10,6 +10,7 @@ import { QueryProvider } from './query-provider';
 import { Auth0ProviderWrapper as Auth0Provider } from './auth0-provider';
 
 import { GlobalLoaderProvider } from './global-loader-provider';
+import { PrimeReactProvider } from 'primereact/api';
 
 interface ProvidersProps {
     children: ReactNode;
@@ -17,12 +18,14 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
     return (
-        <QueryProvider>
-            <Auth0Provider>
-                <GlobalLoaderProvider>
-                    {children}
-                </GlobalLoaderProvider>
-            </Auth0Provider>
-        </QueryProvider>
+        <PrimeReactProvider>
+            <QueryProvider>
+                <Auth0Provider>
+                    <GlobalLoaderProvider>
+                        {children}
+                    </GlobalLoaderProvider>
+                </Auth0Provider>
+            </QueryProvider>
+        </PrimeReactProvider>
     );
 }

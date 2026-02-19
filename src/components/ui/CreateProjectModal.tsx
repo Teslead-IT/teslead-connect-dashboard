@@ -24,6 +24,7 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { ColorPicker } from 'primereact/colorpicker';
 
 export interface TagData {
     name: string;
@@ -50,146 +51,6 @@ export interface CreateProjectModalProps {
     initialData?: ProjectFormData;
 }
 
-// Helper: Hex to RGB
-const hexToRgb = (hex: string) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : { r: 59, g: 130, b: 246 }; // Default blue
-};
-
-// Helper: RGB to Hex
-const rgbToHex = (r: number, g: number, b: number) => {
-    return '#' + [r, g, b].map(x => {
-        const hex = x.toString(16);
-        return hex.length === 1 ? '0' + hex : hex;
-    }).join('');
-};
-
-/**
- * Reusable Color Picker Component
- */
-interface ColorPickerProps {
-    color: string;
-    onChange: (color: string) => void;
-}
-
-function ColorPicker({ color, onChange }: ColorPickerProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [rgb, setRgb] = useState(hexToRgb(color));
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    // Sync local RGB state if prop color changes externally
-    useEffect(() => {
-        setRgb(hexToRgb(color));
-    }, [color]);
-
-    // Handle outside click to close
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        }
-        if (isOpen) {
-            document.addEventListener("mousedown", handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [isOpen]);
-
-    // Update parent when RGB changes
-    const handleRgbChange = (key: 'r' | 'g' | 'b', value: number) => {
-        const newRgb = { ...rgb, [key]: value };
-        setRgb(newRgb);
-        onChange(rgbToHex(newRgb.r, newRgb.g, newRgb.b));
-    };
-
-    return (
-        <div className="relative" ref={containerRef}>
-            <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className={cn(
-                    "w-10 h-[38px] rounded-md border shadow-sm flex items-center justify-center transition-all hover:ring-2 hover:ring-offset-1 hover:ring-blue-100",
-                    isOpen ? "ring-2 ring-offset-1 ring-blue-500 border-blue-500" : "border-gray-300"
-                )}
-                style={{ backgroundColor: color }}
-                title="Pick color"
-            >
-                <Palette className="w-4 h-4 text-white drop-shadow-md opacity-90" />
-            </button>
-
-            {isOpen && (
-                <div className="absolute top-12 left-0 z-30 p-4 bg-white rounded-lg border border-gray-200 shadow-xl w-64 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Select Color</h3>
-                            <span className="text-[10px] font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{color}</span>
-                        </div>
-
-                        {/* RGB Sliders */}
-                        <div className="space-y-3">
-                            <div>
-                                <label className="text-[10px] uppercase font-medium text-gray-500 flex justify-between mb-1.5">
-                                    <span>Red</span>
-                                    <span className="font-mono text-gray-900">{rgb.r}</span>
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="255"
-                                    value={rgb.r}
-                                    onChange={(e) => handleRgbChange('r', parseInt(e.target.value))}
-                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500 hover:accent-red-600"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] uppercase font-medium text-gray-500 flex justify-between mb-1.5">
-                                    <span>Green</span>
-                                    <span className="font-mono text-gray-900">{rgb.g}</span>
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="255"
-                                    value={rgb.g}
-                                    onChange={(e) => handleRgbChange('g', parseInt(e.target.value))}
-                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500 hover:accent-green-600"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] uppercase font-medium text-gray-500 flex justify-between mb-1.5">
-                                    <span>Blue</span>
-                                    <span className="font-mono text-gray-900">{rgb.b}</span>
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="255"
-                                    value={rgb.b}
-                                    onChange={(e) => handleRgbChange('b', parseInt(e.target.value))}
-                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-600"
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={() => setIsOpen(false)}
-                            className="w-full py-2 bg-gray-900 text-white text-xs font-medium rounded-md hover:bg-gray-800 transition-colors shadow-sm"
-                        >
-                            Done
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
 
 export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, initialData }: CreateProjectModalProps) {
     const [formData, setFormData] = useState<ProjectFormData>({
@@ -379,11 +240,13 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, in
                                 Project Title
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
-                            <div className="flex gap-3">
-                                <ColorPicker
-                                    color={formData.color}
-                                    onChange={(color) => setFormData(prev => ({ ...prev, color }))}
-                                />
+                            <div className="flex gap-3 items-center">
+                                <div className="custom-primereact-colorpicker">
+                                    <ColorPicker
+                                        value={formData.color.replace('#', '')}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, color: '#' + e.value }))}
+                                    />
+                                </div>
 
                                 <div className="flex-1">
                                     <input
@@ -516,10 +379,12 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, in
                             <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
                             <div className="space-y-3">
                                 <div className="flex gap-2">
-                                    <ColorPicker
-                                        color={tagColor}
-                                        onChange={(color) => setTagColor(color)}
-                                    />
+                                    <div className="custom-primereact-colorpicker">
+                                        <ColorPicker
+                                            value={tagColor.replace('#', '')}
+                                            onChange={(e) => setTagColor('#' + e.value)}
+                                        />
+                                    </div>
                                     <input
                                         type="text"
                                         value={tagInput}

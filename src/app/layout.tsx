@@ -2,6 +2,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+// PrimeReact styles
+import "primereact/resources/themes/lara-light-blue/theme.css";
+import "primereact/resources/primereact.min.css";
+import "primeicons/primeicons.css";
+
 import { ThemeProvider } from "@/context/ThemeContext";
 import { Providers } from "@/providers";
 
