@@ -195,7 +195,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, in
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-lg font-semibold text-gray-900">New Project</h2>
+                        <h2 className="text-lg font-semibold text-gray-900">{initialData ? 'Edit Project' : 'New Project'}</h2>
 
                         {/* Organization Selector */}
                         {user?.memberships && (
@@ -492,10 +492,10 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, in
                         {isSubmitting ? (
                             <>
                                 <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Creating...
+                                {initialData ? 'Updating...' : 'Creating...'}
                             </>
                         ) : (
-                            'Create Project'
+                            initialData ? 'Update Project' : 'Create Project'
                         )}
                     </button>
                 </div>
