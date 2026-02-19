@@ -10,6 +10,7 @@ import { useMeetings } from '@/hooks/use-meetings';
 
 import { MeetingsTable } from '@/components/meetings/MeetingsTable';
 import { MeetingModal } from '@/components/meetings/MeetingModal';
+import { Loader } from '@/components/ui/Loader';
 
 
 export default function MeetingsPage() {
@@ -22,7 +23,7 @@ export default function MeetingsPage() {
     const [modalCreateMode, setModalCreateMode] = useState(false);
 
     // Fetch meetings from backend
-    const { data: meetingsData, isLoading, refetch } = useMeetings();
+    const { data: meetingsData, isLoading, refetch } = useMeetings({ limit: 1000 });
 
     const meetings = meetingsData?.data || [];
 
@@ -63,6 +64,23 @@ export default function MeetingsPage() {
         setModalMeetingId(null);
         setModalCreateMode(false);
         refetch();
+    };
+
+    /**
+     * Change redirection: clicking "more" opens the modal for that day directly.
+     * Returning 'none' prevents the default popover from showing.
+     * We keep this commented-out note as requested: // Default behavior was a popover.
+     */
+    const handleMoreLinkClick = (info: any) => {
+        const eventDate = info.date.toISOString().split('T')[0];
+        setModalDate(eventDate);
+        setModalMeetingId(null);
+        setModalCreateMode(false);
+        setModalOpen(true);
+
+        // To revert to the popup behavior in the future, uncomment the line below and comment out 'return none'
+        // return 'popover';
+        return 'none';
     };
 
 
@@ -127,13 +145,7 @@ export default function MeetingsPage() {
             <div className="flex-1 min-h-0 overflow-hidden bg-white">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-full">
-                        <div className="flex flex-col items-center gap-6">
-                            <div className="relative">
-                                <div className="w-16 h-16 border-4 border-[#091590]/10 rounded-full"></div>
-                                <div className="absolute top-0 w-16 h-16 border-4 border-[#091590] border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                            <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Initialising Schedule...</p>
-                        </div>
+                        <Loader />
                     </div>
                 ) : view === 'calendar' ? (
                     <div className="h-full w-full bg-white p-4 custom-calendar" style={{ minHeight: 0 }}>
@@ -202,12 +214,12 @@ export default function MeetingsPage() {
                             .custom-calendar .fc-daygrid-more-link {
                                 font-size: 0.65rem !important;
                                 font-weight: 800 !important;
-                                color: #dc2626 !important;
+                                color: #9d7553ff !important;
                                 text-transform: uppercase !important;
                                 letter-spacing: 0.05em;
                                 padding: 2px 6px !important;
                                 border-radius: 6px !important;
-                                background: #fef2f2 !important;
+                                background: #eef2ff !important;
                                 margin: 2px !important;
                             }
                         `}</style>
@@ -216,12 +228,14 @@ export default function MeetingsPage() {
                             initialView="dayGridMonth"
                             events={calendarEvents}
                             eventClick={handleEventClick}
+                            moreLinkClick={handleMoreLinkClick}
                             headerToolbar={{
-                                left: 'prev,next today',
+                                left: 'prev,next', // today
                                 center: 'title',
-                                right: 'dayGridMonth', // Removed dayGridWeek temporarily
+                                right: '', // dayGridMonth
                             }}
                             dayMaxEvents={3}
+                            moreLinkContent={(args: any) => `+${args.num}  more [View All]`}
                             height="100%"
                             eventContent={(eventInfo) => (
                                 <div className="flex items-center gap-1.5 px-2 py-1 cursor-pointer bg-blue-50 text-[#091590] rounded-md border-l-4 border-[#091590] shadow-sm hover:bg-blue-100 transition-colors">

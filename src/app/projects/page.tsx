@@ -576,8 +576,8 @@ export default function ProjectsPage() {
                         name: projectData.name,
                         description: projectData.description,
                         color: projectData.color,
-                        startDate: projectData.startDate,
-                        endDate: projectData.endDate,
+                        startDate: projectData.startDate ? new Date(projectData.startDate).toISOString() : undefined,
+                        endDate: projectData.endDate ? new Date(projectData.endDate).toISOString() : undefined,
                         access: projectData.access,
                         status: projectData.status,
                         tags: projectData.tags

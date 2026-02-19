@@ -12,6 +12,7 @@ export interface ModalProps {
     size?: 'sm' | 'md' | 'lg' | 'xl';
     showCloseButton?: boolean;
     closeOnOutsideClick?: boolean;
+    showBlur?: boolean;
 }
 
 export function Modal({
@@ -22,6 +23,7 @@ export function Modal({
     size = 'md',
     showCloseButton = true,
     closeOnOutsideClick = true,
+    showBlur = true,
 }: ModalProps) {
     useEffect(() => {
         if (isOpen) {
@@ -57,7 +59,10 @@ export function Modal({
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+                className={cn(
+                    "fixed inset-0 z-50 bg-black/50 animate-in fade-in duration-200",
+                    showBlur && "backdrop-blur-sm"
+                )}
                 onClick={() => closeOnOutsideClick && onClose()}
             />
 
