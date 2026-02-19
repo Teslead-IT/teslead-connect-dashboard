@@ -4,12 +4,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useMeeting, useUpdateMeeting, useDeleteMeeting, usePublishMeeting, useCreateMeeting } from '@/hooks/use-meetings';
 import { RichTextEditor } from '@/components/meetings/RichTextEditor';
 import Dialog from '@/components/ui/Dialog';
+import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { Loader } from '@/components/ui/Loader';
 import {
     Save,
     Trash2,
     Calendar,
-    Clock,
     MapPin,
     Users,
     UserCheck,
@@ -17,6 +18,7 @@ import {
     FileText,
     Send,
     MessageSquare,
+    X,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
@@ -28,6 +30,7 @@ interface MeetingFormProps {
     onCreated?: (newMeeting: any) => void;
     onDeleted?: () => void;
     onSaved?: () => void;
+    readOnly?: boolean;
 }
 
 /**
@@ -47,6 +50,7 @@ export function MeetingForm({
     onCreated,
     onDeleted,
     onSaved,
+    readOnly = false,
 }: MeetingFormProps) {
     const isNew = !meetingId;
 
@@ -82,6 +86,11 @@ export function MeetingForm({
         time: isNew ? getCurrentTime() : '',
     });
 
+    const [attendedByInput, setAttendedByInput] = useState('');
+    const [absenteesInput, setAbsenteesInput] = useState('');
+    const [attendedByShowAll, setAttendedByShowAll] = useState(false);
+    const [absenteesShowAll, setAbsenteesShowAll] = useState(false);
+
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const isInitializedRef = useRef(false);
     const lastMeetingIdRef = useRef(meetingId);
@@ -90,6 +99,8 @@ export function MeetingForm({
         if (meetingId !== lastMeetingIdRef.current) {
             isInitializedRef.current = false;
             lastMeetingIdRef.current = meetingId;
+            setAttendedByShowAll(false);
+            setAbsenteesShowAll(false);
             if (!meetingId) {
                 setFormData({
                     title: '',
@@ -131,6 +142,18 @@ export function MeetingForm({
     const handleSave = async () => {
         if (!formData.title.trim()) {
             showError('Validation Error', 'Please enter a meeting title');
+            return;
+        }
+        if (!formData.meetingDate) {
+            showError('Validation Error', 'Please select a meeting date');
+            return;
+        }
+        if (!formData.time) {
+            showError('Validation Error', 'Please select a meeting time');
+            return;
+        }
+        if (!formData.content) {
+            showError('Validation Error', 'Please fill in the Discussion Area');
             return;
         }
 
@@ -198,10 +221,7 @@ export function MeetingForm({
     if (isLoading && !isNew) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-10 h-10 border-4 border-[#091590] border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Loading...</p>
-                </div>
+                <Loader size={48} />
             </div>
         );
     }
@@ -228,12 +248,16 @@ export function MeetingForm({
                         type="text"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="Meeting Title"
-                        className="text-sm font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]"
+                        placeholder="Enter The Meeting Title *"
+                        readOnly={readOnly}
+                        className={cn(
+                            "text-lg font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]",
+                            readOnly && "cursor-default"
+                        )}
                     />
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    {isDraft && (
+                    {!readOnly && isDraft && (
                         <Button
                             variant="ghost"
                             size="sm"
@@ -245,23 +269,25 @@ export function MeetingForm({
                             {isPublishing ? '...' : 'Publish'}
                         </Button>
                     )}
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="inline-flex items-center justify-center gap-1 h-7 px-3 bg-[#091590] text-white hover:bg-[#071170] active:scale-[0.98] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSaving ? (
-                            <>
-                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                <span>{isNew ? 'Creating...' : 'Saving...'}</span>
-                            </>
-                        ) : (
-                            <>
-                                <Save className="w-3 h-3" />
-                                <span>{isNew ? 'Create' : 'Save'}</span>
-                            </>
-                        )}
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="inline-flex items-center justify-center gap-1 h-7 px-3 bg-[#091590] text-white hover:bg-[#071170] active:scale-[0.98] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <span>{isNew ? 'Creating...' : 'Saving...'}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-3 h-3" />
+                                    <span>{isNew ? 'Create' : 'Update'}</span>
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -281,32 +307,51 @@ export function MeetingForm({
                                     type="text"
                                     value={formData.location}
                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    placeholder="Physical or Digital Link"
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400"
+                                    placeholder={readOnly ? "No location set" : "Physical or Digital Link"}
+                                    readOnly={readOnly}
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400",
+                                        readOnly && "bg-gray-50/50 cursor-default"
+                                    )}
                                 />
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <Calendar className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
-                                    Date
+                                    Date & Time <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="date"
-                                    value={formData.meetingDate}
-                                    onChange={(e) => setFormData({ ...formData, meetingDate: e.target.value })}
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900"
+                                    type="datetime-local"
+                                    value={formData.meetingDate && formData.time ? `${formData.meetingDate}T${formData.time}` : ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val) {
+                                            const [date, time] = val.split('T');
+                                            setFormData({ ...formData, meetingDate: date, time: time });
+                                        }
+                                    }}
+                                    readOnly={readOnly}
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900",
+                                        readOnly && "bg-gray-50/50 cursor-default"
+                                    )}
                                 />
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
-                                    <Clock className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
-                                    Time
+                                    <Users className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
+                                    People
                                 </label>
                                 <input
-                                    type="time"
-                                    value={formData.time}
-                                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900"
+                                    type="number"
+                                    value={formData.numberOfPeople}
+                                    onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
+                                    min="0"
+                                    readOnly={readOnly}
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900",
+                                        readOnly && "bg-gray-50/50 cursor-default"
+                                    )}
                                 />
                             </div>
                         </div>
@@ -321,66 +366,252 @@ export function MeetingForm({
                                 <textarea
                                     value={formData.purpose}
                                     onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                                    placeholder="Objective of the session..."
+                                    placeholder={readOnly ? "No purpose specified" : "Objective of the session..."}
                                     rows={2}
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 resize-none"
+                                    readOnly={readOnly}
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 resize-none",
+                                        readOnly && "bg-gray-50/50 cursor-default"
+                                    )}
                                 />
                             </div>
-                            <div className="space-y-1">
+                            <div className="relative space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <UserCheck className="w-3 h-3 text-green-500 inline-block mr-1 -mt-0.5" />
-                                    Attended By
+                                    Attended By [Enter the names separated by commas]
                                 </label>
-                                <textarea
-                                    value={formData.attendedBy}
-                                    onChange={(e) => setFormData({ ...formData, attendedBy: e.target.value })}
-                                    placeholder="John, Sarah..."
-                                    rows={2}
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 resize-none"
-                                />
+                                <div className="min-h-[60px] w-full bg-white px-2 py-2 border border-gray-200 rounded-lg focus-within:border-[#091590] transition-colors flex flex-wrap gap-2 items-start">
+                                    {formData.attendedBy.split(',').filter(name => name.trim()).slice(0, 5).map((name, idx) => (
+                                        <span
+                                            key={idx}
+                                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-50 text-green-700 text-xs font-bold border border-green-100 shadow-sm"
+                                        >
+                                            {name.trim()}
+                                            {!readOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const names = formData.attendedBy.split(',').filter(n => n.trim());
+                                                        names.splice(idx, 1);
+                                                        setFormData({ ...formData, attendedBy: names.join(', ') });
+                                                    }}
+                                                    className="hover:bg-green-100 rounded-full p-0.5 transition-colors"
+                                                >
+                                                    <X className="w-2.5 h-2.5" />
+                                                </button>
+                                            )}
+                                        </span>
+                                    ))}
+                                    {formData.attendedBy.split(',').filter(name => name.trim()).length > 5 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setAttendedByShowAll(!attendedByShowAll)}
+                                            className="text-[10px] font-bold text-[#091590] hover:underline self-center py-1 px-1"
+                                        >
+                                            + {formData.attendedBy.split(',').filter(name => name.trim()).length - 5} more [View more]
+                                        </button>
+                                    )}
+                                    <input
+                                        type="text"
+                                        placeholder={formData.attendedBy ? "" : "John, Sarah..."}
+                                        value={attendedByInput || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val.includes(',')) {
+                                                const newNames = val.split(',').map(n => n.trim()).filter(n => n);
+                                                const existing = formData.attendedBy.split(',').map(n => n.trim()).filter(n => n);
+                                                setFormData({ ...formData, attendedBy: [...existing, ...newNames].join(', ') });
+                                                setAttendedByInput('');
+                                            } else {
+                                                setAttendedByInput(val);
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && attendedByInput.trim()) {
+                                                e.preventDefault();
+                                                const existing = formData.attendedBy.split(',').map(n => n.trim()).filter(n => n);
+                                                setFormData({ ...formData, attendedBy: [...existing, attendedByInput.trim()].join(', ') });
+                                                setAttendedByInput('');
+                                            } else if (e.key === 'Backspace' && !attendedByInput && formData.attendedBy) {
+                                                const names = formData.attendedBy.split(',').map(n => n.trim()).filter(n => n);
+                                                names.pop();
+                                                setFormData({ ...formData, attendedBy: names.join(', ') });
+                                            }
+                                        }}
+                                        readOnly={readOnly}
+                                        className={cn(
+                                            "flex-1 min-w-[100px] bg-transparent outline-none text-sm font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
+                                            readOnly && "hidden"
+                                        )}
+                                    />
+                                </div>
+
+                                {/* Localized Popup for Attended By */}
+                                {attendedByShowAll && (
+                                    <>
+                                        <div className="fixed inset-0 z-[60]" onClick={() => setAttendedByShowAll(false)} />
+                                        <div className="absolute top-full left-0 mt-1 w-full min-w-[200px] bg-white border border-gray-200 rounded-xl shadow-xl z-[70] p-4 animate-in fade-in zoom-in duration-200 origin-top">
+                                            <div className="flex items-center justify-between mb-3 border-b border-gray-50 pb-2">
+                                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Attended By</h3>
+                                                <button onClick={() => setAttendedByShowAll(false)} className="text-gray-400 hover:text-gray-600">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <ol className="list-decimal pl-5 space-y-1.5">
+                                                    {formData.attendedBy.split(',').filter(name => name.trim()).map((name, idx) => (
+                                                        <li key={idx} className="text-sm font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                                            <span className="flex-1 truncate">{name.trim()}</span>
+                                                            {!readOnly && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const names = formData.attendedBy.split(',').filter(n => n.trim());
+                                                                        names.splice(idx, 1);
+                                                                        const newVal = names.join(', ');
+                                                                        setFormData({ ...formData, attendedBy: newVal });
+                                                                        if (names.length <= 5) setAttendedByShowAll(false);
+                                                                    }}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-all"
+                                                                >
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
+                                                        </li>
+                                                    ))}
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
-                            <div className="space-y-1">
+                            <div className="relative space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <UserX className="w-3 h-3 text-red-500 inline-block mr-1 -mt-0.5" />
-                                    Absentees
+                                    Absentees [Enter the names separated by commas]
                                 </label>
-                                <textarea
-                                    value={formData.absentees}
-                                    onChange={(e) => setFormData({ ...formData, absentees: e.target.value })}
-                                    placeholder="None"
-                                    rows={2}
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 resize-none"
-                                />
+                                <div className="min-h-[60px] w-full bg-white px-2 py-2 border border-gray-200 rounded-lg focus-within:border-[#091590] transition-colors flex flex-wrap gap-2 items-start">
+                                    {formData.absentees.split(',').filter(name => name.trim()).slice(0, 5).map((name, idx) => (
+                                        <span
+                                            key={idx}
+                                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 text-red-700 text-xs font-bold border border-red-100 shadow-sm"
+                                        >
+                                            {name.trim()}
+                                            {!readOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const names = formData.absentees.split(',').filter(n => n.trim());
+                                                        names.splice(idx, 1);
+                                                        setFormData({ ...formData, absentees: names.join(', ') });
+                                                    }}
+                                                    className="hover:bg-red-100 rounded-full p-0.5 transition-colors"
+                                                >
+                                                    <X className="w-2.5 h-2.5" />
+                                                </button>
+                                            )}
+                                        </span>
+                                    ))}
+                                    {formData.absentees.split(',').filter(name => name.trim()).length > 5 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setAbsenteesShowAll(!absenteesShowAll)}
+                                            className="text-[10px] font-bold text-[#091590] hover:underline self-center py-1 px-1"
+                                        >
+                                            + {formData.absentees.split(',').filter(name => name.trim()).length - 5} more [View more]
+                                        </button>
+                                    )}
+                                    <input
+                                        type="text"
+                                        placeholder={formData.absentees ? "" : "None"}
+                                        value={absenteesInput || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val.includes(',')) {
+                                                const newNames = val.split(',').map(n => n.trim()).filter(n => n);
+                                                const existing = formData.absentees.split(',').map(n => n.trim()).filter(n => n);
+                                                setFormData({ ...formData, absentees: [...existing, ...newNames].join(', ') });
+                                                setAbsenteesInput('');
+                                            } else {
+                                                setAbsenteesInput(val);
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && absenteesInput.trim()) {
+                                                e.preventDefault();
+                                                const existing = formData.absentees.split(',').map(n => n.trim()).filter(n => n);
+                                                setFormData({ ...formData, absentees: [...existing, absenteesInput.trim()].join(', ') });
+                                                setAbsenteesInput('');
+                                            } else if (e.key === 'Backspace' && !absenteesInput && formData.absentees) {
+                                                const names = formData.absentees.split(',').map(n => n.trim()).filter(n => n);
+                                                names.pop();
+                                                setFormData({ ...formData, absentees: names.join(', ') });
+                                            }
+                                        }}
+                                        readOnly={readOnly}
+                                        className={cn(
+                                            "flex-1 min-w-[100px] bg-transparent outline-none text-sm font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
+                                            readOnly && "hidden"
+                                        )}
+                                    />
+                                </div>
+
+                                {/* Localized Popup for Absentees */}
+                                {absenteesShowAll && (
+                                    <>
+                                        <div className="fixed inset-0 z-[60]" onClick={() => setAbsenteesShowAll(false)} />
+                                        <div className="absolute top-full left-0 mt-1 w-full min-w-[200px] bg-white border border-gray-200 rounded-xl shadow-xl z-[70] p-4 animate-in fade-in zoom-in duration-200 origin-top">
+                                            <div className="flex items-center justify-between mb-3 border-b border-gray-50 pb-2">
+                                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Absentees</h3>
+                                                <button onClick={() => setAbsenteesShowAll(false)} className="text-gray-400 hover:text-gray-600">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <ol className="list-decimal pl-5 space-y-1.5">
+                                                    {formData.absentees.split(',').filter(name => name.trim()).map((name, idx) => (
+                                                        <li key={idx} className="text-sm font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                                            <span className="flex-1 truncate">{name.trim()}</span>
+                                                            {!readOnly && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const names = formData.absentees.split(',').filter(n => n.trim());
+                                                                        names.splice(idx, 1);
+                                                                        const newVal = names.join(', ');
+                                                                        setFormData({ ...formData, absentees: newVal });
+                                                                        if (names.length <= 5) setAbsenteesShowAll(false);
+                                                                    }}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-all"
+                                                                >
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
+                                                        </li>
+                                                    ))}
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
-                        {/* People count inline */}
-                        <div className="flex items-center gap-3">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                                <Users className="w-3 h-3 text-[#091590]" />
-                                People
-                            </label>
-                            <input
-                                type="number"
-                                value={formData.numberOfPeople}
-                                onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
-                                min="0"
-                                className="w-20 bg-white px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900"
-                            />
-                        </div>
+
                     </div>
 
                     {/* Rich Text Editor */}
                     <div className="pt-1 space-y-1">
                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                             <MessageSquare className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
-                            Discussion Area
+                            Discussion Area <span className="text-red-500">*</span>
                         </label>
                         <RichTextEditor
                             content={formData.content}
                             onChange={(json) => setFormData({ ...formData, content: json })}
-                            placeholder="Document action items, decisions, and key insights... Use @ to mention users and # to mention projects"
+                            placeholder={readOnly ? "" : "Document action items, decisions, and key insights... Use @ to mention users and # to mention projects"}
                             highlightId={highlightProjectId}
+                            readOnly={readOnly}
                         />
                     </div>
                 </div>
@@ -398,6 +629,8 @@ export function MeetingForm({
                 onConfirm={confirmDelete}
                 isLoading={isDeleting}
             />
+
+
         </div>
     );
 }

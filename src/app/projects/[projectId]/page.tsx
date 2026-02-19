@@ -1347,26 +1347,27 @@ function ProjectMOMTab({ projectId }: { projectId: string }) {
 
     return (
         <>
-            <div className="h-full overflow-y-auto bg-white p-2 sm:p-4">
+            <div className="h-full overflow-y-auto bg-gray-50/10 p-2 sm:p-4">
                 <div className="w-full">
                     <div className="grid gap-2">
                         {items.map((item: any) => (
                             <div
                                 key={item.mentionIds || item.meetingId || Math.random()}
                                 onClick={() => handleMOMClick(item)}
-                                className="bg-white border border-gray-100 rounded-lg p-3 hover:bg-blue-50/30 hover:border-blue-200 transition-all cursor-pointer group flex items-center gap-4"
+                                className="bg-white border border-gray-200/60 rounded-lg p-2.5 sm:p-3 hover:shadow-lg hover:shadow-blue-900/5 hover:border-blue-200 transition-all cursor-pointer group flex items-center gap-3.5 shadow-sm"
                             >
-                                <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:shadow-sm transition-all flex-shrink-0 border border-transparent group-hover:border-blue-100">
-                                    <Calendar className="w-5 h-5" />
+                                <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-[#091590] group-hover:shadow-inner transition-all flex-shrink-0 border border-gray-100 group-hover:border-blue-100">
+                                    <Calendar className="w-4.5 h-4.5" />
                                 </div>
 
-                                <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="font-bold text-gray-900 group-hover:text-[#091590] transition-colors truncate text-sm">
+                                        <h3 className="font-bold text-gray-900 group-hover:text-[#091590] transition-colors truncate text-sm mb-0.5">
                                             {item.title}
                                         </h3>
-                                        <div className="flex items-center gap-3">
-                                            <p className="text-[11px] text-gray-400 flex items-center gap-1 font-medium">
+                                        <div className="flex items-center gap-2.5">
+                                            <p className="text-[10px] text-gray-400 flex items-center gap-1 font-medium bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 group-hover:bg-blue-50/50 group-hover:border-blue-100 transition-colors">
+                                                <Calendar className="w-2.5 h-2.5" />
                                                 {new Date(item.meetingDate).toLocaleDateString('en-US', {
                                                     month: 'short',
                                                     day: 'numeric',
@@ -1374,23 +1375,20 @@ function ProjectMOMTab({ projectId }: { projectId: string }) {
                                                 })}
                                             </p>
                                             <div className="h-3 w-px bg-gray-200"></div>
-                                            <p className="text-[11px] text-gray-500 font-bold truncate">
-                                                {item.createdBy?.name || 'Unknown'}
-                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-4.5 h-4.5 rounded-full bg-[#091590] flex items-center justify-center text-white text-[9px] font-bold">
+                                                    {(item.createdBy?.name || 'U').charAt(0).toUpperCase()}
+                                                </div>
+                                                <p className="text-[11px] text-gray-500 font-bold truncate">
+                                                    {item.createdBy?.name || 'Unknown'}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* {item.snippet && (
-                                        <div className="flex-1 max-w-sm hidden md:block">
-                                            <p className="text-[11px] text-gray-500 italic truncate leading-normal">
-                                                &quot;{item.snippet}&quot;
-                                            </p>
-                                        </div>
-                                    )} */}
-
                                     <div className="flex items-center gap-2 flex-shrink-0">
-                                        <span className="text-[10px] font-bold text-[#091590] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                            Open
+                                        <span className="px-2.5 py-1 rounded-md bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all border border-gray-100 group-hover:bg-[#091590] group-hover:text-white group-hover:border-[#091590] flex items-center gap-1.5">
+                                            View Minutes
                                             <ChevronRight className="w-3 h-3" />
                                         </span>
                                     </div>

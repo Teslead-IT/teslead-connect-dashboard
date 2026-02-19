@@ -543,3 +543,26 @@ body {
 .ProseMirror a:hover {
   color: #071170;
 }
+
+/* PrimeReact ColorPicker Customizations */
+.custom-primereact-colorpicker .p-colorpicker-preview {
+  width: 40px !important;
+  height: 38px !important;
+  border-radius: 6px !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-primereact-colorpicker .p-colorpicker-preview:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.p-colorpicker-panel {
+  border: none !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+  background: white !important;
+}

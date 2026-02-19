@@ -7,6 +7,7 @@ import { useMeetings, useDeleteMeeting } from '@/hooks/use-meetings';
 import { MeetingForm } from './MeetingForm';
 import Dialog from '@/components/ui/Dialog';
 import { useToast } from '@/components/ui/Toast';
+import { Loader } from '@/components/ui/Loader';
 
 interface MeetingModalProps {
     isOpen: boolean;
@@ -31,6 +32,7 @@ export function MeetingModal({
 }: MeetingModalProps) {
     const [activeMeetingId, setActiveMeetingId] = useState<string | null>(selectedMeetingId);
     const [isCreateMode, setIsCreateMode] = useState(createMode);
+    const [createKey, setCreateKey] = useState(0);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     const { success, error: showError } = useToast();
@@ -40,6 +42,7 @@ export function MeetingModal({
     const { data: meetingsData, isLoading, refetch } = useMeetings({
         fromDate: selectedDate,
         toDate: selectedDate,
+        limit: 100,
     });
 
     const meetings = meetingsData?.data || [];
@@ -67,14 +70,16 @@ export function MeetingModal({
     };
 
     const handleCreateNew = () => {
+        setCreateKey(prev => prev + 1);
         setIsCreateMode(true);
         setActiveMeetingId(null);
     };
 
     const handleCreated = (newMeeting: any) => {
         refetch();
-        setIsCreateMode(false);
-        setActiveMeetingId(newMeeting.id);
+        setCreateKey(prev => prev + 1);
+        setIsCreateMode(true);
+        setActiveMeetingId(null);
     };
 
     const handleDeleted = () => {
@@ -173,7 +178,7 @@ export function MeetingModal({
                         <div className="flex-1 overflow-y-auto p-3 space-y-2">
                             {isLoading ? (
                                 <div className="flex items-center justify-center py-8">
-                                    <div className="w-6 h-6 border-3 border-[#091590] border-t-transparent rounded-full animate-spin"></div>
+                                    <Loader size={32} />
                                 </div>
                             ) : meetings.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-10 text-gray-400">
@@ -222,21 +227,26 @@ export function MeetingModal({
                                                     )}
                                                 </div>
 
-                                                {/* Delete button */}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setDeleteConfirmId(meeting.id);
-                                                    }}
-                                                    className={cn(
-                                                        "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all",
-                                                        isActive
-                                                            ? "hover:bg-white/20 text-white/60 hover:text-white"
-                                                            : "opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-300 hover:text-red-500"
-                                                    )}
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
+                                                {/* Delete button - hidden in read-only mode */}
+                                                {!isCreateMode && (
+                                                    <div className="w-7 h-7" /> // Placeholder to maintain layout
+                                                )}
+                                                {isCreateMode && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDeleteConfirmId(meeting.id);
+                                                        }}
+                                                        className={cn(
+                                                            "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all",
+                                                            isActive
+                                                                ? "hover:bg-white/20 text-white/60 hover:text-white"
+                                                                : "opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-300 hover:text-red-500"
+                                                        )}
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -258,12 +268,13 @@ export function MeetingModal({
                     <div className="flex-1 overflow-hidden">
                         {isCreateMode ? (
                             <MeetingForm
-                                key="create-new"
+                                key={`create-new-${createKey}`}
                                 meetingId={null}
                                 defaultDate={selectedDate}
                                 onCreated={handleCreated}
                                 onDeleted={handleDeleted}
                                 onSaved={handleSaved}
+                                readOnly={false}
                             />
                         ) : activeMeetingId ? (
                             <MeetingForm
@@ -274,6 +285,7 @@ export function MeetingModal({
                                 onCreated={handleCreated}
                                 onDeleted={handleDeleted}
                                 onSaved={handleSaved}
+                                readOnly={true}
                             />
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-400">

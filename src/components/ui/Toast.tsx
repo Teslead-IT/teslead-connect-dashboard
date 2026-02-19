@@ -185,7 +185,7 @@ export const Toast: React.FC<ToastProps> = ({
     return (
         <div
             className={cn(
-                'fixed z-50 transition-all duration-300 ease-out',
+                'fixed z-[999999] transition-all duration-300 ease-out',
                 positionConfig[position],
                 containerClassName,
                 isExiting
@@ -390,7 +390,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({
 
     return (
         <div className={cn(
-            "fixed z-50 p-6 flex gap-4 pointer-events-none max-h-screen overflow-hidden",
+            "fixed z-[999999] p-6 flex gap-4 pointer-events-none max-h-screen overflow-hidden",
             getPositionClasses(position)
         )}>
             {displayedToasts.map((toast) => (

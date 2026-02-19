@@ -5,9 +5,10 @@ import { useMeetings } from '@/hooks/use-meetings';
 import { Download, FileSpreadsheet, Calendar, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
+import { Loader } from '@/components/ui/Loader';
 
 export function MeetingsTable() {
-    const { data: meetingsData, isLoading } = useMeetings();
+    const { data: meetingsData, isLoading } = useMeetings({ limit: 1000 });
     const meetings = meetingsData?.data || [];
 
     const exportToExcel = async () => {
@@ -28,7 +29,7 @@ export function MeetingsTable() {
             { header: 'Location', key: 'location', width: 20 },
             { header: 'Purpose', key: 'purpose', width: 30 },
             { header: 'No. of People', key: 'noOfPeople', width: 15 },
-            { header: 'Attended By', key: 'attendedBy', width: 30 },
+            { header: 'Attended By ', key: 'attendedBy', width: 30 },
             { header: 'Absentees', key: 'absentees', width: 30 },
         ];
 
@@ -84,10 +85,7 @@ export function MeetingsTable() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-4 border-[#091590] border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm font-medium text-gray-500">Loading meetings...</p>
-                </div>
+                <Loader />
             </div>
         );
     }

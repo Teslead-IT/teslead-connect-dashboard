@@ -32,6 +32,7 @@ interface RichTextEditorProps {
     onChange: (json: any) => void; // Returns TipTap JSON
     placeholder?: string;
     highlightId?: string;
+    readOnly?: boolean;
 }
 
 /**
@@ -115,6 +116,7 @@ export function RichTextEditor({
     onChange,
     placeholder = 'Start typing your description... Use @ to mention users and # to mention projects',
     highlightId,
+    readOnly = false,
 }: RichTextEditorProps) {
     const isUpdatingRef = useRef(false);
 
@@ -152,6 +154,7 @@ export function RichTextEditor({
 
     const editor = useEditor({
         immediatelyRender: false,
+        editable: !readOnly,
         extensions: [
             StarterKit,
             Table.configure({
@@ -183,7 +186,10 @@ export function RichTextEditor({
         },
         editorProps: {
             attributes: {
-                class: 'prose prose-sm max-w-none focus:outline-none min-h-[400px] p-5',
+                class: cn(
+                    'prose prose-sm max-w-none focus:outline-none min-h-[700px] p-5',
+                    readOnly && 'bg-gray-50/10 cursor-default'
+                ),
             },
         },
     });
@@ -203,6 +209,13 @@ export function RichTextEditor({
             }
         }
     }, [content, editor]);
+
+    // Update editable state when readOnly prop changes
+    useEffect(() => {
+        if (editor) {
+            editor.setEditable(!readOnly);
+        }
+    }, [readOnly, editor]);
 
     // Auto-scroll to highlighted mention and blink for 2 seconds then fade out
     useEffect(() => {
@@ -289,14 +302,14 @@ export function RichTextEditor({
                     line-height: 1.4;
                 }
                 .mention-user {
-                    background-color: #f8fafc;
-                    color: #0f172a;
-                    border: 1px solid #e2e8f0;
+                    background-color: #fef3c7;
+                    color: #92400e;
+                    border: 1px solid #fde68a;
                 }
                 .mention-project {
-                    background-color: #eff6ff;
-                    color: #1d4ed8;
-                    border: 1px solid #dbeafe;
+                    background-color: #dcfce7;
+                    color: #166534;
+                    border: 1px solid #bbf7d0;
                     transition: all 0.5s ease;
                 }
                 .highlight-targeted {
@@ -314,117 +327,121 @@ export function RichTextEditor({
             `}</style>
 
             {/* Toolbar */}
-            <div className="bg-gray-50/50 backdrop-blur-sm border-b border-gray-100 p-3 flex flex-wrap items-center gap-1.5">
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                    active={editor.isActive('bold')}
-                    title="Bold"
-                >
-                    <Bold className="w-4 h-4" />
-                </ToolbarButton>
+            {!readOnly && (
+                <div className="bg-gray-50/50 backdrop-blur-sm border-b border-gray-100 p-3 flex flex-wrap items-center gap-1.5">
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().toggleBold().run()}
+                        active={editor.isActive('bold')}
+                        title="Bold"
+                    >
+                        <Bold className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
-                    active={editor.isActive('italic')}
-                    title="Italic"
-                >
-                    <Italic className="w-4 h-4" />
-                </ToolbarButton>
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().toggleItalic().run()}
+                        active={editor.isActive('italic')}
+                        title="Italic"
+                    >
+                        <Italic className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
+                    <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
 
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                    active={editor.isActive('heading', { level: 1 })}
-                    title="Heading 1"
-                >
-                    <Heading1 className="w-4 h-4" />
-                </ToolbarButton>
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                        active={editor.isActive('heading', { level: 1 })}
+                        title="Heading 1"
+                    >
+                        <Heading1 className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                    active={editor.isActive('heading', { level: 2 })}
-                    title="Heading 2"
-                >
-                    <Heading2 className="w-4 h-4" />
-                </ToolbarButton>
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                        active={editor.isActive('heading', { level: 2 })}
+                        title="Heading 2"
+                    >
+                        <Heading2 className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
+                    <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
 
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleBulletList().run()}
-                    active={editor.isActive('bulletList')}
-                    title="Bullet List"
-                >
-                    <List className="w-4 h-4" />
-                </ToolbarButton>
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().toggleBulletList().run()}
+                        active={editor.isActive('bulletList')}
+                        title="Bullet List"
+                    >
+                        <List className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                    active={editor.isActive('orderedList')}
-                    title="Numbered List"
-                >
-                    <ListOrdered className="w-4 h-4" />
-                </ToolbarButton>
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                        active={editor.isActive('orderedList')}
+                        title="Numbered List"
+                    >
+                        <ListOrdered className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                    active={editor.isActive('blockquote')}
-                    title="Quote"
-                >
-                    <Quote className="w-4 h-4" />
-                </ToolbarButton>
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                        active={editor.isActive('blockquote')}
+                        title="Quote"
+                    >
+                        <Quote className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
+                    <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
 
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                    title="Horizontal Line"
-                >
-                    <Minus className="w-4 h-4" />
-                </ToolbarButton>
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                        title="Horizontal Line"
+                    >
+                        <Minus className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
+                    <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
 
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().undo().run()}
-                    disabled={!editor.can().undo()}
-                    title="Undo"
-                >
-                    <Undo className="w-4 h-4" />
-                </ToolbarButton>
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().undo().run()}
+                        disabled={!editor.can().undo()}
+                        title="Undo"
+                    >
+                        <Undo className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().redo().run()}
-                    disabled={!editor.can().redo()}
-                    title="Redo"
-                >
-                    <Redo className="w-4 h-4" />
-                </ToolbarButton>
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().redo().run()}
+                        disabled={!editor.can().redo()}
+                        title="Redo"
+                    >
+                        <Redo className="w-4 h-4" />
+                    </ToolbarButton>
 
-                <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
+                    <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
 
-                {/* Mention hints */}
-                <div className="ml-auto flex items-center gap-2 text-[10px] text-gray-400 font-medium">
-                    <span className="flex items-center gap-1">
-                        <AtSign className="w-3 h-3" /> Mention user
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Hash className="w-3 h-3" /> Mention project
-                    </span>
+                    {/* Mention hints */}
+                    <div className="ml-auto flex items-center gap-2 text-[10px] text-gray-400 font-medium">
+                        <span className="flex items-center gap-1">
+                            <AtSign className="w-3 h-3" /> Mention user
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <Hash className="w-3 h-3" /> Mention project
+                        </span>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Editor */}
             <EditorContent editor={editor} />
 
             {/* Footer */}
-            <div className="bg-gray-50 border-t border-gray-200 px-4 py-2 text-xs text-gray-500 flex justify-between items-center">
-                <span>Use toolbar above to format text</span>
-                <span className="text-[10px] text-gray-400 uppercase tracking-wide">
-                    Type @ for users · # for projects
-                </span>
-            </div>
+            {!readOnly && (
+                <div className="bg-gray-50 border-t border-gray-200 px-4 py-2 text-xs text-gray-500 flex justify-between items-center">
+                    <span>Use toolbar above to format text</span>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">
+                        Type @ for users · # for projects
+                    </span>
+                </div>
+            )}
         </div>
     );
 }
