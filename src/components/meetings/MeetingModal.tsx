@@ -7,6 +7,7 @@ import { useMeetings, useDeleteMeeting } from '@/hooks/use-meetings';
 import { MeetingForm } from './MeetingForm';
 import Dialog from '@/components/ui/Dialog';
 import { useToast } from '@/components/ui/Toast';
+import { Loader } from '@/components/ui/Loader';
 
 interface MeetingModalProps {
     isOpen: boolean;
@@ -177,7 +178,7 @@ export function MeetingModal({
                         <div className="flex-1 overflow-y-auto p-3 space-y-2">
                             {isLoading ? (
                                 <div className="flex items-center justify-center py-8">
-                                    <div className="w-6 h-6 border-3 border-[#091590] border-t-transparent rounded-full animate-spin"></div>
+                                    <Loader size={32} />
                                 </div>
                             ) : meetings.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-10 text-gray-400">

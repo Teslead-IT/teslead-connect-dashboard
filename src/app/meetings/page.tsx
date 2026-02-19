@@ -10,6 +10,7 @@ import { useMeetings } from '@/hooks/use-meetings';
 
 import { MeetingsTable } from '@/components/meetings/MeetingsTable';
 import { MeetingModal } from '@/components/meetings/MeetingModal';
+import { Loader } from '@/components/ui/Loader';
 
 
 export default function MeetingsPage() {
@@ -144,13 +145,7 @@ export default function MeetingsPage() {
             <div className="flex-1 min-h-0 overflow-hidden bg-white">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-full">
-                        <div className="flex flex-col items-center gap-6">
-                            <div className="relative">
-                                <div className="w-16 h-16 border-4 border-[#091590]/10 rounded-full"></div>
-                                <div className="absolute top-0 w-16 h-16 border-4 border-[#091590] border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                            <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Initialising Schedule...</p>
-                        </div>
+                        <Loader />
                     </div>
                 ) : view === 'calendar' ? (
                     <div className="h-full w-full bg-white p-4 custom-calendar" style={{ minHeight: 0 }}>
@@ -235,9 +230,9 @@ export default function MeetingsPage() {
                             eventClick={handleEventClick}
                             moreLinkClick={handleMoreLinkClick}
                             headerToolbar={{
-                                left: 'prev,next today',
+                                left: 'prev,next', // today
                                 center: 'title',
-                                right: 'dayGridMonth', // Removed dayGridWeek temporarily
+                                right: '', // dayGridMonth
                             }}
                             dayMaxEvents={3}
                             moreLinkContent={(args: any) => `+${args.num}  more [View All]`}
