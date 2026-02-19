@@ -30,6 +30,7 @@ interface MeetingFormProps {
     onCreated?: (newMeeting: any) => void;
     onDeleted?: () => void;
     onSaved?: () => void;
+    readOnly?: boolean;
 }
 
 /**
@@ -49,6 +50,7 @@ export function MeetingForm({
     onCreated,
     onDeleted,
     onSaved,
+    readOnly = false,
 }: MeetingFormProps) {
     const isNew = !meetingId;
 
@@ -140,6 +142,18 @@ export function MeetingForm({
     const handleSave = async () => {
         if (!formData.title.trim()) {
             showError('Validation Error', 'Please enter a meeting title');
+            return;
+        }
+        if (!formData.meetingDate) {
+            showError('Validation Error', 'Please select a meeting date');
+            return;
+        }
+        if (!formData.time) {
+            showError('Validation Error', 'Please select a meeting time');
+            return;
+        }
+        if (!formData.content) {
+            showError('Validation Error', 'Please fill in the Discussion Area');
             return;
         }
 
@@ -234,12 +248,16 @@ export function MeetingForm({
                         type="text"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="Enter The Meeting Title (Required)"
-                        className="text-lg font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]"
+                        placeholder="Enter The Meeting Title *"
+                        readOnly={readOnly}
+                        className={cn(
+                            "text-lg font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]",
+                            readOnly && "cursor-default"
+                        )}
                     />
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    {isDraft && (
+                    {!readOnly && isDraft && (
                         <Button
                             variant="ghost"
                             size="sm"
@@ -251,23 +269,25 @@ export function MeetingForm({
                             {isPublishing ? '...' : 'Publish'}
                         </Button>
                     )}
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="inline-flex items-center justify-center gap-1 h-7 px-3 bg-[#091590] text-white hover:bg-[#071170] active:scale-[0.98] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSaving ? (
-                            <>
-                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                <span>{isNew ? 'Creating...' : 'Saving...'}</span>
-                            </>
-                        ) : (
-                            <>
-                                <Save className="w-3 h-3" />
-                                <span>{isNew ? 'Create' : 'Update'}</span>
-                            </>
-                        )}
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="inline-flex items-center justify-center gap-1 h-7 px-3 bg-[#091590] text-white hover:bg-[#071170] active:scale-[0.98] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <span>{isNew ? 'Creating...' : 'Saving...'}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-3 h-3" />
+                                    <span>{isNew ? 'Create' : 'Update'}</span>
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -287,14 +307,18 @@ export function MeetingForm({
                                     type="text"
                                     value={formData.location}
                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    placeholder="Physical or Digital Link"
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400"
+                                    placeholder={readOnly ? "No location set" : "Physical or Digital Link"}
+                                    readOnly={readOnly}
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400",
+                                        readOnly && "bg-gray-50/50 cursor-default"
+                                    )}
                                 />
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <Calendar className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
-                                    Date & Time
+                                    Date & Time <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="datetime-local"
@@ -306,7 +330,11 @@ export function MeetingForm({
                                             setFormData({ ...formData, meetingDate: date, time: time });
                                         }
                                     }}
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900"
+                                    readOnly={readOnly}
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900",
+                                        readOnly && "bg-gray-50/50 cursor-default"
+                                    )}
                                 />
                             </div>
                             <div className="space-y-1">
@@ -319,7 +347,11 @@ export function MeetingForm({
                                     value={formData.numberOfPeople}
                                     onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
                                     min="0"
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900"
+                                    readOnly={readOnly}
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900",
+                                        readOnly && "bg-gray-50/50 cursor-default"
+                                    )}
                                 />
                             </div>
                         </div>
@@ -334,15 +366,19 @@ export function MeetingForm({
                                 <textarea
                                     value={formData.purpose}
                                     onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                                    placeholder="Objective of the session..."
+                                    placeholder={readOnly ? "No purpose specified" : "Objective of the session..."}
                                     rows={2}
-                                    className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 resize-none"
+                                    readOnly={readOnly}
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 resize-none",
+                                        readOnly && "bg-gray-50/50 cursor-default"
+                                    )}
                                 />
                             </div>
                             <div className="relative space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <UserCheck className="w-3 h-3 text-green-500 inline-block mr-1 -mt-0.5" />
-                                    Attended By
+                                    Attended By [Enter the names separated by commas]
                                 </label>
                                 <div className="min-h-[60px] w-full bg-white px-2 py-2 border border-gray-200 rounded-lg focus-within:border-[#091590] transition-colors flex flex-wrap gap-2 items-start">
                                     {formData.attendedBy.split(',').filter(name => name.trim()).slice(0, 5).map((name, idx) => (
@@ -351,17 +387,19 @@ export function MeetingForm({
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-50 text-green-700 text-xs font-bold border border-green-100 shadow-sm"
                                         >
                                             {name.trim()}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const names = formData.attendedBy.split(',').filter(n => n.trim());
-                                                    names.splice(idx, 1);
-                                                    setFormData({ ...formData, attendedBy: names.join(', ') });
-                                                }}
-                                                className="hover:bg-green-100 rounded-full p-0.5 transition-colors"
-                                            >
-                                                <X className="w-2.5 h-2.5" />
-                                            </button>
+                                            {!readOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const names = formData.attendedBy.split(',').filter(n => n.trim());
+                                                        names.splice(idx, 1);
+                                                        setFormData({ ...formData, attendedBy: names.join(', ') });
+                                                    }}
+                                                    className="hover:bg-green-100 rounded-full p-0.5 transition-colors"
+                                                >
+                                                    <X className="w-2.5 h-2.5" />
+                                                </button>
+                                            )}
                                         </span>
                                     ))}
                                     {formData.attendedBy.split(',').filter(name => name.trim()).length > 5 && (
@@ -400,7 +438,11 @@ export function MeetingForm({
                                                 setFormData({ ...formData, attendedBy: names.join(', ') });
                                             }
                                         }}
-                                        className="flex-1 min-w-[100px] bg-transparent outline-none text-sm font-medium text-gray-900 placeholder:text-gray-400 py-0.5"
+                                        readOnly={readOnly}
+                                        className={cn(
+                                            "flex-1 min-w-[100px] bg-transparent outline-none text-sm font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
+                                            readOnly && "hidden"
+                                        )}
                                     />
                                 </div>
 
@@ -420,19 +462,21 @@ export function MeetingForm({
                                                     {formData.attendedBy.split(',').filter(name => name.trim()).map((name, idx) => (
                                                         <li key={idx} className="text-sm font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                             <span className="flex-1 truncate">{name.trim()}</span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const names = formData.attendedBy.split(',').filter(n => n.trim());
-                                                                    names.splice(idx, 1);
-                                                                    const newVal = names.join(', ');
-                                                                    setFormData({ ...formData, attendedBy: newVal });
-                                                                    if (names.length <= 5) setAttendedByShowAll(false);
-                                                                }}
-                                                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-all"
-                                                            >
-                                                                <X className="w-3.5 h-3.5" />
-                                                            </button>
+                                                            {!readOnly && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const names = formData.attendedBy.split(',').filter(n => n.trim());
+                                                                        names.splice(idx, 1);
+                                                                        const newVal = names.join(', ');
+                                                                        setFormData({ ...formData, attendedBy: newVal });
+                                                                        if (names.length <= 5) setAttendedByShowAll(false);
+                                                                    }}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-all"
+                                                                >
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
                                                         </li>
                                                     ))}
                                                 </ol>
@@ -444,7 +488,7 @@ export function MeetingForm({
                             <div className="relative space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <UserX className="w-3 h-3 text-red-500 inline-block mr-1 -mt-0.5" />
-                                    Absentees
+                                    Absentees [Enter the names separated by commas]
                                 </label>
                                 <div className="min-h-[60px] w-full bg-white px-2 py-2 border border-gray-200 rounded-lg focus-within:border-[#091590] transition-colors flex flex-wrap gap-2 items-start">
                                     {formData.absentees.split(',').filter(name => name.trim()).slice(0, 5).map((name, idx) => (
@@ -453,17 +497,19 @@ export function MeetingForm({
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 text-red-700 text-xs font-bold border border-red-100 shadow-sm"
                                         >
                                             {name.trim()}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const names = formData.absentees.split(',').filter(n => n.trim());
-                                                    names.splice(idx, 1);
-                                                    setFormData({ ...formData, absentees: names.join(', ') });
-                                                }}
-                                                className="hover:bg-red-100 rounded-full p-0.5 transition-colors"
-                                            >
-                                                <X className="w-2.5 h-2.5" />
-                                            </button>
+                                            {!readOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const names = formData.absentees.split(',').filter(n => n.trim());
+                                                        names.splice(idx, 1);
+                                                        setFormData({ ...formData, absentees: names.join(', ') });
+                                                    }}
+                                                    className="hover:bg-red-100 rounded-full p-0.5 transition-colors"
+                                                >
+                                                    <X className="w-2.5 h-2.5" />
+                                                </button>
+                                            )}
                                         </span>
                                     ))}
                                     {formData.absentees.split(',').filter(name => name.trim()).length > 5 && (
@@ -502,7 +548,11 @@ export function MeetingForm({
                                                 setFormData({ ...formData, absentees: names.join(', ') });
                                             }
                                         }}
-                                        className="flex-1 min-w-[100px] bg-transparent outline-none text-sm font-medium text-gray-900 placeholder:text-gray-400 py-0.5"
+                                        readOnly={readOnly}
+                                        className={cn(
+                                            "flex-1 min-w-[100px] bg-transparent outline-none text-sm font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
+                                            readOnly && "hidden"
+                                        )}
                                     />
                                 </div>
 
@@ -522,19 +572,21 @@ export function MeetingForm({
                                                     {formData.absentees.split(',').filter(name => name.trim()).map((name, idx) => (
                                                         <li key={idx} className="text-sm font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                             <span className="flex-1 truncate">{name.trim()}</span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const names = formData.absentees.split(',').filter(n => n.trim());
-                                                                    names.splice(idx, 1);
-                                                                    const newVal = names.join(', ');
-                                                                    setFormData({ ...formData, absentees: newVal });
-                                                                    if (names.length <= 5) setAbsenteesShowAll(false);
-                                                                }}
-                                                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-all"
-                                                            >
-                                                                <X className="w-3.5 h-3.5" />
-                                                            </button>
+                                                            {!readOnly && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const names = formData.absentees.split(',').filter(n => n.trim());
+                                                                        names.splice(idx, 1);
+                                                                        const newVal = names.join(', ');
+                                                                        setFormData({ ...formData, absentees: newVal });
+                                                                        if (names.length <= 5) setAbsenteesShowAll(false);
+                                                                    }}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-all"
+                                                                >
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
                                                         </li>
                                                     ))}
                                                 </ol>
@@ -552,13 +604,14 @@ export function MeetingForm({
                     <div className="pt-1 space-y-1">
                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                             <MessageSquare className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
-                            Discussion Area
+                            Discussion Area <span className="text-red-500">*</span>
                         </label>
                         <RichTextEditor
                             content={formData.content}
                             onChange={(json) => setFormData({ ...formData, content: json })}
-                            placeholder="Document action items, decisions, and key insights... Use @ to mention users and # to mention projects"
+                            placeholder={readOnly ? "" : "Document action items, decisions, and key insights... Use @ to mention users and # to mention projects"}
                             highlightId={highlightProjectId}
+                            readOnly={readOnly}
                         />
                     </div>
                 </div>

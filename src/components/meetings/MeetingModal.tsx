@@ -227,21 +227,26 @@ export function MeetingModal({
                                                     )}
                                                 </div>
 
-                                                {/* Delete button */}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setDeleteConfirmId(meeting.id);
-                                                    }}
-                                                    className={cn(
-                                                        "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all",
-                                                        isActive
-                                                            ? "hover:bg-white/20 text-white/60 hover:text-white"
-                                                            : "opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-300 hover:text-red-500"
-                                                    )}
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
+                                                {/* Delete button - hidden in read-only mode */}
+                                                {!isCreateMode && (
+                                                    <div className="w-7 h-7" /> // Placeholder to maintain layout
+                                                )}
+                                                {isCreateMode && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDeleteConfirmId(meeting.id);
+                                                        }}
+                                                        className={cn(
+                                                            "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all",
+                                                            isActive
+                                                                ? "hover:bg-white/20 text-white/60 hover:text-white"
+                                                                : "opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-300 hover:text-red-500"
+                                                        )}
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -269,6 +274,7 @@ export function MeetingModal({
                                 onCreated={handleCreated}
                                 onDeleted={handleDeleted}
                                 onSaved={handleSaved}
+                                readOnly={false}
                             />
                         ) : activeMeetingId ? (
                             <MeetingForm
@@ -279,6 +285,7 @@ export function MeetingModal({
                                 onCreated={handleCreated}
                                 onDeleted={handleDeleted}
                                 onSaved={handleSaved}
+                                readOnly={true}
                             />
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-400">
