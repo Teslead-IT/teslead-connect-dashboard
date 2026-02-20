@@ -27,6 +27,7 @@ import {
     LayoutGrid,
     Eye,
     MoreHorizontal,
+    FileText,
 } from 'lucide-react';
 import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
@@ -112,6 +113,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
     const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set());
     const [expandedTaskLists, setExpandedTaskLists] = useState<Set<string>>(new Set());
     const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+    const isExpandedInitialized = useRef(false);
 
     const [showAddPhase, setShowAddPhase] = useState(false);
     const [phaseViewModalOpen, setPhaseViewModalOpen] = useState(false);
@@ -149,12 +151,15 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
     } | null>(null);
 
     useEffect(() => {
-        if (phases.length > 0 && expandedPhases.size === 0) {
+        if (phases.length > 0 && !isExpandedInitialized.current) {
             setExpandedPhases(new Set(phases.map(p => p.id)));
             const allTlIds = phases.flatMap(p => p.taskLists?.map(tl => tl.id) || []);
             setExpandedTaskLists(new Set(allTlIds));
+            isExpandedInitialized.current = true;
         }
     }, [phases]);
+
+
 
     const togglePhase = useCallback((phaseId: string) => {
         setExpandedPhases(prev => {
@@ -282,6 +287,14 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
         });
         return flatRows.filter((r) => ids.has(r.rowId));
     }, [flatRows, searchQuery]);
+
+    // Force AG Grid to completely redraw rows when the data or expansion state changes.
+    // This ensures icons and indentation are always in sync with the current state.
+    useEffect(() => {
+        if (gridRef.current?.api) {
+            gridRef.current.api.redrawRows();
+        }
+    }, [filteredFlatRows, expandedPhases, expandedTaskLists, expandedTasks]);
 
     // ====== Handlers ======
 
@@ -567,7 +580,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                 <LayoutGrid className="w-3.5 h-3.5 text-gray-500" />
                 <span className="text-xs font-semibold text-gray-500">Group By:</span>
                 <span className="text-xs font-bold text-gray-800">Phases</span>
-                <ChevronDown className="w-3 h-3 text-gray-400" />
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
             </div>
 
             {/* View Toggle - icons only */}
@@ -600,7 +613,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                     <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors shadow-sm">
                         <Plus className="w-3.5 h-3.5" />
                         Add
-                        <ChevronDown className="w-3 h-3 opacity-80" />
+                        <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                     </button>
                     <div className="absolute right-0 top-full pt-1 min-w-[160px] py-1 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover/add:opacity-100 group-hover/add:visible transition-opacity z-50">
                         <button
@@ -636,9 +649,9 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                                     toast.error('Create a Phase first', 'You need at least one phase before adding task lists.');
                                 }
                             }}
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-indigo-50 flex items-center gap-2 text-gray-700"
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50 flex items-center gap-2 text-gray-700"
                         >
-                            <ListTodo className="w-4 h-4 text-indigo-500" />
+                            <ListTodo className="w-4 h-4 text-emerald-500" />
                             Add Task List
                         </button>
                     </div>
@@ -746,7 +759,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                         align-items: center;
                         font-size: 13px;
                         color: #1e293b;
-                        overflow: visible !important;
+                        overflow: hidden !important;
                     }
                     .phase-grid-v2 .ag-body-viewport { overflow-y: auto !important; }
                 `}</style>
@@ -920,8 +933,8 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                     await deleteTaskMutation.mutateAsync(taskId);
                     toast.success('Task deleted');
                 }}
-                onTaskUpdated={() => {}}
-                onTaskDeleted={() => {}}
+                onTaskUpdated={() => { }}
+                onTaskDeleted={() => { }}
             />
 
             {/* Phase View Modal - list phases, right panel view/edit/delete */}
@@ -932,8 +945,8 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                 phases={phases}
                 selectedPhaseId={phaseViewSelectedId}
                 isEditable={isEditable}
-                onUpdated={() => {}}
-                onDeleted={() => {}}
+                onUpdated={() => { }}
+                onDeleted={() => { }}
             />
 
             {/* Task List View Modal - list task lists, right panel view/edit/delete */}
@@ -944,8 +957,8 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                 phases={phases}
                 selectedTaskListId={taskListViewSelectedId}
                 isEditable={isEditable}
-                onUpdated={() => {}}
-                onDeleted={() => {}}
+                onUpdated={() => { }}
+                onDeleted={() => { }}
             />
 
             {/* Row Context Menu */}
@@ -1169,28 +1182,35 @@ function TaskNameCell(params: ICellRendererParams) {
     // ---- PHASE ROW ----
     if (row.rowType === 'phase') {
         return (
-            <div className="flex items-center h-full w-full px-2 group/phase">
-                <button
-                    onClick={(e) => { e.stopPropagation(); ctx.togglePhase(row.phaseId); }}
-                    className="p-0.5 mr-1.5 hover:bg-white/60 rounded transition-colors"
-                >
-                    {row.isExpanded
-                        ? <ChevronDown className="w-4 h-4 text-indigo-500" />
-                        : <ChevronRight className="w-4 h-4 text-indigo-500" />
-                    }
-                </button>
+            <div className="flex items-center h-full w-full px-2 pr-3 group/phase">
+                {row.hasChildren ? (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); ctx.togglePhase(row.phaseId); }}
+                        className="p-1 mr-1 hover:bg-white/60 rounded transition-colors"
+                    >
+                        {row.isExpanded
+                            ? <ChevronDown className="w-4 h-4 text-indigo-600 stroke-[2.5]" />
+                            : <ChevronRight className="w-4 h-4 text-indigo-600 stroke-[2.5]" />
+                        }
+                    </button>
+                ) : (
+                    <div className="w-6 mr-1" />
+                )}
                 <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center mr-2 flex-shrink-0 shadow-sm">
-                    <Layers className="w-3 h-3 text-white" />
+                    <Layers className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="font-bold text-[13px] text-gray-800 truncate uppercase tracking-wide">{row.name}</span>
+                <span className="font-bold text-[13px] text-gray-800 truncate uppercase tracking-wide flex-1 min-w-0" title={row.name}>
+                    {row.name.length > 20 ? row.name.substring(0, 20) + '...' : row.name}
+                </span>
                 {ctx.isEditable && (
                     <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/phase:opacity-100 transition-opacity">
                         <button
                             onClick={(e) => { e.stopPropagation(); ctx.onAddTaskList(row.phaseId); }}
-                            className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-white/80 rounded transition-colors"
+                            className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-white/80 rounded transition-colors flex items-center gap-0.5"
                             title="Add Task List"
                         >
-                            <Plus className="w-3.5 h-3.5" />
+                            <ListTodo className="w-4 h-4" />
+                            <Plus className="w-3 h-3" />
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); ctx.onDeletePhase(row.phaseId, row.name); }}
@@ -1207,44 +1227,51 @@ function TaskNameCell(params: ICellRendererParams) {
 
     // ---- TASKLIST ROW ----
     if (row.rowType === 'tasklist') {
+        const indent = row.level * 24 + 8;
         return (
-            <div className="flex items-center h-full w-full group/tl" style={{ paddingLeft: '24px' }}>
-                <button
-                    onClick={(e) => { e.stopPropagation(); ctx.toggleTaskList(row.taskListId!); }}
-                    className="p-0.5 mr-1.5 hover:bg-gray-100 rounded transition-colors"
-                >
-                    {row.isExpanded
-                        ? <ChevronDown className="w-3.5 h-3.5 text-emerald-500" />
-                        : <ChevronRight className="w-3.5 h-3.5 text-emerald-500" />
-                    }
-                </button>
-                <div className="w-5 h-5 rounded bg-emerald-500 flex items-center justify-center mr-2 flex-shrink-0 shadow-sm">
-                    <ListTodo className="w-2.5 h-2.5 text-white" />
+            <div className="flex items-center h-full w-full pr-3 group/tl" style={{ paddingLeft: `${indent}px` }}>
+                {row.hasChildren ? (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); ctx.toggleTaskList(row.taskListId!); }}
+                        className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors"
+                    >
+                        {row.isExpanded
+                            ? <ChevronDown className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+                            : <ChevronRight className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+                        }
+                    </button>
+                ) : (
+                    <div className="w-6 mr-1" />
+                )}
+                <div className="w-6 h-6 rounded bg-emerald-500 flex items-center justify-center mr-2 flex-shrink-0 shadow-sm">
+                    <ListTodo className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="font-semibold text-[13px] text-gray-700 truncate">{row.name}</span>
+                <span className="font-semibold text-[13px] text-gray-700 truncate flex-1 min-w-0" title={row.name}>
+                    {row.name.length > 60 ? row.name.substring(0, 60) + '...' : row.name}
+                </span>
                 {row.childCount !== undefined && (
                     <span className="ml-1.5 text-[10px] text-gray-400 font-bold">
                         ({row.childCount})
                     </span>
                 )}
                 {ctx.isEditable && (
-                    <div className="ml-2 flex items-center gap-1 opacity-0 group-hover/tl:opacity-100 transition-opacity">
+                    <div className="ml-auto flex items-center gap-2 opacity-0 group-hover/tl:opacity-100 transition-opacity pr-2">
                         <button
                             onClick={(e) => { e.stopPropagation(); ctx.onAddTask(row.taskListId!, row.phaseId); }}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded font-semibold"
+                            className="inline-flex items-center gap-0.5 p-1 text-gray-700 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors group/btn-task"
+                            title="Add Task"
                         >
+                            <FileText className="w-4 h-4" />
                             <Plus className="w-3 h-3" />
-                            Add Task
                         </button>
-                        <span className="text-gray-200">|</span>
                         <button
                             onClick={(e) => { e.stopPropagation(); ctx.onAddTaskList(row.phaseId); }}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] text-gray-500 hover:text-indigo-700 hover:bg-indigo-50 rounded font-semibold"
+                            className="inline-flex items-center gap-0.5 p-1 text-gray-700 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-colors group/btn-tl"
+                            title="Add Task List"
                         >
+                            <ListTodo className="w-4 h-4" />
                             <Plus className="w-3 h-3" />
-                            Add Task List
                         </button>
-                        <MoreHorizontal className="w-3.5 h-3.5 text-gray-400 cursor-pointer hover:text-gray-600" />
                     </div>
                 )}
             </div>
@@ -1252,27 +1279,32 @@ function TaskNameCell(params: ICellRendererParams) {
     }
 
     // ---- TASK / SUBTASK ROW ----
-    const indent = (row.level - 1) * 20 + 56;
+    const indent = row.level * 24 + 8;
     return (
-        <div className="flex items-center h-full w-full group/task" style={{ paddingLeft: `${indent}px` }}>
+        <div className="flex items-center h-full w-full pr-3 group/task" style={{ paddingLeft: `${indent}px` }}>
             {row.hasChildren ? (
                 <button
                     onClick={(e) => { e.stopPropagation(); ctx.toggleTask(row.taskId!); }}
-                    className="p-0.5 mr-1 hover:bg-gray-100 rounded transition-colors"
+                    className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors"
                 >
                     {row.isExpanded
-                        ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                        : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                        ? <ChevronDown className="w-4 h-4 text-gray-500 stroke-[2.5]" />
+                        : <ChevronRight className="w-4 h-4 text-gray-500 stroke-[2.5]" />
                     }
                 </button>
             ) : (
-                <div className="w-5 mr-1" />
+                <div className="w-6 mr-1 flex items-center justify-center">
+                    <FileText className="w-3.5 h-3.5 text-gray-300" />
+                </div>
             )}
-            <span className={cn(
-                "text-[13px] truncate",
-                row.rowType === 'subtask' ? 'text-gray-500' : 'text-gray-800 font-medium'
-            )}>
-                {row.name}
+            <span
+                className={cn(
+                    "text-[13px] truncate flex-1 min-w-0",
+                    row.rowType === 'subtask' ? 'text-gray-500' : 'text-gray-800 font-medium'
+                )}
+                title={row.name}
+            >
+                {row.name.length > 60 ? row.name.substring(0, 60) + '...' : row.name}
             </span>
             {row.hasChildren && row.childCount! > 0 && (
                 <span className="ml-1.5 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded font-bold">

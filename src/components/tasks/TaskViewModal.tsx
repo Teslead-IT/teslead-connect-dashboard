@@ -17,6 +17,7 @@ import {
     Users,
     Search,
     Check,
+    Layers,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import { Dialog } from '@/components/ui/Dialog';
@@ -24,6 +25,8 @@ import type { PhaseWithTaskLists } from '@/types/phase';
 import type { StructuredTask } from '@/types/phase';
 import type { CreateTaskPayload, TaskPriority, WorkflowStage } from '@/types/task';
 import type { ProjectMember } from '@/types/project';
+
+import { useProject } from '@/hooks/use-projects';
 
 interface TaskViewModalProps {
     isOpen: boolean;
@@ -68,6 +71,7 @@ export function TaskViewModal({
     onTaskUpdated,
     onTaskDeleted,
 }: TaskViewModalProps) {
+    const { data: project } = useProject(projectId);
     const [activeTaskId, setActiveTaskId] = useState<string | null>(selectedTaskId);
     const [isEditMode, setIsEditMode] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<{ taskId: string; name: string } | null>(null);
@@ -96,11 +100,12 @@ export function TaskViewModal({
     }, [phases, activeTaskId, selectedTaskId]);
     const activeTask = useMemo(() => allTasksFlat.find((t) => t.id === activeTaskId), [allTasksFlat, activeTaskId]);
 
-    const activeTaskListId = useMemo(() => {
+    const activeGroup = useMemo(() => {
         if (!activeTaskId) return null;
-        const group = taskListGroups.find((g) => g.tasks.some((t) => t.id === activeTaskId));
-        return group?.taskList.id ?? null;
+        return taskListGroups.find((g) => g.tasks.some((t) => t.id === activeTaskId));
     }, [activeTaskId, taskListGroups]);
+
+    const activeTaskListId = activeGroup?.taskList.id ?? null;
 
     useEffect(() => {
         if (isOpen) {
@@ -186,7 +191,24 @@ export function TaskViewModal({
                                 <div className={cn("w-9 h-9 bg-gradient-to-br from-[#091590] to-[#2563eb] flex items-center justify-center shadow-md", ROUNDED)}>
                                     <ListTodo className="w-5 h-5 text-white" />
                                 </div>
-                                <h2 className="text-xl font-bold text-gray-900 tracking-tight">{getHeaderTitle()}</h2>
+                                <div className="flex items-center gap-2 overflow-hidden mr-4">
+                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded shadow-sm whitespace-nowrap">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                        <span className="text-[9px] font-medium text-slate-500 uppercase tracking-tighter leading-none">{project?.name || 'Project'}</span>
+                                    </div>
+                                    <span className="text-gray-300 text-[10px] font-medium">&gt;</span>
+                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-50 border border-indigo-100 rounded shadow-sm whitespace-nowrap">
+                                        <Layers className="w-3 h-3 text-indigo-500" />
+                                        <span className="text-[9px] font-medium text-indigo-500 uppercase tracking-tighter leading-none">{activeGroup?.phase.name || 'Phase'}</span>
+                                    </div>
+                                    <span className="text-gray-300 text-[10px] font-medium">&gt;</span>
+                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-100 rounded shadow-sm whitespace-nowrap">
+                                        <ListTodo className="w-3 h-3 text-emerald-500" />
+                                        <span className="text-[9px] font-medium text-emerald-500 uppercase tracking-tighter leading-none">{activeGroup?.taskList.name || 'List'}</span>
+                                    </div>
+                                    <span className="text-gray-300 text-[10px] font-medium">&gt;</span>
+                                    <h2 className="text-lg font-bold text-gray-900 tracking-tight leading-none truncate uppercase">{getHeaderTitle()}</h2>
+                                </div>
                             </div>
                             <button
                                 onClick={handleClose}
