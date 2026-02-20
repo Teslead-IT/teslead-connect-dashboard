@@ -174,11 +174,12 @@ export function NotificationBell() {
                             </div>
                             <div className="divide-y divide-[var(--color-border-primary)]">
                                 {messages.slice(0, 5).map((message: Message) => (
-                                    <MessageItem
-                                        key={message.id}
-                                        message={message}
-                                        onMarkAsRead={markMessageAsRead}
-                                    />
+                                    <div key={message.id} className="mb-2 last:mb-0">
+                                        <MessageItem
+                                            message={message}
+                                            onMarkAsRead={markMessageAsRead}
+                                        />
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -195,7 +196,7 @@ export function NotificationBell() {
                                     </h4>
                                 </div>
                             )}
-                            <div className="divide-y divide-[var(--color-border-primary)]">
+                            <div className="flex flex-col gap-3 p-3 bg-gray-50/50">
                                 {notifications.slice(0, 10).map((notification: Notification) => (
                                     <NotificationItem
                                         key={notification.id}
