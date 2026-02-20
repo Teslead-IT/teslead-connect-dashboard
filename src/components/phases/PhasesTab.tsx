@@ -11,6 +11,8 @@ import { CreatePhaseModal } from './CreatePhaseModal';
 
 interface PhasesTabProps {
     projectId: string;
+    projectName?: string;
+    projectColor?: string | null;
     isEditable: boolean;
     searchQuery?: string;
 }
@@ -19,7 +21,13 @@ function countTasks(tasks: { children?: any[] }[]): number {
     return (tasks || []).reduce((s, t) => s + 1 + countTasks(t.children || []), 0);
 }
 
-export default function PhasesTab({ projectId, isEditable, searchQuery = '' }: PhasesTabProps) {
+export default function PhasesTab({
+    projectId,
+    projectName,
+    projectColor,
+    isEditable,
+    searchQuery = ''
+}: PhasesTabProps) {
     const { data: phasesData = [], isLoading, refetch } = useStructuredPhases(projectId);
     const phases = useMemo(() => {
         if (!searchQuery.trim()) return phasesData;
@@ -58,9 +66,8 @@ export default function PhasesTab({ projectId, isEditable, searchQuery = '' }: P
     return (
         <div className="h-full flex flex-col bg-white">
             <div className="flex-1 overflow-y-auto p-4">
-                <div className="max-w-3xl mx-auto">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-bold text-gray-900">Project Phases</h2>
+                <div className="w-full">
+                    <div className="flex justify-end mb-6">
                         {isEditable && (
                             <button
                                 onClick={() => setCreatePhaseModalOpen(true)}
@@ -122,18 +129,18 @@ export default function PhasesTab({ projectId, isEditable, searchQuery = '' }: P
                                                             <Calendar className="w-3.5 h-3.5" />
                                                             {phase.startDate
                                                                 ? new Date(phase.startDate).toLocaleDateString('en-US', {
-                                                                      month: 'short',
-                                                                      day: 'numeric',
-                                                                      year: 'numeric',
-                                                                  })
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    year: 'numeric',
+                                                                })
                                                                 : '–'}{' '}
                                                             to{' '}
                                                             {phase.endDate
                                                                 ? new Date(phase.endDate).toLocaleDateString('en-US', {
-                                                                      month: 'short',
-                                                                      day: 'numeric',
-                                                                      year: 'numeric',
-                                                                  })
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    year: 'numeric',
+                                                                })
                                                                 : '–'}
                                                         </span>
                                                     )}
@@ -181,6 +188,8 @@ export default function PhasesTab({ projectId, isEditable, searchQuery = '' }: P
                 isOpen={createPhaseModalOpen}
                 onClose={() => setCreatePhaseModalOpen(false)}
                 currentProjectId={projectId}
+                projectName={projectName}
+                projectColor={projectColor}
                 onSuccess={() => refetch()}
             />
 
