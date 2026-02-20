@@ -40,6 +40,7 @@ export function useCreateTask(projectId: string) {
         mutationFn: (data: CreateTaskPayload) => taskService.createTask(projectId, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: taskKeys.all(projectId) });
+            queryClient.invalidateQueries({ queryKey: ['phases', 'structured', projectId] });
         },
     });
 }
@@ -52,6 +53,7 @@ export function useUpdateTask(projectId: string) {
             taskService.updateTask(taskId, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: taskKeys.all(projectId) });
+            queryClient.invalidateQueries({ queryKey: ['phases', 'structured', projectId] });
         },
     });
 }
@@ -65,6 +67,7 @@ export function useDeleteTask(projectId: string) {
         mutationFn: (taskId: string) => taskService.deleteTask(taskId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: taskKeys.all(projectId) });
+            queryClient.invalidateQueries({ queryKey: ['phases', 'structured', projectId] });
         },
     });
 }
