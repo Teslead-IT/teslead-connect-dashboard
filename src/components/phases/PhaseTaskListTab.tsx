@@ -88,6 +88,8 @@ type ProjectRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
 
 interface PhaseTaskListTabProps {
     projectId: string;
+    projectName?: string;
+    projectColor?: string | null;
     isEditable: boolean;
     currentUserRole?: ProjectRole;
     searchQuery?: string;
@@ -97,7 +99,14 @@ function isAdmin(role?: ProjectRole): boolean {
     return role === 'ADMIN' || role === 'OWNER';
 }
 
-export default function PhaseTaskListTab({ projectId, isEditable, currentUserRole, searchQuery = '' }: PhaseTaskListTabProps) {
+export default function PhaseTaskListTab({
+    projectId,
+    projectName,
+    projectColor,
+    isEditable,
+    currentUserRole,
+    searchQuery = ''
+}: PhaseTaskListTabProps) {
     const showViewButton = isAdmin(currentUserRole);
     const { data: phases = [], isLoading } = useStructuredPhases(projectId);
     const { data: workflow = [] } = useProjectWorkflow(projectId);
@@ -627,7 +636,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                         Add
                         <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                     </button>
-                    <div className="absolute right-0 top-full pt-1 min-w-[160px] py-1 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover/add:opacity-100 group-hover/add:visible transition-opacity z-50">
+                    <div className="absolute right-0 top-full pt-1 min-w-[160px] py-1 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 invisible group-hover/add:opacity-100 group-hover/add:visible transition-opacity z-50">
                         <button
                             onClick={() => {
                                 const firstPhase = phases[0];
@@ -865,7 +874,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                         {/* Header */}
                         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-white to-gray-50/80">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100 shadow-sm">
+                                <div className="w-10 h-10 rounded-md bg-emerald-50 flex items-center justify-center border border-emerald-100 shadow-sm">
                                     <ListTodo className="w-5 h-5 text-emerald-600" />
                                 </div>
                                 <div className="flex flex-col">
@@ -873,9 +882,23 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                                     <p className="text-[11px] text-gray-400 font-medium">Create a new list to group tasks</p>
                                 </div>
                             </div>
-                            <button onClick={() => setAddTaskListInput(null)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {projectName && (
+                                    <span
+                                        className="text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-tight shadow-sm transition-all"
+                                        style={{
+                                            backgroundColor: projectColor ? `${projectColor}15` : '#f3f4f6',
+                                            color: projectColor || '#6b7280',
+                                            borderColor: projectColor ? `${projectColor}30` : '#e5e7eb'
+                                        }}
+                                    >
+                                        {projectName}
+                                    </span>
+                                )}
+                                <button onClick={() => setAddTaskListInput(null)} className="p-2 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto">
@@ -889,7 +912,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                                         <button
                                             type="button"
                                             onClick={() => setShowTaskListPhaseDropdown(!showTaskListPhaseDropdown)}
-                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-left font-medium text-gray-700 flex items-center justify-between hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all shadow-sm group"
+                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-md text-sm text-left font-medium text-gray-700 flex items-center justify-between hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all shadow-sm group"
                                         >
                                             <span className="truncate">
                                                 {phases.find(p => p.id === addTaskListInput.phaseId)?.name || "Select Phase"}
@@ -900,7 +923,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                                         {showTaskListPhaseDropdown && (
                                             <>
                                                 <div className="fixed inset-0 z-10" onClick={() => setShowTaskListPhaseDropdown(false)} />
-                                                <div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-md shadow-2xl overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
                                                     <div className="p-3 border-b border-gray-50 bg-gray-50/50">
                                                         <div className="relative">
                                                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -910,7 +933,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                                                                 placeholder="Search phases..."
                                                                 value={taskListPhaseSearch}
                                                                 onChange={(e) => setTaskListPhaseSearch(e.target.value)}
-                                                                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
                                                             />
                                                         </div>
                                                     </div>
@@ -965,7 +988,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                                             if (e.key === 'Enter' && addTaskListInput.value.trim() && addTaskListInput.phaseId) handleAddTaskList();
                                             if (e.key === 'Escape') setAddTaskListInput(null);
                                         }}
-                                        className="w-full text-sm px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all shadow-sm placeholder:text-gray-300"
+                                        className="w-full text-sm px-4 py-3 bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all shadow-sm placeholder:text-gray-300"
                                     />
                                 </div>
 
@@ -976,14 +999,14 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                                         <div
                                             onClick={() => setAddTaskListInput({ ...addTaskListInput, access: 'PRIVATE' })}
                                             className={cn(
-                                                "flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 group",
+                                                "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 group",
                                                 addTaskListInput.access === 'PRIVATE'
                                                     ? "border-emerald-600 bg-emerald-50/30 ring-4 ring-emerald-500/5 shadow-md"
                                                     : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
                                             )}
                                         >
                                             <div className={cn(
-                                                "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm",
+                                                "w-12 h-12 rounded-md flex items-center justify-center transition-all duration-300 shadow-sm",
                                                 addTaskListInput.access === 'PRIVATE' ? "bg-emerald-600 text-white scale-105" : "bg-gray-50 text-gray-400 group-hover:bg-gray-100"
                                             )}>
                                                 <Lock className="w-6 h-6" />
@@ -1000,14 +1023,14 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                                         <div
                                             onClick={() => setAddTaskListInput({ ...addTaskListInput, access: 'PUBLIC' })}
                                             className={cn(
-                                                "flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 group",
+                                                "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 group",
                                                 addTaskListInput.access === 'PUBLIC'
                                                     ? "border-emerald-600 bg-emerald-50/30 ring-4 ring-emerald-500/5 shadow-md"
                                                     : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
                                             )}
                                         >
                                             <div className={cn(
-                                                "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm",
+                                                "w-12 h-12 rounded-md flex items-center justify-center transition-all duration-300 shadow-sm",
                                                 addTaskListInput.access === 'PUBLIC' ? "bg-emerald-600 text-white scale-105" : "bg-gray-50 text-gray-400 group-hover:bg-gray-100"
                                             )}>
                                                 <Globe className="w-6 h-6" />
@@ -1029,14 +1052,14 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                         <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100 bg-gray-50/50">
                             <button
                                 onClick={() => setAddTaskListInput(null)}
-                                className="px-5 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
+                                className="px-5 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleAddTaskList}
                                 disabled={!addTaskListInput.value.trim() || !addTaskListInput.phaseId}
-                                className="px-8 py-2.5 text-sm font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-40 disabled:grayscale transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]"
+                                className="px-8 py-2.5 text-sm font-bold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-40 disabled:grayscale transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]"
                             >
                                 Create List
                             </button>
@@ -1058,6 +1081,8 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                     phaseId={createTaskModal.phaseId}
                     members={members}
                     phases={phases}
+                    projectName={projectName}
+                    projectColor={projectColor}
                 />
             )}
 
@@ -1224,7 +1249,7 @@ function TasksBoardView({
                     return (
                         <div
                             key={stage.id}
-                            className="flex-shrink-0 w-80 bg-white rounded-lg border border-gray-200 flex flex-col"
+                            className="flex-shrink-0 w-80 bg-white rounded-md border border-gray-200 flex flex-col"
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={() => handleDrop(stage.id)}
                         >
@@ -1241,7 +1266,7 @@ function TasksBoardView({
                                             draggable={isEditable}
                                             onDragStart={() => isEditable && setDraggedTask(task)}
                                             className={cn(
-                                                "bg-white border border-gray-200 rounded-lg p-2.5 hover:shadow transition-shadow group",
+                                                "bg-white border border-gray-200 rounded-md p-2.5 hover:shadow transition-shadow group",
                                                 isEditable && "cursor-grab active:cursor-grabbing"
                                             )}
                                         >
@@ -1307,7 +1332,7 @@ function RowContextMenu({
 }) {
     return (
         <>
-            <div className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[180px]" style={{ left: x, top: y }} onClick={(e) => e.stopPropagation()}>
+            <div className="fixed z-50 bg-white rounded-md shadow-xl border border-gray-200 py-1 min-w-[180px]" style={{ left: x, top: y }} onClick={(e) => e.stopPropagation()}>
                 {row.rowType === 'phase' && (
                     <>
                         {isEditable && <button onClick={onAddTaskList} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Plus className="w-4 h-4 text-indigo-500" />Add Task List</button>}

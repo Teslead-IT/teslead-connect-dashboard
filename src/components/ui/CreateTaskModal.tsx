@@ -17,6 +17,8 @@ interface CreateTaskModalProps {
     phaseId?: string;
     members?: ProjectMember[];
     phases?: PhaseWithTaskLists[];
+    projectName?: string;
+    projectColor?: string | null;
 }
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string; color: string; bg: string; icon: string }[] = [
@@ -39,6 +41,8 @@ export function CreateTaskModal({
     phaseId,
     members = [],
     phases = [],
+    projectName,
+    projectColor,
 }: CreateTaskModalProps) {
     const [formData, setFormData] = useState<CreateTaskPayload>({
         title: '',
@@ -188,7 +192,7 @@ export function CreateTaskModal({
             <div className="relative w-full max-w-lg bg-white shadow-2xl h-full flex flex-col animate-slide-in-right">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gradient-to-r from-white to-gray-50/80">
-                    <div>
+                    <div className="flex-1 min-w-0 pr-4">
                         <h2 className="text-base font-bold text-gray-900">{modalTitle}</h2>
                         {isSubtask && parentTask && (
                             <p className="text-[11px] text-gray-400 mt-0.5 font-medium truncate max-w-[200px]">
@@ -202,12 +206,26 @@ export function CreateTaskModal({
                             </div>
                         )}
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {projectName && (
+                            <span
+                                className="text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-tight shadow-sm transition-all"
+                                style={{
+                                    backgroundColor: projectColor ? `${projectColor}15` : '#f3f4f6',
+                                    color: projectColor || '#6b7280',
+                                    borderColor: projectColor ? `${projectColor}30` : '#e5e7eb'
+                                }}
+                            >
+                                {projectName}
+                            </span>
+                        )}
+                        <button
+                            onClick={onClose}
+                            className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Form Body */}
@@ -227,7 +245,7 @@ export function CreateTaskModal({
                                         disabled={isReadOnly}
                                         onClick={() => setShowPhaseDropdown(!showPhaseDropdown)}
                                         className={cn(
-                                            "w-full px-3 py-2.5 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
+                                            "w-full px-3 py-2.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
                                             submitted && !formData.phaseId
                                                 ? "border-red-500 ring-red-500/10 focus:ring-red-500/20 focus:border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
                                                 : "border-gray-200 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]",
@@ -243,7 +261,7 @@ export function CreateTaskModal({
                                     {showPhaseDropdown && !isReadOnly && (
                                         <>
                                             <div className="fixed inset-0 z-10" onClick={() => setShowPhaseDropdown(false)} />
-                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
                                                 <div className="p-2 border-b border-gray-50 bg-gray-50/50">
                                                     <div className="relative">
                                                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -314,7 +332,7 @@ export function CreateTaskModal({
                                         disabled={isReadOnly || !formData.phaseId}
                                         onClick={() => setShowTaskListDropdown(!showTaskListDropdown)}
                                         className={cn(
-                                            "w-full px-3 py-2.5 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
+                                            "w-full px-3 py-2.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
                                             submitted && !formData.taskListId && formData.phaseId
                                                 ? "border-red-500 ring-red-500/10 focus:ring-red-500/20 focus:border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
                                                 : "border-gray-200 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]",
@@ -330,7 +348,7 @@ export function CreateTaskModal({
                                     {showTaskListDropdown && formData.phaseId && !isReadOnly && (
                                         <>
                                             <div className="fixed inset-0 z-10" onClick={() => setShowTaskListDropdown(false)} />
-                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
                                                 <div className="p-2 border-b border-gray-50 bg-gray-50/50">
                                                     <div className="relative">
                                                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -407,7 +425,7 @@ export function CreateTaskModal({
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                 className={cn(
-                                    "w-full px-3 py-2.5 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 transition-all placeholder:text-gray-300",
+                                    "w-full px-3 py-2.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 transition-all placeholder:text-gray-300",
                                     submitted && !formData.title.trim()
                                         ? "border-red-500 ring-red-500/10 focus:ring-red-500/20 focus:border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
                                         : "border-gray-200 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]",
@@ -433,7 +451,7 @@ export function CreateTaskModal({
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 rows={3}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] resize-none disabled:bg-gray-50 disabled:text-gray-500 placeholder:text-gray-300 transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] resize-none disabled:bg-gray-50 disabled:text-gray-500 placeholder:text-gray-300 transition-all"
                                 placeholder="Add more details..."
                                 disabled={isReadOnly}
                             />
@@ -451,7 +469,7 @@ export function CreateTaskModal({
                                         value={formData.statusId}
                                         onChange={(e) => setFormData({ ...formData, statusId: e.target.value })}
                                         disabled={isReadOnly}
-                                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] disabled:bg-gray-50 disabled:text-gray-500 appearance-none bg-white transition-all cursor-pointer"
+                                        className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] disabled:bg-gray-50 disabled:text-gray-500 appearance-none bg-white transition-all cursor-pointer"
                                         style={currentStatus ? {
                                             borderLeftWidth: '3px',
                                             borderLeftColor: currentStatus.color,
@@ -476,7 +494,7 @@ export function CreateTaskModal({
                                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) as TaskPriority })}
                                     disabled={isReadOnly}
                                     className={cn(
-                                        "w-full px-3 py-2.5 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 appearance-none cursor-pointer transition-all",
+                                        "w-full px-3 py-2.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 appearance-none cursor-pointer transition-all",
                                         currentPriority.bg, currentPriority.color,
                                         isReadOnly && "!bg-gray-50 !text-gray-500"
                                     )}
@@ -500,7 +518,7 @@ export function CreateTaskModal({
                                 value={formData.dueDate}
                                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                                 disabled={isReadOnly}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] disabled:bg-gray-50 disabled:text-gray-500 transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] disabled:bg-gray-50 disabled:text-gray-500 transition-all"
                             />
                         </div>
 
@@ -548,14 +566,14 @@ export function CreateTaskModal({
                                     <button
                                         type="button"
                                         onClick={() => setShowAssigneePicker(!showAssigneePicker)}
-                                        className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-lg text-sm text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                        className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-sm text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
                                     >
                                         <Users className="w-3.5 h-3.5" />
                                         {selectedMembers.length === 0 ? 'Click to assign team members...' : 'Add more...'}
                                     </button>
 
                                     {showAssigneePicker && (
-                                        <div className="absolute z-20 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg max-h-56 overflow-hidden">
+                                        <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-lg max-h-56 overflow-hidden">
                                             <div className="p-2 border-b border-gray-100">
                                                 <div className="relative">
                                                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
@@ -614,7 +632,7 @@ export function CreateTaskModal({
                         </div>
 
                         {error && (
-                            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 font-medium">{error}</p>
+                            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-100 font-medium">{error}</p>
                         )}
                     </form>
                 </div>
@@ -625,7 +643,7 @@ export function CreateTaskModal({
                         type="button"
                         onClick={onClose}
                         disabled={isSubmitting}
-                        className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
+                        className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
                     >
                         {isReadOnly ? 'Close' : 'Cancel'}
                     </button>
@@ -633,7 +651,7 @@ export function CreateTaskModal({
                         <button
                             onClick={handleSubmit}
                             disabled={isSubmitting || !isFormValid}
-                            className="px-5 py-2 text-sm font-semibold text-white bg-[var(--primary)] rounded-lg hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center min-w-[110px] cursor-pointer"
+                            className="px-5 py-2 text-sm font-semibold text-white bg-[var(--primary)] rounded-md hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center min-w-[110px] cursor-pointer"
                         >
                             {isSubmitting ? (
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
