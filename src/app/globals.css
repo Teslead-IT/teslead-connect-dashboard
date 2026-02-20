@@ -52,7 +52,7 @@ body {
 
 /* Global Status Select Style */
 .status-select-base {
-  @apply appearance-none w-full h-full pl-3 pr-8 py-2 rounded-none text-[11px] font-bold tracking-wide border-0 shadow-none cursor-pointer outline-none transition-all duration-200 hover:brightness-105 active:scale-[0.99] focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply appearance-none w-full h-full pl-3 pr-8 py-2 rounded-none text-[11px] font-bold tracking-wide border-0 shadow-none cursor-pointer outline-none transition-opacity duration-200 hover:brightness-105 focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .status-select-wrapper {
@@ -61,6 +61,18 @@ body {
 
 .status-select-icon {
   @apply w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60;
+}
+
+/* 
+   FIX: Remove AG Grid Default Focus Outlines creating "black border" issue 
+   and potential layout shifts ("shaky effect")
+*/
+.ag-theme-alpine .ag-cell-focus,
+.ag-theme-alpine .ag-cell-focus:focus-within,
+.ag-theme-alpine .ag-cell:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* AG-Grid Custom Styling - Zoho Projects Inspired */
