@@ -55,6 +55,9 @@ import { Dialog } from '@/components/ui/Dialog';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 
 import { Tabs, TabItem } from '@/components/ui/Tabs';
+import PhaseTaskListTab from '@/components/phases/PhaseTaskListTab';
+import PhasesTab from '@/components/phases/PhasesTab';
+import { ProjectSearchBox } from '@/components/projects/ProjectSearchBox';
 
 type ViewMode = 'board' | 'list';
 
@@ -399,137 +402,40 @@ export default function ProjectDetailPage() {
                                 </div>
                             </div>
                         </div>
+                        <ProjectSearchBox
+                            value={searchQuery}
+                            onChange={setSearchQuery}
+                            placeholder="Search..."
+                        />
                     </div>
                 </div>
             </div>
 
-            {/* Tabs & Actions Row */}
-            <div className="bg-white border-b border-gray-200 px-3 sm:px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-y-2">
+            {/* Tabs Row */}
+            <div className="bg-white border-b border-gray-200 px-3 sm:px-4 flex items-center justify-between gap-4 w-full">
                 <Tabs
                     items={TAB_ITEMS}
                     activeTab={activeTab}
                     onChange={setActiveTab}
-                    className="border-none w-full sm:w-auto -ml-2 sm:ml-0 overflow-x-auto no-scrollbar"
+                    className="border-none flex-1 min-w-0 -ml-2 sm:ml-0 overflow-x-auto no-scrollbar"
                 />
-
-                {/* Toolbar (Only visible when Tasks tab is active) */}
-                {activeTab === 'tasks' && (
-                    <div className="flex items-center justify-between sm:justify-end gap-3 py-1 w-full sm:w-auto mt-1 sm:mt-0">
-                        {/* Search */}
-                        <div className="relative flex-1 sm:flex-none">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search tasks..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-8 pr-3 py-1 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-48 bg-gray-50 transition-all hover:bg-white focus:bg-white"
-                            />
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
-
-                            {/* View Toggle */}
-                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
-                                <button
-                                    onClick={() => setViewMode('list')}
-                                    className={cn(
-                                        'p-1 rounded transition-all',
-                                        viewMode === 'list'
-                                            ? 'bg-white text-[var(--primary)] shadow-sm'
-                                            : 'text-gray-400 hover:text-gray-600 cursor-pointer'
-                                    )}
-                                    title="List View"
-                                >
-                                    <ListIcon className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('board')}
-                                    className={cn(
-                                        'p-1 rounded transition-all',
-                                        viewMode === 'board'
-                                            ? 'bg-white text-[var(--primary)] shadow-sm'
-                                            : 'text-gray-400 hover:text-gray-600 cursor-pointer'
-                                    )}
-                                    title="Kanban View"
-                                >
-                                    <LayoutGrid className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-
-                            {/* New Task Button */}
-                            {project?.role !== 'VIEWER' && (
-                                <button
-                                    onClick={() => {
-                                        setIsReadOnly(false);
-                                        setIsCreateTaskOpen(true);
-                                    }}
-                                    className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white cursor-pointer active:scale-[0.98] font-medium px-3 h-7 text-xs rounded-md sm:ml-2 transition-colors duration-200 border border-transparent shadow-sm whitespace-nowrap"
-                                >
-                                    <Plus className="w-3 h-3 sm:mr-1" />
-                                    <span className="hidden sm:inline">New Task</span>
-                                    <span className="sm:hidden">New</span>
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                    {activeTab === 'tasks' && <div id="tasks-toolbar-slot" className="flex items-center" />}
+                </div>
             </div>
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden bg-white">
                 {activeTab === 'tasks' ? (
                     <div className="h-full">
-                        {viewMode === 'list' ? (
-                            <TaskTable
-                                tasks={parentTasks}
-                                allTasks={tasks}
-                                workflow={workflow}
-                                onUpdateStatus={handleUpdateTaskStatus}
-                                expandedIds={expandedIds}
-                                onToggleExpand={toggleTaskExpansion}
-                                isEditable={project?.role !== 'VIEWER'}
-                                onCreateSubtask={project?.role !== 'VIEWER' ? (parentTask) => {
-                                    setSelectedParentTask(parentTask);
-                                    setIsReadOnly(false);
-                                    setIsCreateTaskOpen(true);
-                                } : undefined}
-                                onEditTask={project?.role !== 'VIEWER' ? (task) => {
-                                    setEditingTask(task);
-                                    setIsReadOnly(false);
-                                    setIsCreateTaskOpen(true);
-                                } : undefined}
-                                onDeleteTask={project?.role !== 'VIEWER' ? handleDeleteTask : undefined}
-                                onContextMenu={handleTaskContextMenu}
-                                onSwitchToUsersTab={() => setActiveTab('users')}
-                                onRevokeAssigneeDirect={project?.role !== 'VIEWER' ? (task, assignee) => setDirectRevoke({ task, assignee }) : undefined}
-                            />
-                        ) : (
-                            <KanbanView
-                                tasks={parentTasks}
-                                allTasks={tasks}
-                                workflow={workflow}
-                                onUpdateStatus={handleUpdateTaskStatus}
-                                isEditable={project?.role !== 'VIEWER'}
-                                onCreateSubtask={project?.role !== 'VIEWER' ? (parentTask) => {
-                                    setSelectedParentTask(parentTask);
-                                    setIsReadOnly(false);
-                                    setIsCreateTaskOpen(true);
-                                } : undefined}
-                                onEditTask={project?.role !== 'VIEWER' ? (task) => {
-                                    setEditingTask(task);
-                                    setIsReadOnly(false);
-                                    setIsCreateTaskOpen(true);
-                                } : undefined}
-                                onDeleteTask={project?.role !== 'VIEWER' ? handleDeleteTask : undefined}
-                            />
-                        )}
+                        <PhaseTaskListTab projectId={projectId} isEditable={project?.role !== 'VIEWER'} currentUserRole={project?.role} searchQuery={searchQuery} />
                     </div>
                 ) : activeTab === 'users' ? (
-                    <ProjectMembersTable members={members} isLoading={membersLoading} projectId={projectId} currentUserRole={project?.role} />
+                    <ProjectMembersTable members={members} isLoading={membersLoading} projectId={projectId} currentUserRole={project?.role} searchQuery={searchQuery} />
                 ) : activeTab === 'mom' ? (
                     <ProjectMOMTab projectId={projectId} />
+                ) : activeTab === 'phases' ? (
+                    <PhasesTab projectId={projectId} isEditable={project?.role !== 'VIEWER'} searchQuery={searchQuery} />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
