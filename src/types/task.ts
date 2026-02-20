@@ -55,11 +55,13 @@ export interface Task {
 export interface CreateTaskPayload {
     title: string;
     description?: string;
-    parentId?: string | null; // For subtasks
+    parentId?: string | null;
     priority?: TaskPriority;
     dueDate?: string;
     assigneeIds?: string[];
-    statusId: string; // Required - must be valid from workflow
+    statusId: string;
+    taskListId?: string;
+    phaseId?: string;
 }
 
 export interface UpdateTaskPayload {

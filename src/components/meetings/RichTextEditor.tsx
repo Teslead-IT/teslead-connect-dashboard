@@ -288,41 +288,52 @@ export function RichTextEditor({
 
     return (
         <div className="border border-gray-100 rounded-[2rem] bg-white shadow-sm transition-all hover:shadow-md overflow-visible">
-            {/* Mention Styles */}
+            {/* Mention Styles - professional chip design */}
             <style jsx global>{`
                 .mention {
-                    padding: 0px 5px;
-                    border-radius: 5px;
+                    padding: 2px 8px;
+                    border-radius: 6px;
                     font-weight: 600;
-                    font-size: 0.75rem;
+                    font-size: 0.8125rem;
                     cursor: default;
                     box-decoration-break: clone;
-                    margin: 0 1px;
-                    display: inline-block;
-                    line-height: 1.4;
+                    margin: 0 2px;
+                    display: inline-flex;
+                    align-items: center;
+                    line-height: 1.35;
+                    border: 1px solid transparent;
+                    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+                }
+                .mention:hover {
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
                 }
                 .mention-user {
-                    background-color: #fef3c7;
-                    color: #92400e;
-                    border: 1px solid #fde68a;
+                    background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+                    color: #854d0e;
+                    border-color: #fde047;
+                }
+                .mention-user:hover {
+                    border-color: #facc15;
                 }
                 .mention-project {
-                    background-color: #dcfce7;
-                    color: #166534;
-                    border: 1px solid #bbf7d0;
-                    transition: all 0.5s ease;
+                    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+                    color: #065f46;
+                    border-color: #6ee7b7;
+                    transition: all 0.2s ease;
+                }
+                .mention-project:hover {
+                    border-color: #34d399;
                 }
                 .highlight-targeted {
-                    background: #fef9c3;
+                    background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%) !important;
                     color: #0f172a !important;
                     border-color: #fde047 !important;
-                    padding: 2px 4px;
-                    border-radius: 4px;
+                    box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.35);
                 }
                 .highlight-fade-out {
                     background: transparent !important;
-                    border-color: #dbeafe !important;
-                    transition: all 0.6s ease-out !important;
+                    border-color: #e0e7ff !important;
+                    transition: all 0.5s ease-out !important;
                 }
             `}</style>
 
@@ -419,12 +430,14 @@ export function RichTextEditor({
                     <div className="w-px h-8 bg-gray-200/60 mx-1.5" />
 
                     {/* Mention hints */}
-                    <div className="ml-auto flex items-center gap-2 text-[10px] text-gray-400 font-medium">
-                        <span className="flex items-center gap-1">
-                            <AtSign className="w-3 h-3" /> Mention user
+                    <div className="ml-auto flex items-center gap-3 text-[11px] text-gray-500">
+                        <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100/80 border border-gray-200/60">
+                            <AtSign className="w-3.5 h-3.5 text-amber-600" />
+                            <span className="font-medium">@ user</span>
                         </span>
-                        <span className="flex items-center gap-1">
-                            <Hash className="w-3 h-3" /> Mention project
+                        <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100/80 border border-gray-200/60">
+                            <Hash className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="font-medium"># project</span>
                         </span>
                     </div>
                 </div>
@@ -434,14 +447,14 @@ export function RichTextEditor({
             <EditorContent editor={editor} />
 
             {/* Footer */}
-            {!readOnly && (
+            {/* {!readOnly && (
                 <div className="bg-gray-50 border-t border-gray-200 px-4 py-2 text-xs text-gray-500 flex justify-between items-center">
                     <span>Use toolbar above to format text</span>
                     <span className="text-[10px] text-gray-400 uppercase tracking-wide">
                         Type @ for users · # for projects
                     </span>
                 </div>
-            )}
+            )} */}
         </div>
     );
 }
