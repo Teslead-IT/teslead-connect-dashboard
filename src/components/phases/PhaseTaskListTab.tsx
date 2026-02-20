@@ -896,6 +896,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                     taskListId={createTaskModal.taskListId}
                     phaseId={createTaskModal.phaseId}
                     members={members}
+                    phases={phases}
                 />
             )}
 

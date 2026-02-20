@@ -43,6 +43,7 @@ import {
     useDeleteTask,
     useRevokeAssignee,
 } from '@/hooks/use-tasks';
+import { useStructuredPhases } from '@/hooks/use-phases';
 import { useProjectMeetings } from '@/hooks/use-meetings';
 import { MeetingModal } from '@/components/meetings/MeetingModal';
 import { ProjectMembersTable } from '@/components/projects/ProjectMembersTable';
@@ -108,6 +109,7 @@ export default function ProjectDetailPage() {
     const { data: workflow = [], isLoading: workflowLoading } = useProjectWorkflow(projectId);
     const { data: members = [], isLoading: membersLoading } = useProjectMembers(projectId);
     const { data: tasks = [], isLoading: tasksLoading } = useProjectTasks(projectId);
+    const { data: phases = [] } = useStructuredPhases(projectId);
 
     // Mutations
     const createTaskMutation = useCreateTask(projectId);
@@ -463,6 +465,7 @@ export default function ProjectDetailPage() {
                         parentTask={selectedParentTask}
                         initialData={editingTask || undefined}
                         isReadOnly={isReadOnly}
+                        phases={phases}
                     />
                 )
             }
