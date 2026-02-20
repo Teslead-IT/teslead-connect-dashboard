@@ -4,7 +4,7 @@ export interface Phase {
     projectId: string;
     startDate: string | null;
     endDate: string | null;
-    access: 'INTERNAL' | 'CLIENT';
+    access: 'PUBLIC' | 'PRIVATE';
     orderIndex: number;
     createdAt: string;
     updatedAt: string;
@@ -15,7 +15,7 @@ export interface TaskList {
     name: string;
     projectId: string;
     phaseId: string | null;
-    access: 'INTERNAL' | 'CLIENT';
+    access: 'PUBLIC' | 'PRIVATE';
     orderIndex: number;
     createdAt: string;
     updatedAt: string;
@@ -63,26 +63,26 @@ export interface CreatePhasePayload {
     name: string;
     startDate?: string;
     endDate?: string;
-    access?: 'INTERNAL' | 'CLIENT' | 'PUBLIC' | 'PRIVATE';
+    access?: 'PUBLIC' | 'PRIVATE';
 }
 
 export interface UpdatePhasePayload {
     name?: string;
     startDate?: string;
     endDate?: string;
-    access?: 'INTERNAL' | 'CLIENT';
+    access?: 'PUBLIC' | 'PRIVATE';
 }
 
 export interface CreateTaskListPayload {
     projectId: string;
     phaseId: string;
     name: string;
-    access?: 'INTERNAL' | 'CLIENT';
+    access?: 'PUBLIC' | 'PRIVATE';
 }
 
 export interface UpdateTaskListPayload {
     name?: string;
-    access?: 'INTERNAL' | 'CLIENT';
+    access?: 'PUBLIC' | 'PRIVATE';
 }
 
 export interface ReorderPayload {

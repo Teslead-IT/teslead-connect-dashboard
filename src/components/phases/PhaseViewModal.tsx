@@ -45,7 +45,7 @@ export function PhaseViewModal({
     const [editName, setEditName] = useState('');
     const [editStartDate, setEditStartDate] = useState('');
     const [editEndDate, setEditEndDate] = useState('');
-    const [editAccess, setEditAccess] = useState<'INTERNAL' | 'CLIENT'>('INTERNAL');
+    const [editAccess, setEditAccess] = useState<'PUBLIC' | 'PRIVATE'>('PRIVATE');
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
     const updatePhaseMutation = useUpdatePhase(projectId);
@@ -62,7 +62,7 @@ export function PhaseViewModal({
             setEditName(activePhase.name);
             setEditStartDate(activePhase.startDate || '');
             setEditEndDate(activePhase.endDate || '');
-            setEditAccess(activePhase.access === 'CLIENT' ? 'CLIENT' : 'INTERNAL');
+            setEditAccess(activePhase.access === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE');
         }
     }, [activePhase]);
 
@@ -278,14 +278,14 @@ export function PhaseViewModal({
                                             {isEditMode ? (
                                                 <select
                                                     value={editAccess}
-                                                    onChange={(e) => setEditAccess(e.target.value as 'INTERNAL' | 'CLIENT')}
+                                                    onChange={(e) => setEditAccess(e.target.value as 'PUBLIC' | 'PRIVATE')}
                                                     className={cn("w-full px-3 py-2 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] cursor-pointer", ROUNDED)}
                                                 >
-                                                    <option value="INTERNAL">Internal</option>
-                                                    <option value="CLIENT">Client</option>
+                                                    <option value="PRIVATE">Private</option>
+                                                    <option value="PUBLIC">Public</option>
                                                 </select>
                                             ) : (
-                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-sm font-medium", ROUNDED)}>{activePhase.access || 'INTERNAL'}</div>
+                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-sm font-medium", ROUNDED)}>{activePhase.access || 'PRIVATE'}</div>
                                             )}
                                         </div>
 

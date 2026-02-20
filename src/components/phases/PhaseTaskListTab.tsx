@@ -28,6 +28,11 @@ import {
     Eye,
     MoreHorizontal,
     FileText,
+    Lock,
+    Globe,
+    Check,
+    Search,
+    X,
 } from 'lucide-react';
 import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
@@ -121,7 +126,13 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
     const [taskListViewModalOpen, setTaskListViewModalOpen] = useState(false);
     const [taskListViewSelectedId, setTaskListViewSelectedId] = useState<string | null>(null);
     const [addPhaseInput, setAddPhaseInput] = useState('');
-    const [addTaskListInput, setAddTaskListInput] = useState<{ phaseId: string; value: string } | null>(null);
+    const [addTaskListInput, setAddTaskListInput] = useState<{
+        phaseId: string;
+        value: string;
+        access: 'PUBLIC' | 'PRIVATE';
+    } | null>(null);
+    const [showTaskListPhaseDropdown, setShowTaskListPhaseDropdown] = useState(false);
+    const [taskListPhaseSearch, setTaskListPhaseSearch] = useState('');
 
     const [createTaskModal, setCreateTaskModal] = useState<{
         isOpen: boolean;
@@ -312,13 +323,14 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
     };
 
     const handleAddTaskList = async () => {
-        if (!addTaskListInput?.value.trim()) return;
+        if (!addTaskListInput?.value.trim() || !addTaskListInput.phaseId) return;
         const tid = toast.loading('Creating task list...');
         try {
             await createTaskListMutation.mutateAsync({
                 projectId,
                 phaseId: addTaskListInput.phaseId,
                 name: addTaskListInput.value.trim(),
+                access: addTaskListInput.access,
             });
             toast.success('Task list created', undefined, { id: tid });
             setAddTaskListInput(null);
@@ -644,7 +656,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                             onClick={() => {
                                 const firstPhase = phases[0];
                                 if (firstPhase) {
-                                    setAddTaskListInput({ phaseId: firstPhase.id, value: '' });
+                                    setAddTaskListInput({ phaseId: firstPhase.id, value: '', access: 'PRIVATE' });
                                 } else {
                                     toast.error('Create a Phase first', 'You need at least one phase before adding task lists.');
                                 }
@@ -807,7 +819,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                             showViewButton,
                             workflow,
                             onUpdateStatus: handleUpdateStatus,
-                            onAddTaskList: (phaseId: string) => setAddTaskListInput({ phaseId, value: '' }),
+                            onAddTaskList: (phaseId: string) => setAddTaskListInput({ phaseId, value: '', access: 'PRIVATE' }),
                             onAddTask: (taskListId: string, phaseId: string) =>
                                 setCreateTaskModal({ isOpen: true, taskListId, phaseId }),
                             onEditTask: (task: StructuredTask) =>
@@ -847,35 +859,184 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
 
             {/* Add TaskList Modal */}
             {addTaskListInput && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[1px]" onClick={() => setAddTaskListInput(null)}>
-                    <div className="bg-white rounded-md shadow-2xl border border-gray-200 p-5 w-[400px]" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center gap-2.5 mb-4">
-                            <div className="w-8 h-8 rounded bg-emerald-50 flex items-center justify-center border border-emerald-100">
-                                <ListTodo className="w-4 h-4 text-emerald-600" />
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px]" onClick={() => setAddTaskListInput(null)} />
+                    <div className="relative w-full max-w-lg bg-white shadow-2xl h-full flex flex-col animate-slide-in-right" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-white to-gray-50/80">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100 shadow-sm">
+                                    <ListTodo className="w-5 h-5 text-emerald-600" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <h3 className="text-base font-bold text-gray-900 leading-tight">New Task List</h3>
+                                    <p className="text-[11px] text-gray-400 font-medium">Create a new list to group tasks</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-900">New Task List</h3>
-                                <p className="text-[11px] text-gray-400">Create a new list to group tasks</p>
+                            <button onClick={() => setAddTaskListInput(null)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="p-6 space-y-6">
+                                {/* Phase selection */}
+                                <div className="space-y-2.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                        <Layers className="w-3.5 h-3.5 text-indigo-500" /> Phase <span className="text-red-400">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowTaskListPhaseDropdown(!showTaskListPhaseDropdown)}
+                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-left font-medium text-gray-700 flex items-center justify-between hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all shadow-sm group"
+                                        >
+                                            <span className="truncate">
+                                                {phases.find(p => p.id === addTaskListInput.phaseId)?.name || "Select Phase"}
+                                            </span>
+                                            <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform duration-300", showTaskListPhaseDropdown && "rotate-180")} />
+                                        </button>
+
+                                        {showTaskListPhaseDropdown && (
+                                            <>
+                                                <div className="fixed inset-0 z-10" onClick={() => setShowTaskListPhaseDropdown(false)} />
+                                                <div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                                                    <div className="p-3 border-b border-gray-50 bg-gray-50/50">
+                                                        <div className="relative">
+                                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                placeholder="Search phases..."
+                                                                value={taskListPhaseSearch}
+                                                                onChange={(e) => setTaskListPhaseSearch(e.target.value)}
+                                                                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                                                        {phases
+                                                            .filter(p => !taskListPhaseSearch || p.name.toLowerCase().includes(taskListPhaseSearch.toLowerCase()))
+                                                            .map((phase) => (
+                                                                <button
+                                                                    key={phase.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setAddTaskListInput({ ...addTaskListInput, phaseId: phase.id });
+                                                                        setShowTaskListPhaseDropdown(false);
+                                                                        setTaskListPhaseSearch('');
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-full px-4 py-3 text-left text-sm hover:bg-indigo-50 transition-colors flex items-center justify-between group",
+                                                                        addTaskListInput.phaseId === phase.id ? "bg-indigo-50/50 text-indigo-700 font-bold" : "text-gray-600"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Layers className={cn("w-3.5 h-3.5", addTaskListInput.phaseId === phase.id ? "text-indigo-500" : "text-gray-300")} />
+                                                                        <span className="truncate">{phase.name}</span>
+                                                                    </div>
+                                                                    {addTaskListInput.phaseId === phase.id && <Check className="w-4 h-4 text-indigo-600" />}
+                                                                </button>
+                                                            ))}
+                                                        {phases.filter(p => !taskListPhaseSearch || p.name.toLowerCase().includes(taskListPhaseSearch.toLowerCase())).length === 0 && (
+                                                            <div className="px-4 py-6 text-center">
+                                                                <p className="text-sm text-gray-400 italic">No phases found</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Name Selection */}
+                                <div className="space-y-2.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                        <ListTodo className="w-3.5 h-3.5 text-emerald-500" /> Name <span className="text-red-400">*</span>
+                                    </label>
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        placeholder="e.g. Backend, Frontend, QA..."
+                                        value={addTaskListInput.value}
+                                        onChange={(e) => setAddTaskListInput({ ...addTaskListInput, value: e.target.value })}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && addTaskListInput.value.trim() && addTaskListInput.phaseId) handleAddTaskList();
+                                            if (e.key === 'Escape') setAddTaskListInput(null);
+                                        }}
+                                        className="w-full text-sm px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all shadow-sm placeholder:text-gray-300"
+                                    />
+                                </div>
+
+                                {/* Access Selection */}
+                                <div className="space-y-4">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">Access Level</label>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div
+                                            onClick={() => setAddTaskListInput({ ...addTaskListInput, access: 'PRIVATE' })}
+                                            className={cn(
+                                                "flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 group",
+                                                addTaskListInput.access === 'PRIVATE'
+                                                    ? "border-emerald-600 bg-emerald-50/30 ring-4 ring-emerald-500/5 shadow-md"
+                                                    : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm",
+                                                addTaskListInput.access === 'PRIVATE' ? "bg-emerald-600 text-white scale-105" : "bg-gray-50 text-gray-400 group-hover:bg-gray-100"
+                                            )}>
+                                                <Lock className="w-6 h-6" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between">
+                                                    <span className={cn("text-sm font-bold block", addTaskListInput.access === 'PRIVATE' ? "text-emerald-900" : "text-gray-700")}>Private List</span>
+                                                    {addTaskListInput.access === 'PRIVATE' && <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+                                                </div>
+                                                <span className="text-[11px] text-gray-500 font-medium">Only project team members can access this list</span>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            onClick={() => setAddTaskListInput({ ...addTaskListInput, access: 'PUBLIC' })}
+                                            className={cn(
+                                                "flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 group",
+                                                addTaskListInput.access === 'PUBLIC'
+                                                    ? "border-emerald-600 bg-emerald-50/30 ring-4 ring-emerald-500/5 shadow-md"
+                                                    : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm",
+                                                addTaskListInput.access === 'PUBLIC' ? "bg-emerald-600 text-white scale-105" : "bg-gray-50 text-gray-400 group-hover:bg-gray-100"
+                                            )}>
+                                                <Globe className="w-6 h-6" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between">
+                                                    <span className={cn("text-sm font-bold block", addTaskListInput.access === 'PUBLIC' ? "text-emerald-900" : "text-gray-700")}>Public List</span>
+                                                    {addTaskListInput.access === 'PUBLIC' && <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+                                                </div>
+                                                <span className="text-[11px] text-gray-500 font-medium">This list will be visible to everyone with project access</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <input
-                            autoFocus
-                            type="text"
-                            placeholder="e.g. Backend, Frontend, QA..."
-                            value={addTaskListInput.value}
-                            onChange={(e) => setAddTaskListInput({ ...addTaskListInput, value: e.target.value })}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleAddTaskList();
-                                if (e.key === 'Escape') setAddTaskListInput(null);
-                            }}
-                            className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
-                        />
-                        <div className="flex justify-end gap-2 mt-4">
-                            <button onClick={() => setAddTaskListInput(null)} className="px-3.5 py-2 text-xs text-gray-500 hover:text-gray-700 font-semibold">Cancel</button>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100 bg-gray-50/50">
+                            <button
+                                onClick={() => setAddTaskListInput(null)}
+                                className="px-5 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
+                            >
+                                Cancel
+                            </button>
                             <button
                                 onClick={handleAddTaskList}
-                                disabled={!addTaskListInput.value.trim()}
-                                className="px-4 py-2 text-xs font-semibold bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
+                                disabled={!addTaskListInput.value.trim() || !addTaskListInput.phaseId}
+                                className="px-8 py-2.5 text-sm font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-40 disabled:grayscale transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]"
                             >
                                 Create List
                             </button>
@@ -970,7 +1131,7 @@ export default function PhaseTaskListTab({ projectId, isEditable, currentUserRol
                     y={contextMenu.y}
                     onClose={() => setContextMenu(null)}
                     isEditable={isEditable}
-                    onAddTaskList={() => { setAddTaskListInput({ phaseId: contextMenu.row.phaseId, value: '' }); setContextMenu(null); }}
+                    onAddTaskList={() => { setAddTaskListInput({ phaseId: contextMenu.row.phaseId, value: '', access: 'PRIVATE' }); setContextMenu(null); }}
                     onAddTask={() => { setCreateTaskModal({ isOpen: true, taskListId: contextMenu.row.taskListId!, phaseId: contextMenu.row.phaseId }); setContextMenu(null); }}
                     onEditTask={() => { setTaskViewModal({ isOpen: true, selectedTaskId: contextMenu.row.taskId!, startInEditMode: true }); setContextMenu(null); }}
                     onDeletePhase={() => { setDeleteDialog({ isOpen: true, type: 'phase', id: contextMenu.row.phaseId, name: contextMenu.row.name }); setContextMenu(null); }}
