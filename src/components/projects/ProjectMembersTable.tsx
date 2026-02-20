@@ -18,6 +18,7 @@ interface ProjectMembersTableProps {
     isLoading: boolean;
     projectId: string;
     currentUserRole?: string;
+    searchQuery?: string;
 }
 
 const ROLE_COLORS = {
@@ -106,7 +107,7 @@ const DEFAULT_COL_DEF = {
     headerClass: 'bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
 };
 
-export function ProjectMembersTable({ members, isLoading, projectId, currentUserRole }: ProjectMembersTableProps) {
+export function ProjectMembersTable({ members, isLoading, projectId, currentUserRole, searchQuery = '' }: ProjectMembersTableProps) {
     const columnDefs: ColDef[] = useMemo(() => [
         {
             headerName: 'S.No',
@@ -201,6 +202,7 @@ export function ProjectMembersTable({ members, isLoading, projectId, currentUser
                 rowData={members}
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
+                quickFilterText={searchQuery || undefined}
                 rowHeight={60}
                 headerHeight={48}
                 pagination={true}
