@@ -12,44 +12,39 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
     return (
         <div
             className={cn(
-                "px-6 py-3 border-b border-slate-50 transition-all duration-150 cursor-pointer group",
+                "relative flex gap-4 items-start p-4 rounded-sm border transition-all duration-200 cursor-pointer group",
+                "hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5",
                 !notification.read
-                    ? "bg-slate-50/50"
-                    : "bg-white hover:bg-slate-50/30"
+                    ? "bg-slate-50 border-slate-200 shadow-sm"
+                    : "bg-white border-slate-100 shadow-sm opacity-90 hover:opacity-100"
             )}
             onClick={() => onMarkAsRead(notification.id)}
         >
-            <div className="flex gap-4 items-center h-7">
-                {/* Status Indicator */}
-                <div className="flex-shrink-0 w-1.5 flex justify-center">
-                    {!notification.read && (
-                        <div className="w-1.5 h-1.5 bg-[#091590] rounded-full" />
-                    )}
-                </div>
+            {/* Unread Indicator Dot - Absolute positioned */}
+            {!notification.read && (
+                <div className="absolute top-4 right-4 w-2 h-2 bg-blue-600 rounded-full animate-pulse shadow-sm shadow-blue-200" />
+            )}
 
-                {/* Content */}
-                <div className="flex-1 min-w-0 flex items-center gap-3">
-                    <div className={cn(
-                        "flex-shrink-0 transition-colors",
-                        !notification.read ? "text-slate-600" : "text-slate-300 group-hover:text-slate-400"
-                    )}>
-                        {getIcon(notification.type)}
-                    </div>
-
-                    <p className={cn(
-                        "text-[12px] truncate flex-1 tracking-tight",
-                        !notification.read ? "text-slate-900 font-bold" : "text-slate-500 font-medium"
-                    )}>
-                        {notification.message}
-                    </p>
+            <div className="flex-shrink-0 mt-0.5">
+                <div className={cn(
+                    "p-2 rounded-sm transition-colors",
+                    !notification.read ? "bg-white text-blue-600 shadow-sm ring-1 ring-slate-200" : "bg-slate-50 text-slate-400 group-hover:bg-white group-hover:text-blue-500 group-hover:shadow-sm"
+                )}>
+                    {getIcon(notification.type)}
                 </div>
+            </div>
 
-                {/* Meta / Time */}
-                <div className="flex-shrink-0 text-right">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap group-hover:text-slate-500 transition-colors">
-                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                    </p>
-                </div>
+            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                <p className={cn(
+                    "text-[13px] leading-relaxed tracking-tight",
+                    !notification.read ? "text-slate-900 font-semibold" : "text-slate-600 font-medium"
+                )}>
+                    {notification.message}
+                </p>
+
+                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider group-hover:text-blue-400 transition-colors">
+                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                </p>
             </div>
         </div>
     );

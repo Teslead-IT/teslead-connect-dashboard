@@ -11,6 +11,7 @@ import { SocialLoginButton } from "@/components/auth/social-login-button";
 import { EmailVerificationModal } from "@/components/auth/email-verification-modal";
 import { isAuth0Configured } from "@/lib/config";
 import { Loader } from "@/components/ui/Loader";
+import { Eye, EyeOff } from "lucide-react";
 
 type SignupMethod = 'email' | 'phone';
 type PhoneStep = 'REQUEST' | 'VERIFY';
@@ -23,6 +24,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [orgName, setOrgName] = useState("");
   const [otp, setOtp] = useState("");
@@ -274,16 +276,29 @@ export default function RegisterPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">
                     Password
                   </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-300 focus:border-[#091590] focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 outline-none text-base font-medium"
-                    placeholder="Create a strong password"
-                    autoComplete="new-password"
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-300 focus:border-[#091590] focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 outline-none text-base font-medium pr-12"
+                      placeholder="Create a strong password"
+                      autoComplete="new-password"
+                      required
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#091590] transition-colors p-1"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

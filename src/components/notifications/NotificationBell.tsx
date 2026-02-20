@@ -109,7 +109,7 @@ export function NotificationBell() {
 
             {/* Dropdown Panel */}
             <div
-                className={`absolute right-0 mt-2 w-96 max-h-[600px] bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden z-50 transition-all duration-200 ease-out origin-top-right transform ${isOpen
+                className={`absolute right-0 mt-2 w-96 max-h-[600px] bg-white border border-gray-200 rounded-sm shadow-2xl overflow-hidden z-50 transition-all duration-200 ease-out origin-top-right transform ${isOpen
                     ? 'opacity-100 scale-100 translate-y-0'
                     : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
                     }`}
@@ -174,11 +174,12 @@ export function NotificationBell() {
                             </div>
                             <div className="divide-y divide-[var(--color-border-primary)]">
                                 {messages.slice(0, 5).map((message: Message) => (
-                                    <MessageItem
-                                        key={message.id}
-                                        message={message}
-                                        onMarkAsRead={markMessageAsRead}
-                                    />
+                                    <div key={message.id} className="mb-2 last:mb-0">
+                                        <MessageItem
+                                            message={message}
+                                            onMarkAsRead={markMessageAsRead}
+                                        />
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -195,7 +196,7 @@ export function NotificationBell() {
                                     </h4>
                                 </div>
                             )}
-                            <div className="divide-y divide-[var(--color-border-primary)]">
+                            <div className="flex flex-col gap-3 p-3 bg-gray-50/50">
                                 {notifications.slice(0, 10).map((notification: Notification) => (
                                     <NotificationItem
                                         key={notification.id}
@@ -210,7 +211,7 @@ export function NotificationBell() {
                     {/* Empty State */}
                     {totalUnread === 0 && notifications.length === 0 && messages.length === 0 && (
                         <div className="text-center py-12">
-                            <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-bg-tertiary)] rounded-full mb-3">
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-bg-tertiary)] rounded-sm mb-3">
                                 <svg
                                     className="w-8 h-8 text-[var(--color-text-tertiary)]"
                                     fill="none"

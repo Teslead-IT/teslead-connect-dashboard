@@ -43,6 +43,7 @@ import {
     useDeleteTask,
     useRevokeAssignee,
 } from '@/hooks/use-tasks';
+import { useStructuredPhases } from '@/hooks/use-phases';
 import { useProjectMeetings } from '@/hooks/use-meetings';
 import { MeetingModal } from '@/components/meetings/MeetingModal';
 import { ProjectMembersTable } from '@/components/projects/ProjectMembersTable';
@@ -108,6 +109,7 @@ export default function ProjectDetailPage() {
     const { data: workflow = [], isLoading: workflowLoading } = useProjectWorkflow(projectId);
     const { data: members = [], isLoading: membersLoading } = useProjectMembers(projectId);
     const { data: tasks = [], isLoading: tasksLoading } = useProjectTasks(projectId);
+    const { data: phases = [] } = useStructuredPhases(projectId);
 
     // Mutations
     const createTaskMutation = useCreateTask(projectId);
@@ -377,7 +379,7 @@ export default function ProjectDetailPage() {
 
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                             <div
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
+                                className="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
                                 style={{ backgroundColor: project.color || '#3B82F6' }}
                             >
                                 {project.name.charAt(0).toUpperCase()}
@@ -428,14 +430,27 @@ export default function ProjectDetailPage() {
             <div className="flex-1 overflow-hidden bg-white">
                 {activeTab === 'tasks' ? (
                     <div className="h-full">
-                        <PhaseTaskListTab projectId={projectId} isEditable={project?.role !== 'VIEWER'} currentUserRole={project?.role} searchQuery={searchQuery} />
+                        <PhaseTaskListTab
+                            projectId={projectId}
+                            projectName={project.name}
+                            projectColor={project.color}
+                            isEditable={project?.role !== 'VIEWER'}
+                            currentUserRole={project?.role}
+                            searchQuery={searchQuery}
+                        />
                     </div>
                 ) : activeTab === 'users' ? (
                     <ProjectMembersTable members={members} isLoading={membersLoading} projectId={projectId} currentUserRole={project?.role} searchQuery={searchQuery} />
                 ) : activeTab === 'mom' ? (
                     <ProjectMOMTab projectId={projectId} />
                 ) : activeTab === 'phases' ? (
-                    <PhasesTab projectId={projectId} isEditable={project?.role !== 'VIEWER'} searchQuery={searchQuery} />
+                    <PhasesTab
+                        projectId={projectId}
+                        projectName={project.name}
+                        projectColor={project.color}
+                        isEditable={project?.role !== 'VIEWER'}
+                        searchQuery={searchQuery}
+                    />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
@@ -463,6 +478,7 @@ export default function ProjectDetailPage() {
                         parentTask={selectedParentTask}
                         initialData={editingTask || undefined}
                         isReadOnly={isReadOnly}
+                        phases={phases}
                     />
                 )
             }
