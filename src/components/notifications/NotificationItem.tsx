@@ -12,7 +12,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
     return (
         <div
             className={cn(
-                "relative flex gap-4 items-start p-4 rounded-2xl border transition-all duration-200 cursor-pointer group",
+                "relative flex gap-4 items-start p-4 rounded-sm border transition-all duration-200 cursor-pointer group",
                 "hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5",
                 !notification.read
                     ? "bg-slate-50 border-slate-200 shadow-sm"
@@ -27,7 +27,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
 
             <div className="flex-shrink-0 mt-0.5">
                 <div className={cn(
-                    "p-2 rounded-xl transition-colors",
+                    "p-2 rounded-sm transition-colors",
                     !notification.read ? "bg-white text-blue-600 shadow-sm ring-1 ring-slate-200" : "bg-slate-50 text-slate-400 group-hover:bg-white group-hover:text-blue-500 group-hover:shadow-sm"
                 )}>
                     {getIcon(notification.type)}

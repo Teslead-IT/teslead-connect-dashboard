@@ -100,7 +100,7 @@ export default function NotificationsPage() {
                             ))}
                             {notificationsData?.data.length === 0 && (
                                 <div className="flex flex-col items-center justify-center py-24 text-center">
-                                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-100">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-sm flex items-center justify-center mb-4 border border-gray-100">
                                         <Loader2 className="w-8 h-8 text-gray-300" />
                                     </div>
                                     <h3 className="text-gray-900 font-bold">No notifications found</h3>
