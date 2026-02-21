@@ -6,9 +6,15 @@ import {
     MeetingResponse,
     PaginatedMeetingsResponse,
 } from '@/services/meetings.service';
+import { useUser } from '@/hooks/use-auth';
 
 // Re-export types for convenience
 export type { MeetingResponse, MeetingCreatePayload, MeetingUpdatePayload, PaginatedMeetingsResponse };
+
+// Helper to extract orgId safely
+const getOrgIdFromUser = (user: any) => {
+    return user?.currentOrgId || user?.organizationId || user?.memberships?.[0]?.orgId || user?.orgId || user?.organizations?.[0]?.id || '';
+};
 
 /**
  * Fetch all meetings (paginated, with optional filters)
@@ -21,9 +27,13 @@ export function useMeetings(params?: {
     fromDate?: string;
     toDate?: string;
 }) {
+    const { data: user } = useUser();
+    const orgId = getOrgIdFromUser(user);
+
     return useQuery({
-        queryKey: ['meetings', params],
+        queryKey: ['meetings', orgId, params],
         queryFn: () => meetingsApi.getAll(params),
+        enabled: !!orgId,
     });
 }
 
@@ -31,10 +41,13 @@ export function useMeetings(params?: {
  * Fetch a single meeting by ID
  */
 export function useMeeting(meetingId: string) {
+    const { data: user } = useUser();
+    const orgId = getOrgIdFromUser(user);
+
     return useQuery({
-        queryKey: ['meeting', meetingId],
+        queryKey: ['meeting', orgId, meetingId],
         queryFn: () => meetingsApi.getById(meetingId),
-        enabled: !!meetingId,
+        enabled: !!meetingId && !!orgId,
     });
 }
 
@@ -63,7 +76,7 @@ export function useUpdateMeeting() {
             meetingsApi.update(id, data),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
-            queryClient.invalidateQueries({ queryKey: ['meeting', variables.id] });
+            queryClient.invalidateQueries({ queryKey: ['meeting'] });
         },
     });
 }
@@ -78,7 +91,7 @@ export function usePublishMeeting() {
         mutationFn: (meetingId: string) => meetingsApi.publish(meetingId),
         onSuccess: (_, meetingId) => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
-            queryClient.invalidateQueries({ queryKey: ['meeting', meetingId] });
+            queryClient.invalidateQueries({ queryKey: ['meeting'] });
         },
     });
 }
@@ -101,9 +114,12 @@ export function useDeleteMeeting() {
  * Fetch meetings for a specific project (Project MOM Tab)
  */
 export function useProjectMeetings(projectId: string, params?: { page?: number; limit?: number }) {
+    const { data: user } = useUser();
+    const orgId = getOrgIdFromUser(user);
+
     return useQuery({
-        queryKey: ['project-meetings', projectId, params],
+        queryKey: ['project-meetings', orgId, projectId, params],
         queryFn: () => meetingsApi.getByProject(projectId, params),
-        enabled: !!projectId,
+        enabled: !!projectId && !!orgId,
     });
 }

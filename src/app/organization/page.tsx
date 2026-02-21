@@ -5,10 +5,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser, useSwitchOrg } from "@/hooks/use-auth";
 import { Loader } from "@/components/ui/Loader";
-import { LogOut, ChevronRight, Building2, CheckCircle2, Video, FileText, Search, HelpCircle, UserPlus, Grid } from "lucide-react";
-import { UserStatusMenu } from "@/components/layout/UserStatusMenu";
-import { TimerMenu } from "@/components/layout/TimerMenu";
-import { NotificationBell } from "@/components/notifications";
+import { LogOut, ChevronRight, Building2, CheckCircle2, Video, FileText } from "lucide-react";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { authApi } from "@/services/auth.service";
 import { clearAuthTokens } from "@/lib/api-client";
@@ -78,21 +75,7 @@ function OrganizationsPageContent() {
                 </div>
 
                 {/* Right Actions */}
-                <div className="flex items-center gap-3">
-                    <UserStatusMenu />
-
-                    <div className="flex items-center gap-1 pr-4 border-r border-gray-100 hidden sm:flex">
-                        <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" title="Help Center">
-                            <HelpCircle className="w-5 h-5" />
-                        </button>
-                        <TimerMenu />
-                        <NotificationBell />
-                    </div>
-
-                    <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer hidden sm:block" title="Apps">
-                        <Grid className="w-5 h-5" />
-                    </button>
-
+                <div className="flex items-center gap-4">
                     {/* User Profile */}
                     <div className="flex items-center gap-2.5 pl-1 group hover:bg-gray-50 p-1.5 rounded-xl transition-all cursor-pointer">
                         <div className="hidden md:flex flex-col items-end">
@@ -110,6 +93,11 @@ function OrganizationsPageContent() {
                             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
                         </div>
                     </div>
+
+                    {/* Logout Button */}
+                    <button onClick={handleLogout} className="flex items-center justify-center p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Sign out">
+                        <LogOut className="w-5 h-5" />
+                    </button>
                 </div>
             </header>
 
@@ -177,27 +165,12 @@ function OrganizationsPageContent() {
 
                     {/* Footer Left */}
                     <div className="mt-8 pt-8 flex items-center justify-between text-sm text-gray-500 border-t border-gray-200 shrink-0">
-                        <button onClick={handleLogout} className="flex items-center gap-2 hover:text-gray-900 transition-colors cursor-pointer">
-                            <LogOut className="w-4 h-4" />
-                            Sign out
-                        </button>
-                        {/* <div className="flex gap-4">
-                            <a href="#" className="hover:text-gray-900 transition-colors">Support</a>
-                            <a href="#" className="hover:text-gray-900 transition-colors">Terms</a>
-                            <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
-                        </div> */}
                     </div>
                 </div>
 
                 {/* Right Side - Organizations List */}
                 <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col relative overflow-y-auto bg-white">
-                    {/* Mobile Logout (shows only on mobile) */}
-                    <div className="lg:hidden flex justify-end mb-8">
-                        <button onClick={handleLogout} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer text-sm">
-                            <LogOut className="w-4 h-4" />
-                            Sign out
-                        </button>
-                    </div>
+
 
                     <div className="max-w-xl w-full mx-auto lg:mt-24">
                         <div className="flex items-center justify-between mb-8">
