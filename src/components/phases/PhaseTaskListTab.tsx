@@ -33,6 +33,7 @@ import {
     Check,
     Search,
     X,
+    Timer,
 } from 'lucide-react';
 import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
@@ -1081,6 +1082,7 @@ function TasksBoardView({
                                             <div className="flex items-start justify-between gap-1 mb-1">
                                                 <h4 className="text-sm font-medium text-gray-900 flex-1 line-clamp-2">{task.title}</h4>
                                                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
+                                                    <button onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('trigger-timer', { detail: { taskName: task.title } })); }} className="p-1 hover:bg-blue-100 bg-blue-50 border border-blue-200 rounded text-blue-600 shadow-sm" title="Start Timer"><Timer className="w-3 h-3" /></button>
                                                     {onViewTask && (
                                                         <button onClick={() => onViewTask(task.id)} className="p-1 hover:bg-indigo-50 rounded" title="View"><Eye className="w-3 h-3 text-indigo-600" /></button>
                                                     )}
@@ -1209,7 +1211,7 @@ function TaskNameCell(params: ICellRendererParams) {
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); ctx.onDeletePhase(row.phaseId, row.name); }}
-                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-white/80 rounded transition-colors"
+                            className="p-1 text-gray-500 hover:text-red-600 hover:bg-white/80 rounded transition-colors"
                             title="Delete Phase"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1253,7 +1255,7 @@ function TaskNameCell(params: ICellRendererParams) {
                     <div className="ml-auto flex items-center gap-2 opacity-0 group-hover/tl:opacity-100 transition-opacity pr-2">
                         <button
                             onClick={(e) => { e.stopPropagation(); ctx.onAddTask(row.taskListId!, row.phaseId); }}
-                            className="inline-flex items-center gap-0.5 p-1 text-gray-700 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors group/btn-task"
+                            className="inline-flex items-center gap-0.5 p-1 text-gray-800 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors group/btn-task"
                             title="Add Task"
                         >
                             <FileText className="w-4 h-4" />
@@ -1261,7 +1263,7 @@ function TaskNameCell(params: ICellRendererParams) {
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); ctx.onAddTaskList(row.phaseId); }}
-                            className="inline-flex items-center gap-0.5 p-1 text-gray-700 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-colors group/btn-tl"
+                            className="inline-flex items-center gap-0.5 p-1 text-gray-800 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-colors group/btn-tl"
                             title="Add Task List"
                         >
                             <ListTodo className="w-4 h-4" />
@@ -1309,22 +1311,29 @@ function TaskNameCell(params: ICellRendererParams) {
             {ctx.isEditable && (
                 <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity pr-2">
                     <button
+                        onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('trigger-timer', { detail: { taskName: row.name } })); }}
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors mr-1"
+                        title="Start Timer"
+                    >
+                        <Timer className="w-3.5 h-3.5" />
+                    </button>
+                    <button
                         onClick={(e) => { e.stopPropagation(); ctx.onCreateSubtask(row.taskData, row.taskListId); }}
-                        className="p-1 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         title="Add Subtask"
                     >
                         <Plus className="w-3.5 h-3.5" />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.onEditTask?.(row.taskData); }}
-                        className="p-1 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         title="Edit"
                     >
                         <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.onDeleteTask(row.taskId, row.name); }}
-                        className="p-1 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                         title="Delete"
                     >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1372,7 +1381,7 @@ function ViewButtonCell(params: ICellRendererParams) {
     }
     if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
     return (
-        <div className="flex items-center h-full justify-center opacity-0 group-hover/task:opacity-100 transition-opacity">
+        <div className="flex items-center h-full justify-center opacity-0 group-hover/task:opacity-100 transition-opacity gap-1.5">
             <button
                 onClick={() => ctx.onViewTask?.(row.taskId!)}
                 className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded hover:bg-indigo-100 transition-colors"

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertCircle, CheckCircle, Info, AlertTriangle, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -129,6 +130,11 @@ export const Dialog: React.FC<DialogProps> = ({
     children,
 }) => {
     const [isAnimating, setIsAnimating] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const config = typeConfig[type];
     const Icon = config.icon;
@@ -181,9 +187,9 @@ export const Dialog: React.FC<DialogProps> = ({
         }
     };
 
-    if (!isOpen && !isAnimating) return null;
+    if (!mounted || (!isOpen && !isAnimating)) return null;
 
-    return (
+    return createPortal(
         <div
             className={cn(
                 'fixed inset-0 z-[100000] flex transition-all duration-300',
@@ -324,7 +330,8 @@ export const Dialog: React.FC<DialogProps> = ({
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

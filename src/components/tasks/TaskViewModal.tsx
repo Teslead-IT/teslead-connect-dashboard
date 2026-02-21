@@ -18,6 +18,8 @@ import {
     Search,
     Check,
     Layers,
+    Timer,
+    Clock,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import { Dialog } from '@/components/ui/Dialog';
@@ -370,6 +372,12 @@ function TaskDetailsPanel({
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                         </button>
                     )}
+                    <button onClick={() => { }} className={cn("inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors", rounded)}>
+                        <Clock className="w-3.5 h-3.5" /> Timesheets
+                    </button>
+                    <button onClick={() => window.dispatchEvent(new CustomEvent('trigger-timer', { detail: { taskName: task.title } }))} className={cn("inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors ml-auto shadow-sm", rounded)}>
+                        <Timer className="w-3.5 h-3.5" /> Start Timer
+                    </button>
                 </div>
             )}
             <div>

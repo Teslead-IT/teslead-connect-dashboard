@@ -68,30 +68,31 @@ function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, 
     const color = selectedStatus?.color || '#64748b';
 
     return (
-        <div className="h-full w-full flex items-center px-2 relative group" onClick={(e) => e.stopPropagation()}>
+        <div className="h-full w-full flex items-center relative group" onClick={(e) => e.stopPropagation()}>
             <select
                 value={localStatusId}
                 onChange={(e) => handleStatusChange(e.target.value)}
                 className={cn(
-                    "w-full h-[28px] pl-2 pr-6 py-0 text-[10px] font-bold tracking-wide rounded-sm border-0 appearance-none cursor-pointer outline-none transition-all",
-                    "hover:brightness-95 focus:ring-1 focus:ring-gray-200"
+                    "w-full h-full px-2 py-0 text-[10px] font-bold tracking-wide uppercase text-center border-0 appearance-none cursor-pointer outline-none transition-all",
+                    "hover:brightness-95 focus:ring-inset focus:ring-1 focus:ring-gray-200"
                 )}
                 style={{
                     backgroundColor: `${color}20`,
                     color: color,
+                    textAlignLast: 'center'
                 }}
             >
                 {allStatuses.length > 0 ? (
                     allStatuses.map((st: any) => (
-                        <option key={st.id} value={st.id} className="text-gray-900 bg-white font-medium">
+                        <option key={st.id} value={st.id} className="text-gray-900 bg-white font-medium uppercase text-left">
                             {st.name}
                         </option>
                     ))
                 ) : (
-                    <option value={currentStatus.id}>{currentStatus.name}</option>
+                    <option value={currentStatus.id} className="uppercase text-left">{currentStatus.name}</option>
                 )}
             </select>
-            <div className="absolute right-4 pointer-events-none text-current opacity-60">
+            <div className="absolute right-3 pointer-events-none opacity-80">
                 <ChevronDown className="w-3 h-3" style={{ color }} />
             </div>
         </div>
