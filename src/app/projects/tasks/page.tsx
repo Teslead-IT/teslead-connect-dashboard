@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -9,10 +9,12 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { List as ListIcon, Search, MoreVertical } from 'lucide-react';
+import { List as ListIcon, Search, MoreVertical, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
-import { useMyTasks } from '@/hooks/use-tasks';
+import { useMyTasks, useUpdateTask, useProjectWorkflow } from '@/hooks/use-tasks';
+import { useToast } from '@/components/ui/Toast';
+import { cn } from '@/lib/utils';
 import type { MyTask, MyTaskTag } from '@/types/task';
 
 // Priority labels (1=highest, 5=lowest)
@@ -23,6 +25,79 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
     4: { label: 'Low', color: 'bg-slate-100 text-slate-700 border-slate-200' },
     5: { label: 'Lowest', color: 'bg-gray-100 text-gray-600 border-gray-200' },
 };
+
+function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, projectId: string, currentStatus: any }) {
+    const { data: workflow = [] } = useProjectWorkflow(projectId);
+    const updateTaskMutation = useUpdateTask(projectId);
+    const toast = useToast();
+
+    // Local state for immediate feedback
+    const [localStatusId, setLocalStatusId] = useState(currentStatus.id);
+
+    // Sync local state with prop when it changes from server
+    useEffect(() => {
+        setLocalStatusId(currentStatus.id);
+    }, [currentStatus.id]);
+
+    const allStatuses = useMemo(() =>
+        workflow.flatMap((stage: any) => (stage.statuses || []).map((st: any) => ({ ...st, stageName: stage.name })))
+        , [workflow]);
+
+    const selectedStatus = useMemo(() => {
+        if (localStatusId === currentStatus.id) return currentStatus;
+        return allStatuses.find(s => s.id === localStatusId) || currentStatus;
+    }, [localStatusId, currentStatus, allStatuses]);
+
+    const handleStatusChange = async (newStatusId: string) => {
+        if (newStatusId === localStatusId) return;
+
+        // Optimistically update local state
+        setLocalStatusId(newStatusId);
+
+        const tid = toast.loading('Updating status...');
+        try {
+            await updateTaskMutation.mutateAsync({ taskId, data: { statusId: newStatusId } });
+            toast.success('Status updated', undefined, { id: tid });
+        } catch (error) {
+            // Revert on error
+            setLocalStatusId(currentStatus.id);
+            toast.error('Failed to update status', undefined, { id: tid });
+        }
+    };
+
+    const color = selectedStatus?.color || '#64748b';
+
+    return (
+        <div className="h-full w-full flex items-center relative group" onClick={(e) => e.stopPropagation()}>
+            <select
+                value={localStatusId}
+                onChange={(e) => handleStatusChange(e.target.value)}
+                className={cn(
+                    "w-full h-full px-2 py-0 text-[10px] font-bold tracking-wide uppercase text-center border-0 appearance-none cursor-pointer outline-none transition-all",
+                    "hover:brightness-95 focus:ring-inset focus:ring-1 focus:ring-gray-200"
+                )}
+                style={{
+                    backgroundColor: `${color}20`,
+                    color: color,
+                    textAlignLast: 'center'
+                }}
+            >
+                {allStatuses.length > 0 ? (
+                    allStatuses.map((st: any) => (
+                        <option key={st.id} value={st.id} className="text-gray-900 bg-white font-medium uppercase text-left">
+                            {st.name}
+                        </option>
+                    ))
+                ) : (
+                    <option value={currentStatus.id} className="uppercase text-left">{currentStatus.name}</option>
+                )}
+            </select>
+            <div className="absolute right-3 pointer-events-none opacity-80">
+                <ChevronDown className="w-3 h-3" style={{ color }} />
+            </div>
+        </div>
+    );
+}
 
 export default function TasksPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -142,22 +217,9 @@ export default function TasksPage() {
     };
 
     const StatusRenderer = (props: ICellRendererParams) => {
-        const status = props.data?.status;
+        const { id: taskId, status, projectId } = props.data as MyTask;
         if (!status) return null;
-
-        return (
-            <div className="h-full w-full flex items-center">
-                <span
-                    className="flex items-center justify-center w-full h-full px-3 text-[10px] font-bold tracking-wide border-0"
-                    style={{
-                        backgroundColor: status.color ? `${status.color}20` : '#f1f5f9',
-                        color: status.color || '#475569',
-                    }}
-                >
-                    {status.name}
-                </span>
-            </div>
-        );
+        return <StatusDropdown taskId={taskId} projectId={projectId} currentStatus={status} />;
     };
 
     const PriorityRenderer = (props: ICellRendererParams) => {
@@ -442,6 +504,7 @@ export default function TasksPage() {
                                 rowData={filteredTasks}
                                 columnDefs={columnDefs}
                                 defaultColDef={defaultColDef}
+                                getRowId={(params) => params.data.id}
                                 rowHeight={48}
                                 headerHeight={40}
                                 pagination={true}

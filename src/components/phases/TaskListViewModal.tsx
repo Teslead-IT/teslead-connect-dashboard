@@ -135,29 +135,12 @@ export function TaskListViewModal({
                         className={cn("absolute z-10 bg-white shadow-2xl overflow-hidden flex flex-col", ROUNDED_LG)}
                         style={{ top: INSET, left: INSET, right: INSET, bottom: INSET }}
                     >
-                        <div className="bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between flex-shrink-0">
+                        <div className="bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between flex-shrink-0 relative z-10">
                             <div className="flex items-center gap-3">
                                 <div className={cn("w-9 h-9 bg-gradient-to-br from-[#091590] to-[#2563eb] flex items-center justify-center shadow-md", ROUNDED)}>
                                     <ListTodo className="w-5 h-5 text-white" />
                                 </div>
-                                <div className="flex items-center gap-2 overflow-hidden mr-4">
-                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded shadow-sm whitespace-nowrap">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                        <span className="text-[9px] font-medium text-slate-500 uppercase tracking-tighter leading-none">{project?.name || 'Project'}</span>
-                                    </div>
-                                    <span className="text-gray-300 text-[10px] font-medium">&gt;</span>
-                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-50 border border-indigo-100 rounded shadow-sm whitespace-nowrap">
-                                        <Layers className="w-3 h-3 text-indigo-500" />
-                                        <span className="text-[9px] font-medium text-indigo-500 uppercase tracking-tighter leading-none">{activePhase?.name || 'Phase'}</span>
-                                    </div>
-                                    <span className="text-gray-300 text-[10px] font-medium">&gt;</span>
-                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-100 rounded shadow-sm whitespace-nowrap">
-                                        <ListTodo className="w-3 h-3 text-emerald-500" />
-                                        <span className="text-[9px] font-medium text-emerald-500 uppercase tracking-tighter leading-none">Task Lists</span>
-                                    </div>
-                                    <span className="text-gray-300 text-[10px] font-medium">&gt;</span>
-                                    <h2 className="text-lg font-bold text-gray-900 tracking-tight leading-none truncate uppercase">{activeTaskList?.name || 'Select List'}</h2>
-                                </div>
+                                <h2 className="text-xl font-extrabold text-[#091590] tracking-tight uppercase">{activeTaskList?.name || 'Select List'}</h2>
                             </div>
                             <button
                                 onClick={onClose}
@@ -165,6 +148,24 @@ export function TaskListViewModal({
                             >
                                 <X className="w-5 h-5" />
                             </button>
+                        </div>
+
+                        {/* Breadcrumbs Bar (One level lower) */}
+                        <div className="bg-slate-50 border-b border-slate-100 px-5 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white border border-slate-200 rounded shadow-xs whitespace-nowrap">
+                                <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{project?.name || 'Project'}</span>
+                            </div>
+                            <span className="text-slate-300 text-[10px]">&gt;</span>
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded shadow-xs whitespace-nowrap">
+                                <Layers className="w-2.5 h-2.5 text-indigo-500" />
+                                <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider">{activePhase?.name || 'Phase'}</span>
+                            </div>
+                            <span className="text-slate-300 text-[10px]">&gt;</span>
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded shadow-xs whitespace-nowrap">
+                                <ListTodo className="w-2.5 h-2.5 text-emerald-500" />
+                                <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider">Task Lists</span>
+                            </div>
                         </div>
                         <div className="flex-1 flex overflow-hidden">
                             <div className="w-[280px] border-r border-gray-100 bg-gray-50/50 flex flex-col flex-shrink-0 overflow-hidden">

@@ -53,6 +53,7 @@ export function useUpdateTask(projectId: string) {
             taskService.updateTask(taskId, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: taskKeys.all(projectId) });
+            queryClient.invalidateQueries({ queryKey: taskKeys.myTasks() });
             queryClient.invalidateQueries({ queryKey: ['phases', 'structured', projectId] });
         },
     });
