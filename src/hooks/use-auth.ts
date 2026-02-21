@@ -138,7 +138,7 @@ export function useVerifyEmail() {
             // Update cached user
             queryClient.setQueryData(authKeys.user(), data.user);
 
-            router.push('/dashboard');
+            router.push('/organization');
 
         },
     });

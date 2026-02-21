@@ -56,13 +56,15 @@ const authHandler = handleAuth({
         const audience = process.env.AUTH0_AUDIENCE || process.env.NEXT_PUBLIC_AUTH0_AUDIENCE;
         console.log('Initiating Auth0 Login with Audience:', audience);
 
+        const returnTo = searchParams.get('returnTo') || '/organization';
+
         return handleLogin({
             authorizationParams: {
                 audience: audience,
                 scope: 'openid profile email offline_access',
                 ...(connection && { connection }),
             },
-            returnTo: '/dashboard',
+            returnTo: returnTo,
         })(req, res);
     },
     callback: handleCallback({

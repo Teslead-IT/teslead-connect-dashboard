@@ -1262,8 +1262,8 @@ function ProjectMOMTab({ projectId }: { projectId: string }) {
                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
                     <Calendar className="w-8 h-8 text-gray-300" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">No MOMs found</h3>
-                <p className="text-sm">There are no meetings associated with this project yet.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No Minutes of Meeting found</h3>
+                <p className="text-sm">There are no Minutes of Meeting associated with this project yet.</p>
             </div>
         );
     }

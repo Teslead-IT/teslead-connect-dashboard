@@ -3,18 +3,22 @@
 import React from 'react';
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 interface SocialLoginButtonProps {
     provider: 'google' | 'github';
     disabled?: boolean;
-    
+
 }
 
 export function SocialLoginButton({ provider, disabled }: SocialLoginButtonProps) {
+    const searchParams = useSearchParams();
+    const returnToUrl = searchParams.get('returnTo') || '/dashboard';
+    const returnToWorkspace = `/organization?returnTo=${encodeURIComponent(returnToUrl)}`;
 
     const handleLogin = () => {
         // Redirect to Server-Side Login Route
-        window.location.href = `/api/auth/login?connection=${provider === 'google' ? 'google-oauth2' : 'github'}`;
+        window.location.href = `/api/auth/login?connection=${provider === 'google' ? 'google-oauth2' : 'github'}&returnTo=${encodeURIComponent(returnToWorkspace)}`;
     };
 
     return (
