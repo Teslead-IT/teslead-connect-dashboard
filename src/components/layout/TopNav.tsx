@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notifications';
 import { SendInviteModal } from '@/components/invitations';
 import { AppsMenu } from './AppsMenu';
+import { TimerMenu } from './TimerMenu';
+import { UserStatusMenu } from './UserStatusMenu';
 import { useOrgPermissions, type OrgRole } from '@/lib/permissions';
 
 export function TopNav() {
@@ -80,19 +82,22 @@ export function TopNav() {
 
                 {/* Right Actions - Professional & Balanced */}
                 <div className="flex items-center gap-3">
-                    {/* Organization Badge if exists */}
-                    {orgName && (
-                        <Link
-                            href="/settings/organization"
-                            className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-gray-50/50 hover:bg-blue-50/50 border border-gray-100 hover:border-blue-100 rounded-full transition-all group/org"
-                        >
-                            <Building2 className="w-3.5 h-3.5 text-gray-400 group-hover/org:text-[#091590] transition-colors" />
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-bold text-gray-500 group-hover/org:text-[#091590] uppercase tracking-tight transition-colors">{orgName}</span>
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{email}</span>
-                            </div>
-                        </Link>
-                    )}
+                    <div className="flex items-center gap-3 pr-4 border-r border-gray-100">
+                        {/* Organization Badge if exists */}
+                        {orgName && (
+                            <Link
+                                href="/settings/organization"
+                                className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-gray-50/50 hover:bg-blue-50/50 border border-gray-100 hover:border-blue-100 rounded-full transition-all group/org"
+                            >
+                                <Building2 className="w-3.5 h-3.5 text-gray-400 group-hover/org:text-[#091590] transition-colors" />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-gray-500 group-hover/org:text-[#091590] uppercase tracking-tight transition-colors">{orgName}</span>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{email}</span>
+                                </div>
+                            </Link>
+                        )}
+                        <UserStatusMenu />
+                    </div>
 
                     {/* Action Group */}
                     <div className="flex items-center gap-1 pr-4 border-r border-gray-100">
@@ -114,6 +119,7 @@ export function TopNav() {
                             <HelpCircle className="w-5 h-5" />
                         </button>
 
+                        <TimerMenu />
                         {/* 🔔 Real-time Notification Bell with WebSocket */}
                         <NotificationBell />
                     </div>

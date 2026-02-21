@@ -18,6 +18,8 @@ import {
     Search,
     Check,
     Layers,
+    Timer,
+    Clock,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import { Dialog } from '@/components/ui/Dialog';
@@ -186,29 +188,12 @@ export function TaskViewModal({
                         style={{ top: 20, left: 20, right: 20, bottom: 20 }}
                     >
                         {/* Top Bar */}
-                        <div className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between flex-shrink-0">
+                        <div className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between flex-shrink-0 relative z-10">
                             <div className="flex items-center gap-3">
                                 <div className={cn("w-9 h-9 bg-gradient-to-br from-[#091590] to-[#2563eb] flex items-center justify-center shadow-md", ROUNDED)}>
                                     <ListTodo className="w-5 h-5 text-white" />
                                 </div>
-                                <div className="flex items-center gap-2 overflow-hidden mr-4">
-                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded shadow-sm whitespace-nowrap">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                        <span className="text-[9px] font-medium text-slate-500 uppercase tracking-tighter leading-none">{project?.name || 'Project'}</span>
-                                    </div>
-                                    <span className="text-gray-300 text-[10px] font-medium">&gt;</span>
-                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-50 border border-indigo-100 rounded shadow-sm whitespace-nowrap">
-                                        <Layers className="w-3 h-3 text-indigo-500" />
-                                        <span className="text-[9px] font-medium text-indigo-500 uppercase tracking-tighter leading-none">{activeGroup?.phase.name || 'Phase'}</span>
-                                    </div>
-                                    <span className="text-gray-300 text-[10px] font-medium">&gt;</span>
-                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-100 rounded shadow-sm whitespace-nowrap">
-                                        <ListTodo className="w-3 h-3 text-emerald-500" />
-                                        <span className="text-[9px] font-medium text-emerald-500 uppercase tracking-tighter leading-none">{activeGroup?.taskList.name || 'List'}</span>
-                                    </div>
-                                    <span className="text-gray-300 text-[10px] font-medium">&gt;</span>
-                                    <h2 className="text-lg font-bold text-gray-900 tracking-tight leading-none truncate uppercase">{getHeaderTitle()}</h2>
-                                </div>
+                                <h2 className="text-xl font-body font-extrabold text-[#091590] tracking-tight uppercase">{getHeaderTitle()}</h2>
                             </div>
                             <button
                                 onClick={handleClose}
@@ -216,6 +201,24 @@ export function TaskViewModal({
                             >
                                 <X className="w-5 h-5" />
                             </button>
+                        </div>
+
+                        {/* Breadcrumbs Bar (One level lower) */}
+                        <div className="bg-slate-50 border-b border-slate-100 px-5 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white border border-slate-200 rounded shadow-xs whitespace-nowrap">
+                                <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{project?.name || 'Project'}</span>
+                            </div>
+                            <span className="text-slate-300 text-[10px]">&gt;</span>
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded shadow-xs whitespace-nowrap">
+                                <Layers className="w-2.5 h-2.5 text-indigo-500" />
+                                <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider">{activeGroup?.phase.name || 'Phase'}</span>
+                            </div>
+                            <span className="text-slate-300 text-[10px]">&gt;</span>
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded shadow-xs whitespace-nowrap">
+                                <ListTodo className="w-2.5 h-2.5 text-emerald-500" />
+                                <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider">{activeGroup?.taskList.name || 'List'}</span>
+                            </div>
                         </div>
 
                         {/* Body */}
@@ -369,6 +372,12 @@ function TaskDetailsPanel({
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                         </button>
                     )}
+                    <button onClick={() => { }} className={cn("inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors", rounded)}>
+                        <Clock className="w-3.5 h-3.5" /> Timesheets
+                    </button>
+                    <button onClick={() => window.dispatchEvent(new CustomEvent('trigger-timer', { detail: { taskName: task.title } }))} className={cn("inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors ml-auto shadow-sm", rounded)}>
+                        <Timer className="w-3.5 h-3.5" /> Start Timer
+                    </button>
                 </div>
             )}
             <div>
