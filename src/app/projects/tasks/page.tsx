@@ -9,10 +9,12 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { List as ListIcon, Search, MoreVertical } from 'lucide-react';
+import { List as ListIcon, Search, MoreVertical, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
-import { useMyTasks } from '@/hooks/use-tasks';
+import { useMyTasks, useUpdateTask, useProjectWorkflow } from '@/hooks/use-tasks';
+import { useToast } from '@/components/ui/Toast';
+import { cn } from '@/lib/utils';
 import type { MyTask, MyTaskTag } from '@/types/task';
 
 // Priority labels (1=highest, 5=lowest)
@@ -23,6 +25,59 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
     4: { label: 'Low', color: 'bg-slate-100 text-slate-700 border-slate-200' },
     5: { label: 'Lowest', color: 'bg-gray-100 text-gray-600 border-gray-200' },
 };
+
+function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, projectId: string, currentStatus: any }) {
+    const { data: workflow = [] } = useProjectWorkflow(projectId);
+    const updateTaskMutation = useUpdateTask(projectId);
+    const toast = useToast();
+
+    const allStatuses = useMemo(() =>
+        workflow.flatMap((stage: any) => (stage.statuses || []).map((st: any) => ({ ...st, stageName: stage.name })))
+        , [workflow]);
+
+    const handleStatusChange = async (newStatusId: string) => {
+        if (newStatusId === currentStatus.id) return;
+        const tid = toast.loading('Updating status...');
+        try {
+            await updateTaskMutation.mutateAsync({ taskId, data: { statusId: newStatusId } });
+            toast.success('Status updated', undefined, { id: tid });
+        } catch {
+            toast.error('Failed to update status', undefined, { id: tid });
+        }
+    };
+
+    const color = currentStatus.color || '#64748b';
+
+    return (
+        <div className="h-full w-full flex items-center px-2 relative group" onClick={(e) => e.stopPropagation()}>
+            <select
+                value={currentStatus.id}
+                onChange={(e) => handleStatusChange(e.target.value)}
+                className={cn(
+                    "w-full h-[28px] pl-2 pr-6 py-0 text-[10px] font-bold tracking-wide rounded-sm border-0 appearance-none cursor-pointer outline-none transition-all",
+                    "hover:brightness-95 focus:ring-1 focus:ring-gray-200"
+                )}
+                style={{
+                    backgroundColor: `${color}20`,
+                    color: color,
+                }}
+            >
+                {allStatuses.length > 0 ? (
+                    allStatuses.map((st: any) => (
+                        <option key={st.id} value={st.id} className="text-gray-900 bg-white font-medium">
+                            {st.name}
+                        </option>
+                    ))
+                ) : (
+                    <option value={currentStatus.id}>{currentStatus.name}</option>
+                )}
+            </select>
+            <div className="absolute right-4 pointer-events-none text-current opacity-60">
+                <ChevronDown className="w-3 h-3" style={{ color }} />
+            </div>
+        </div>
+    );
+}
 
 export default function TasksPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -142,22 +197,9 @@ export default function TasksPage() {
     };
 
     const StatusRenderer = (props: ICellRendererParams) => {
-        const status = props.data?.status;
+        const { id: taskId, status, projectId } = props.data as MyTask;
         if (!status) return null;
-
-        return (
-            <div className="h-full w-full flex items-center">
-                <span
-                    className="flex items-center justify-center w-full h-full px-3 text-[10px] font-bold tracking-wide border-0"
-                    style={{
-                        backgroundColor: status.color ? `${status.color}20` : '#f1f5f9',
-                        color: status.color || '#475569',
-                    }}
-                >
-                    {status.name}
-                </span>
-            </div>
-        );
+        return <StatusDropdown taskId={taskId} projectId={projectId} currentStatus={status} />;
     };
 
     const PriorityRenderer = (props: ICellRendererParams) => {

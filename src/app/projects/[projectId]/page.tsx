@@ -422,7 +422,8 @@ export default function ProjectDetailPage() {
                     className="border-none flex-1 min-w-0 -ml-2 sm:ml-0 overflow-x-auto no-scrollbar"
                 />
                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                    {activeTab === 'tasks' && <div id="tasks-toolbar-slot" className="flex items-center" />}
+                    <div id="tasks-toolbar-slot" className="flex items-center" />
+                    <div id="phases-toolbar-slot" className="flex items-center" />
                 </div>
             </div>
 
