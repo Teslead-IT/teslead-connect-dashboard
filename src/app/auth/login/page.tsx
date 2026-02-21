@@ -23,7 +23,8 @@ function LoginPageContent() {
 
     const router = useRouter();
     const searchParams = useSearchParams();
-    const returnTo = searchParams.get('returnTo') || '/dashboard';
+    const returnToUrl = searchParams.get('returnTo') || '/dashboard';
+    const returnTo = `/organization?returnTo=${encodeURIComponent(returnToUrl)}`;
 
     const { user: auth0User, isLoading: isAuth0Loading } = useAuth0User();
     const { data: backendUser, isLoading: isBackendLoading, isFetching } = useUser();
@@ -223,7 +224,7 @@ function LoginPageContent() {
 
                         <p className="text-center text-gray-500 text-sm mt-6">
                             Don't have an account?{' '}
-                            <Link href={returnTo !== '/dashboard' ? `/auth/register?returnTo=${encodeURIComponent(returnTo)}` : "/auth/register"} className="font-bold cursor-pointer text-[#091590] hover:text-[#071170] hover:underline transition-colors">
+                            <Link href={returnToUrl !== '/dashboard' ? `/auth/register?returnTo=${encodeURIComponent(returnToUrl)}` : "/auth/register"} className="font-bold cursor-pointer text-[#091590] hover:text-[#071170] hover:underline transition-colors">
                                 Sign up now
                             </Link>
                         </p>
