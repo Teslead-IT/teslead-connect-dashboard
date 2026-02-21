@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -31,27 +31,46 @@ function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, 
     const updateTaskMutation = useUpdateTask(projectId);
     const toast = useToast();
 
+    // Local state for immediate feedback
+    const [localStatusId, setLocalStatusId] = useState(currentStatus.id);
+
+    // Sync local state with prop when it changes from server
+    useEffect(() => {
+        setLocalStatusId(currentStatus.id);
+    }, [currentStatus.id]);
+
     const allStatuses = useMemo(() =>
         workflow.flatMap((stage: any) => (stage.statuses || []).map((st: any) => ({ ...st, stageName: stage.name })))
         , [workflow]);
 
+    const selectedStatus = useMemo(() => {
+        if (localStatusId === currentStatus.id) return currentStatus;
+        return allStatuses.find(s => s.id === localStatusId) || currentStatus;
+    }, [localStatusId, currentStatus, allStatuses]);
+
     const handleStatusChange = async (newStatusId: string) => {
-        if (newStatusId === currentStatus.id) return;
+        if (newStatusId === localStatusId) return;
+
+        // Optimistically update local state
+        setLocalStatusId(newStatusId);
+
         const tid = toast.loading('Updating status...');
         try {
             await updateTaskMutation.mutateAsync({ taskId, data: { statusId: newStatusId } });
             toast.success('Status updated', undefined, { id: tid });
-        } catch {
+        } catch (error) {
+            // Revert on error
+            setLocalStatusId(currentStatus.id);
             toast.error('Failed to update status', undefined, { id: tid });
         }
     };
 
-    const color = currentStatus.color || '#64748b';
+    const color = selectedStatus?.color || '#64748b';
 
     return (
         <div className="h-full w-full flex items-center px-2 relative group" onClick={(e) => e.stopPropagation()}>
             <select
-                value={currentStatus.id}
+                value={localStatusId}
                 onChange={(e) => handleStatusChange(e.target.value)}
                 className={cn(
                     "w-full h-[28px] pl-2 pr-6 py-0 text-[10px] font-bold tracking-wide rounded-sm border-0 appearance-none cursor-pointer outline-none transition-all",
@@ -484,6 +503,7 @@ export default function TasksPage() {
                                 rowData={filteredTasks}
                                 columnDefs={columnDefs}
                                 defaultColDef={defaultColDef}
+                                getRowId={(params) => params.data.id}
                                 rowHeight={48}
                                 headerHeight={40}
                                 pagination={true}

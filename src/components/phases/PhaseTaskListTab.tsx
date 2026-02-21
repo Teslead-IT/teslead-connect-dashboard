@@ -1389,17 +1389,45 @@ function StatusCell(params: ICellRendererParams) {
     const ctx = params.context;
 
     /* Phase row: no status in backend – hide for now */
-    if (row.rowType === 'phase') return null;
-    if (row.rowType === 'tasklist') return null;
-
-    const statusName = (row.status?.name || '').toLowerCase();
-    const isNotStarted = statusName.includes('not started') || statusName.includes('not_started');
-    const { workflow = [], onUpdateStatus, isEditable } = ctx || {};
+    if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
 
     if (!row.status) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
 
-    const allStatuses = workflow.flatMap((s: any) => (s.statuses || []).map((st: any) => ({ ...st, stageName: s.name })));
-    const color = row.status.color || '#64748b';
+    const { workflow = [], onUpdateStatus, isEditable } = ctx || {};
+    const allStatuses = useMemo(() =>
+        workflow.flatMap((s: any) => (s.statuses || []).map((st: any) => ({ ...st, stageName: s.name })))
+        , [workflow]);
+
+    // Local state for immediate feedback
+    const [localStatusId, setLocalStatusId] = useState(row.status.id);
+
+    // Sync local state with row data when it changes from server
+    useEffect(() => {
+        setLocalStatusId(row.status?.id || '');
+    }, [row.status?.id]);
+
+    const selectedStatus = useMemo(() => {
+        if (localStatusId === row.status?.id) return row.status;
+        return allStatuses.find((s: any) => s.id === localStatusId) || row.status;
+    }, [localStatusId, row.status, allStatuses]);
+
+    const handleStatusChange = async (newStatusId: string) => {
+        if (newStatusId === localStatusId) return;
+
+        // Optimistically update local state
+        setLocalStatusId(newStatusId);
+
+        try {
+            await onUpdateStatus?.(row.taskId!, newStatusId);
+        } catch {
+            // Revert on error
+            setLocalStatusId(row.status?.id || '');
+        }
+    };
+
+    const statusName = (selectedStatus?.name || '').toLowerCase();
+    const isNotStarted = statusName.includes('not started') || statusName.includes('not_started');
+    const color = selectedStatus?.color || '#64748b';
     const chipStyle = isNotStarted
         ? undefined
         : { backgroundColor: `${color}18`, color, borderColor: 'transparent' };
@@ -1412,8 +1440,8 @@ function StatusCell(params: ICellRendererParams) {
         return (
             <div className="status-select-wrapper h-full w-full max-w-[140px] flex items-center px-2" onClick={(e) => e.stopPropagation()}>
                 <select
-                    value={row.status.id}
-                    onChange={(e) => onUpdateStatus?.(row.taskId!, e.target.value)}
+                    value={localStatusId}
+                    onChange={(e) => handleStatusChange(e.target.value)}
                     className={cn('status-select-base flex items-center justify-center rounded-sm', chipClass)}
                     style={{
                         ...chipStyle,
@@ -1421,9 +1449,13 @@ function StatusCell(params: ICellRendererParams) {
                         MozAppearance: 'none',
                     }}
                 >
-                    {allStatuses.map((st: any) => (
-                        <option key={st.id} value={st.id}>{st.name}</option>
-                    ))}
+                    {allStatuses.length > 0 ? (
+                        allStatuses.map((st: any) => (
+                            <option key={st.id} value={st.id}>{st.name}</option>
+                        ))
+                    ) : (
+                        <option value={row.status.id}>{row.status.name}</option>
+                    )}
                 </select>
                 <ChevronDown className="status-select-icon" style={chipStyle ? { color } : undefined} />
             </div>
@@ -1440,7 +1472,7 @@ function StatusCell(params: ICellRendererParams) {
                 )}
                 style={chipStyle}
             >
-                {row.status.name}
+                {selectedStatus?.name}
             </span>
         </div>
     );
