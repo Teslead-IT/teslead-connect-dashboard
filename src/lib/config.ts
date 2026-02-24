@@ -52,11 +52,42 @@ export const API_CONFIG = {
             UNREAD: '/messages?status=unread',
             MARK_READ: (id: string) => `/messages/${id}/read`,
         },
+        ORG: {
+            SETTINGS: '/org/settings',
+            ALL: '/organizations',
+        },
+        TIMERS: {
+            ACTIVE: '/timers/active',
+            START: '/timers/start',
+            STOP: '/timers/stop',
+        },
+        ATTENDANCE: {
+            TODAY: '/attendance/today',
+            ME: '/attendance/me',
+            USER: (userId: string) => `/attendance/users/${userId}`,
+            CHECK_IN: '/attendance/check-in',
+            CHECK_OUT: '/attendance/check-out',
+            START_BREAK: '/attendance/start-break',
+            END_BREAK: '/attendance/end-break',
+        },
+        TIME_ENTRIES: {
+            LIST: '/time-entries',
+            CREATE: '/time-entries',
+            UPDATE: (id: string) => `/time-entries/${id}`,
+            DELETE: (id: string) => `/time-entries/${id}`,
+        },
+        TIMESHEETS: {
+            MY: '/timesheets/my',
+            TEAM: '/timesheets/team',
+            SUBMIT: '/timesheets/submit',
+            APPROVE: (id: string) => `/timesheets/${id}/approve`,
+        },
     },
 
     // WebSocket Configuration
     WEBSOCKET: {
         NAMESPACE: '/notifications',
+        PRESENCE_NAMESPACE: '/presence',
     },
 
     // Token Storage Keys

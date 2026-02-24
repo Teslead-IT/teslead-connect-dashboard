@@ -48,6 +48,13 @@ export interface Task {
     assigneeIds: string[];
     assignees?: TaskAssignee[];
     status: TaskStatus;
+    startDate: string | null;
+    completionPercentage: number;
+    tags?: Array<{
+        id: string;
+        name: string;
+        color: string;
+    }>;
     createdAt: string;
     updatedAt: string;
 }
@@ -62,6 +69,9 @@ export interface CreateTaskPayload {
     statusId: string;
     taskListId?: string;
     phaseId?: string;
+    startDate?: string;
+    completionPercentage?: number;
+    tagIds?: string[];
 }
 
 export interface UpdateTaskPayload {
@@ -72,6 +82,9 @@ export interface UpdateTaskPayload {
     assigneeIds?: string[];
     statusId?: string;
     parentId?: string | null;
+    startDate?: string;
+    completionPercentage?: number;
+    tagIds?: string[];
 }
 
 export interface TaskResponse extends Task { }
@@ -118,6 +131,8 @@ export interface MyTask {
     status: MyTaskStatus;
     assignees: MyTaskAssignee[];
     tags: MyTaskTag[];
+    startDate: string | null;
+    completionPercentage: number;
     createdAt: string;
     updatedAt: string;
 }

@@ -29,6 +29,9 @@ import type { CreateTaskPayload, TaskPriority, WorkflowStage } from '@/types/tas
 import type { ProjectMember } from '@/types/project';
 
 import { useProject } from '@/hooks/use-projects';
+import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
+import { useTimeEntries, useCreateTimeEntry } from '@/hooks/use-time-entries';
+import { useOrgSettings } from '@/hooks/use-org-settings';
 
 interface TaskViewModalProps {
     isOpen: boolean;
@@ -80,6 +83,7 @@ export function TaskViewModal({
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [contentTab, setContentTab] = useState<'details' | 'timesheets'>('details');
 
     const { taskListGroups, allTasksFlat } = useMemo(() => {
         const allGroups: { phase: PhaseWithTaskLists; taskList: { id: string; name: string }; tasks: StructuredTask[] }[] = [];
@@ -113,6 +117,7 @@ export function TaskViewModal({
         if (isOpen) {
             setActiveTaskId(selectedTaskId);
             setIsEditMode(!!startInEditMode);
+            setContentTab('details');
             setError(null);
         }
     }, [isOpen, selectedTaskId, startInEditMode]);
@@ -281,7 +286,7 @@ export function TaskViewModal({
                             </div>
 
                             {/* Right Panel */}
-                            <div className="flex-1 overflow-auto">
+                            <div className="flex-1 overflow-auto flex flex-col">
                                 {activeTask ? (
                                     isEditMode ? (
                                         <TaskEditForm
@@ -297,15 +302,50 @@ export function TaskViewModal({
                                             roundedMd={ROUNDED_MD}
                                         />
                                     ) : (
-                                        <TaskDetailsPanel
-                                            task={activeTask}
-                                            canEdit={canEdit}
-                                            canDelete={canDelete}
-                                            onEdit={() => setIsEditMode(true)}
-                                            onDelete={() => activeTask && setDeleteConfirm({ taskId: activeTask.id, name: activeTask.title || 'Untitled' })}
-                                            rounded={ROUNDED}
-                                            roundedMd={ROUNDED_MD}
-                                        />
+                                        <>
+                                            <div className="flex gap-1 border-b border-gray-100 px-4 py-2 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setContentTab('details')}
+                                                    className={cn(
+                                                        'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                                                        contentTab === 'details' ? 'bg-[#091590] text-white' : 'text-gray-600 hover:bg-gray-100'
+                                                    )}
+                                                >
+                                                    Details
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setContentTab('timesheets')}
+                                                    className={cn(
+                                                        'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                                                        contentTab === 'timesheets' ? 'bg-[#091590] text-white' : 'text-gray-600 hover:bg-gray-100'
+                                                    )}
+                                                >
+                                                    Timesheets
+                                                </button>
+                                            </div>
+                                            <div className="flex-1 overflow-auto">
+                                                {contentTab === 'details' && (
+                                                    <TaskDetailsPanel
+                                                        task={activeTask}
+                                                        projectId={projectId}
+                                                        phaseId={activeGroup?.phase.id}
+                                                        taskListId={activeTaskListId ?? undefined}
+                                                        canEdit={canEdit}
+                                                        canDelete={canDelete}
+                                                        onEdit={() => setIsEditMode(true)}
+                                                        onDelete={() => activeTask && setDeleteConfirm({ taskId: activeTask.id, name: activeTask.title || 'Untitled' })}
+                                                        onStopTimerRefetch={() => setContentTab('timesheets')}
+                                                        rounded={ROUNDED}
+                                                        roundedMd={ROUNDED_MD}
+                                                    />
+                                                )}
+                                                {contentTab === 'timesheets' && (
+                                                    <TaskTimesheetsTab taskId={activeTask.id} projectId={projectId} />
+                                                )}
+                                            </div>
+                                        </>
                                     )
                                 ) : (
                                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -335,20 +375,152 @@ export function TaskViewModal({
     );
 }
 
+function ManualTimeEntryForm({
+    taskId,
+    projectId,
+    onSuccess,
+    onCancel,
+    createMutation,
+    rounded,
+}: {
+    taskId: string;
+    projectId: string;
+    onSuccess: () => void;
+    onCancel: () => void;
+    createMutation: { mutate: (p: { taskId: string; projectId: string; startedAt: string; endedAt: string; description?: string }, options?: { onSuccess?: () => void }) => void; isPending: boolean; reset: () => void };
+    rounded: string;
+}) {
+    const [startedAt, setStartedAt] = useState(() => new Date(Date.now() - 3600000).toISOString().slice(0, 16));
+    const [endedAt, setEndedAt] = useState(() => new Date().toISOString().slice(0, 16));
+    const [description, setDescription] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        createMutation.mutate(
+            { taskId, projectId, startedAt: new Date(startedAt).toISOString(), endedAt: new Date(endedAt).toISOString(), description: description || undefined },
+            { onSuccess }
+        );
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="p-3 border border-gray-200 bg-gray-50 rounded-lg space-y-2">
+            <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Start</label>
+                <input type="datetime-local" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} className={cn('w-full px-2 py-1.5 border border-gray-200 text-sm', rounded)} required />
+            </div>
+            <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">End</label>
+                <input type="datetime-local" value={endedAt} onChange={(e) => setEndedAt(e.target.value)} className={cn('w-full px-2 py-1.5 border border-gray-200 text-sm', rounded)} required />
+            </div>
+            <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Description (optional)</label>
+                <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className={cn('w-full px-2 py-1.5 border border-gray-200 text-sm', rounded)} placeholder="Notes" />
+            </div>
+            <div className="flex gap-2 pt-1">
+                <button type="submit" disabled={createMutation.isPending} className="px-3 py-1.5 text-xs font-medium bg-[#091590] text-white rounded-lg hover:bg-[#071170] disabled:opacity-50">
+                    {createMutation.isPending ? 'Saving...' : 'Save'}
+                </button>
+                <button type="button" onClick={onCancel} className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    );
+}
+
+function TaskTimesheetsTab({ taskId, projectId }: { taskId: string; projectId: string }) {
+    const { data: entries = [], isLoading, refetch } = useTimeEntries({ taskId });
+    const { data: orgSettings } = useOrgSettings();
+    const allowManualEntry = orgSettings?.allowManualTimeEntry ?? false;
+    const lockAfterApproval = orgSettings?.lockTimesheetAfterApproval ?? false;
+    const [showAddForm, setShowAddForm] = useState(false);
+    const createEntry = useCreateTimeEntry();
+
+    const ROUNDED = 'rounded';
+
+    if (isLoading) {
+        return (
+            <div className="p-6 flex items-center justify-center text-gray-400">
+                <span className="text-sm">Loading time entries...</span>
+            </div>
+        );
+    }
+    return (
+        <div className="p-6 space-y-3">
+            <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Time entries</p>
+                {allowManualEntry && (
+                    <button
+                        type="button"
+                        onClick={() => setShowAddForm((v) => !v)}
+                        className="text-xs font-medium text-[#091590] hover:underline"
+                    >
+                        {showAddForm ? 'Cancel' : '+ Log time'}
+                    </button>
+                )}
+            </div>
+            {showAddForm && allowManualEntry && (
+                <ManualTimeEntryForm
+                    taskId={taskId}
+                    projectId={projectId}
+                    onSuccess={() => { setShowAddForm(false); refetch(); }}
+                    onCancel={() => setShowAddForm(false)}
+                    createMutation={createEntry}
+                    rounded={ROUNDED}
+                />
+            )}
+            {entries.length === 0 && !showAddForm ? (
+                <div className="py-8 text-center text-gray-500">
+                    <Clock className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm font-medium">No time entries for this task</p>
+                    <p className="text-xs mt-1">Start the timer and stop it to log time, or add manual entries if allowed.</p>
+                </div>
+            ) : (
+                <ul className="space-y-2">
+                    {entries.map((entry) => (
+                        <li
+                            key={entry.id}
+                            className={cn(
+                                'flex items-center justify-between gap-2 px-3 py-2 border border-gray-200 bg-gray-50/50 text-sm', ROUNDED
+                            )}
+                        >
+                            <span className="text-gray-700">
+                                {new Date(entry.startedAt).toLocaleString()} – {new Date(entry.endedAt).toLocaleTimeString()}
+                            </span>
+                            <span className="font-mono text-[#091590]">{(entry.durationMinutes / 60).toFixed(2)}h</span>
+                            {entry.timesheetStatus && (
+                                <span className="text-[10px] font-medium text-gray-500 uppercase">{entry.timesheetStatus}</span>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
+
 function TaskDetailsPanel({
     task,
+    projectId,
+    phaseId,
+    taskListId,
     canEdit,
     canDelete,
     onEdit,
     onDelete,
+    onStopTimerRefetch,
     rounded,
     roundedMd,
 }: {
     task: StructuredTask;
+    projectId: string;
+    phaseId?: string;
+    taskListId?: string;
     canEdit: boolean;
     canDelete: boolean;
     onEdit: () => void;
     onDelete: () => void;
+    onStopTimerRefetch?: () => void;
     rounded: string;
     roundedMd: string;
 }) {
@@ -361,7 +533,7 @@ function TaskDetailsPanel({
     return (
         <div className="p-6 space-y-5">
             {showActions && (
-                <div className="flex items-center gap-2 pb-4 border-b border-gray-100">
+                <div className="flex items-center gap-2 pb-4 border-b border-gray-100 flex-wrap">
                     {canEdit && (
                         <button onClick={onEdit} className={cn("inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-[#091590] bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors", rounded)}>
                             <Pencil className="w-3.5 h-3.5" /> Edit
@@ -372,12 +544,17 @@ function TaskDetailsPanel({
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                         </button>
                     )}
-                    <button onClick={() => { }} className={cn("inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors", rounded)}>
-                        <Clock className="w-3.5 h-3.5" /> Timesheets
-                    </button>
-                    <button onClick={() => window.dispatchEvent(new CustomEvent('trigger-timer', { detail: { taskName: task.title } }))} className={cn("inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors ml-auto shadow-sm", rounded)}>
-                        <Timer className="w-3.5 h-3.5" /> Start Timer
-                    </button>
+                    <div className="ml-auto">
+                        <TaskTimerButton
+                            taskId={task.id}
+                            projectId={projectId}
+                            phaseId={phaseId}
+                            taskListId={taskListId}
+                            taskName={task.title}
+                            variant="button"
+                            onStopSuccess={onStopTimerRefetch}
+                        />
+                    </div>
                 </div>
             )}
             <div>

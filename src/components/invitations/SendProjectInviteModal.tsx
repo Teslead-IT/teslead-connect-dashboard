@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { X, Send, Mail, Shield, UserCog, Eye } from 'lucide-react';
 import { useSendInvite } from '@/hooks/use-invitations';
-import { useUser } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 import { OrgRole, ProjectRole } from '@/types/invitation';
 import { useUserSearch } from '@/hooks/use-user-search';
 import { getInitials, getAvatarColor } from '@/lib/utils';
@@ -29,10 +29,8 @@ export function SendProjectInviteModal({
 }: SendProjectInviteModalProps) {
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<ProjectRole>(ProjectRole.VIEWER);
-    const { data: user } = useUser();
-
-    // Get Org ID with robust fallback
-    const orgId = user?.currentOrgId || user?.memberships?.[0]?.orgId || 'org_123';
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+    const orgId = activeOrgId ?? '';
 
     const { mutate: sendInvite, isPending, isSuccess, isError, error, reset } = useSendInvite(orgId);
 

@@ -11,6 +11,9 @@ import { Auth0ProviderWrapper as Auth0Provider } from './auth0-provider';
 
 import { GlobalLoaderProvider } from './global-loader-provider';
 import { PrimeReactProvider } from 'primereact/api';
+import { OrgSwitchingOverlay } from '@/components/layout/OrgSwitchingOverlay';
+import { Api403Handler } from '@/components/Api403Handler';
+import { OrgRoleRehydrate } from '@/components/OrgRoleRehydrate';
 
 interface ProvidersProps {
     children: ReactNode;
@@ -22,7 +25,10 @@ export function Providers({ children }: ProvidersProps) {
             <QueryProvider>
                 <Auth0Provider>
                     <GlobalLoaderProvider>
+                        <Api403Handler />
+                        <OrgRoleRehydrate />
                         {children}
+                        <OrgSwitchingOverlay />
                     </GlobalLoaderProvider>
                 </Auth0Provider>
             </QueryProvider>

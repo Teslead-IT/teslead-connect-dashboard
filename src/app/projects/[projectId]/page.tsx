@@ -45,6 +45,7 @@ import {
 } from '@/hooks/use-tasks';
 import { useStructuredPhases } from '@/hooks/use-phases';
 import { useProjectMeetings } from '@/hooks/use-meetings';
+import { useUser } from '@/hooks/use-auth';
 import { MeetingModal } from '@/components/meetings/MeetingModal';
 import { ProjectMembersTable } from '@/components/projects/ProjectMembersTable';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
@@ -54,6 +55,9 @@ import { RevokeAssigneeModal } from '@/components/tasks/RevokeAssigneeModal';
 import type { Task, WorkflowStage, CreateTaskPayload, TaskPriority } from '@/types/task';
 import { Dialog } from '@/components/ui/Dialog';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
+import { useOrgStore } from '@/stores/orgStore';
+import { useProjectStore } from '@/stores/projectStore';
+import { getProjectPermissions, type OrgRole, type ProjectRole } from '@/lib/permissions';
 
 import { Tabs, TabItem } from '@/components/ui/Tabs';
 import PhaseTaskListTab from '@/components/phases/PhaseTaskListTab';
@@ -105,6 +109,7 @@ export default function ProjectDetailPage() {
     const searchParams = useSearchParams();
     const projectId = params.projectId as string;
 
+    const { data: user } = useUser();
     const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
     const { data: workflow = [], isLoading: workflowLoading } = useProjectWorkflow(projectId);
     const { data: members = [], isLoading: membersLoading } = useProjectMembers(projectId);
@@ -156,6 +161,36 @@ export default function ProjectDetailPage() {
     const revokeAssigneeMutation = useRevokeAssignee(projectId);
     const deleteTaskMutation = useDeleteTask(projectId);
     const toast = useToast();
+    const activeOrgRole = useOrgStore((s) => s.activeOrgRole);
+    const setProject = useProjectStore((s) => s.setProject);
+    const clearProject = useProjectStore((s) => s.clearProject);
+
+    // Set project store when project loads (for RBAC UI). Clear on unmount.
+    useEffect(() => {
+        if (project?.id && project?.role) {
+            setProject(project.id, (project.role as ProjectRole) || 'VIEWER');
+        }
+        return () => clearProject();
+    }, [project?.id, project?.role, setProject, clearProject]);
+
+    // 403 on project fetch → redirect to dashboard
+    useEffect(() => {
+        const err = projectError as { response?: { status?: number } } | undefined;
+        if (err?.response?.status === 403) {
+            router.replace('/dashboard');
+        }
+    }, [projectError, router]);
+
+    const projectPermissions = useMemo(() => {
+        const orgRole = (activeOrgRole ?? 'MEMBER') as OrgRole;
+        const projectRole = (project?.role ?? 'VIEWER') as ProjectRole;
+        return getProjectPermissions(
+            user?.id ?? '',
+            project ?? null,
+            projectRole,
+            orgRole
+        );
+    }, [project?.role, project, activeOrgRole, user?.id]);
 
     const toggleTaskExpansion = (taskId: string) => {
         const newExpanded = new Set(expandedIds);
@@ -435,7 +470,9 @@ export default function ProjectDetailPage() {
                             projectId={projectId}
                             projectName={project.name}
                             projectColor={project.color}
-                            isEditable={project?.role !== 'VIEWER'}
+                            isEditable={projectPermissions.canEditTask}
+                            canCreateTask={projectPermissions.canCreateTask}
+                            canDeleteTask={projectPermissions.canDeleteTask}
                             currentUserRole={project?.role}
                             searchQuery={searchQuery}
                         />
@@ -449,7 +486,7 @@ export default function ProjectDetailPage() {
                         projectId={projectId}
                         projectName={project.name}
                         projectColor={project.color}
-                        isEditable={project?.role !== 'VIEWER'}
+                        isEditable={projectPermissions.canEditTask}
                         searchQuery={searchQuery}
                     />
                 ) : (
@@ -489,17 +526,17 @@ export default function ProjectDetailPage() {
                     x={taskContextMenu.x}
                     y={taskContextMenu.y}
                     onClose={() => setTaskContextMenu(null)}
-                    onEdit={project?.role !== 'VIEWER' ? () => {
+                    onEdit={projectPermissions.canEditTask ? () => {
                         setEditingTask(taskContextMenu.task);
                         setIsReadOnly(false);
                         setIsCreateTaskOpen(true);
                         setTaskContextMenu(null);
                     } : undefined}
-                    onDelete={project?.role !== 'VIEWER' ? () => {
+                    onDelete={projectPermissions.canDeleteTask ? () => {
                         handleDeleteTask(taskContextMenu.task.id);
                         setTaskContextMenu(null);
                     } : undefined}
-                    onCreateSubtask={project?.role !== 'VIEWER' ? () => {
+                    onCreateSubtask={projectPermissions.canCreateTask ? () => {
                         setSelectedParentTask(taskContextMenu.task);
                         setIsReadOnly(false);
                         setIsCreateTaskOpen(true);
@@ -511,11 +548,11 @@ export default function ProjectDetailPage() {
                         setIsCreateTaskOpen(true);
                         setTaskContextMenu(null);
                     }}
-                    onAssignUsers={project?.role !== 'VIEWER' ? () => {
+                    onAssignUsers={projectPermissions.canAssignTask ? () => {
                         setAssignUsersModal({ isOpen: true, task: taskContextMenu.task });
                         setTaskContextMenu(null);
                     } : undefined}
-                    onRevokeAssignee={project?.role !== 'VIEWER' ? () => {
+                    onRevokeAssignee={projectPermissions.canAssignTask ? () => {
                         setRevokeAssigneeModal({ isOpen: true, taskId: taskContextMenu.task.id });
                         setTaskContextMenu(null);
                     } : undefined}

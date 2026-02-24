@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
 import { useUser } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopNav } from '@/components/layout/TopNav';
 import { NotificationProvider } from '@/context/NotificationContext';
@@ -36,6 +37,7 @@ export default function MeetingsLayout({
     children: React.ReactNode;
 }) {
     const router = useRouter();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
     const { user: auth0User, isLoading: isAuth0Loading } = useAuth0User();
     const { data: backendUser, isLoading: isBackendLoading, isFetching: isBackendFetching } = useUser();
 
@@ -43,8 +45,12 @@ export default function MeetingsLayout({
         if (isBackendLoading) return;
         if (!backendUser && !isBackendFetching) {
             router.replace('/auth/login');
+            return;
         }
-    }, [backendUser, isBackendLoading, isBackendFetching, router]);
+        if (backendUser && activeOrgId === null) {
+            router.replace('/organization');
+        }
+    }, [backendUser, isBackendLoading, isBackendFetching, activeOrgId, router]);
 
     if (isBackendLoading) {
         return (

@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useUser } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopNav } from '@/components/layout/TopNav';
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
@@ -53,6 +55,23 @@ export default function SettingsLayout({
 }: {
     children: React.ReactNode;
 }) {
+    const router = useRouter();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+    const { data: backendUser, isLoading: isBackendLoading } = useUser();
+
+    useEffect(() => {
+        if (isBackendLoading) return;
+        if (!backendUser) {
+            router.replace('/auth/login');
+            return;
+        }
+        if (backendUser && activeOrgId === null) {
+            router.replace('/organization');
+        }
+    }, [backendUser, isBackendLoading, activeOrgId, router]);
+
+    if (isBackendLoading) return null;
+
     return (
         <SidebarProvider>
             <SettingsLayoutContent>{children}</SettingsLayoutContent>

@@ -29,7 +29,8 @@ import { ProjectFormData, CreateProjectModal } from '@/components/ui/CreateProje
 import { ProjectContextMenu } from '@/components/projects/ProjectContextMenu';
 import { SendProjectInviteModal } from '@/components/invitations';
 import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
-import { useAuth, useUser, useSwitchOrg } from '@/hooks/use-auth';
+import { useUser } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { Dialog } from '@/components/ui/Dialog';
 import { useOrganizationMembers } from '@/hooks/use-organization-members';
@@ -54,8 +55,6 @@ export default function ProjectsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // GET State from URL (The single source of truth)
-    const selectedOrgId = searchParams.get('orgId') || 'all';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
@@ -64,9 +63,7 @@ export default function ProjectsPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
 
-    // React Query Hooks (pass selectedOrgId to filter)
     const { data: projectsData, isLoading: loading, error, refetch } = useProjects({
-        orgId: selectedOrgId,
         page,
         limit
     });
@@ -78,43 +75,33 @@ export default function ProjectsPage() {
     const updateProjectMutation = useUpdateProject();
     const deleteProjectMutation = useDeleteProject();
     const { data: user, isLoading: isUserLoading } = useUser();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+    const activeOrgRole = useOrgStore((s) => s.activeOrgRole);
     const toast = useToast();
 
-    // Dialog State
     const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string } | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    /** Show Create Project only for OWNER or ADMIN (strict backend alignment). */
+    const canCreateProject = activeOrgRole === 'OWNER' || activeOrgRole === 'ADMIN';
+
     const memberships = user?.memberships || [];
 
-    const handleOrgChange = (orgId: string) => {
-        const params = new URLSearchParams(searchParams.toString());
-        if (orgId === 'all') {
-            params.delete('orgId');
-        } else {
-            params.set('orgId', orgId);
-        }
-        params.set('page', '1'); // Reset to first page on org change
-        router.push(`/projects?${params.toString()}`);
-    };
-
     const handlePageChange = (newPage: number) => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams();
         params.set('page', newPage.toString());
+        if (limit !== 20) params.set('limit', limit.toString());
         router.push(`/projects?${params.toString()}`);
     };
 
     const handleLimitChange = (newLimit: number) => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams();
+        params.set('page', '1');
         params.set('limit', newLimit.toString());
-        params.set('page', '1'); // Reset to first page on limit change
         router.push(`/projects?${params.toString()}`);
     };
 
-    // Fetch members to get owner names
-    const { members: orgMembers } = useOrganizationMembers(
-        selectedOrgId !== 'all' ? selectedOrgId : (user?.currentOrgId || memberships[0]?.orgId || ''),
-        ''
-    );
+    const { members: orgMembers } = useOrganizationMembers(activeOrgId ?? '', '');
 
     const memberMap = useMemo(() => {
         const map: Record<string, string> = {};
@@ -216,8 +203,6 @@ export default function ProjectsPage() {
      * Handles Global vs Specific Org view contexts.
      */
     const getProjectRoles = useCallback((project: Project) => {
-        // 1. Try finding membership by project's own orgId (most accurate)
-        // Check multiple possible field names and nested structure for organization ID to be robust
         const projectOrgId =
             project.orgId ||
             (project as any).organizationId ||
@@ -225,42 +210,21 @@ export default function ProjectsPage() {
             (project as any).organization?.id ||
             (project as any).org?.id;
 
-        let membership = memberships.find(m => m.orgId === projectOrgId);
-
-        // 2. Fallback: If project has no orgId and we are in a single org view, use that org
-        if (!membership && selectedOrgId !== 'all') {
-            membership = memberships.find(m => m.orgId === selectedOrgId);
-        }
-
-        // 3. Fallback: If still not found and user has only one membership
-        if (!membership && memberships.length === 1) {
-            membership = memberships[0];
-        }
-
-        const orgRole = (membership?.role as OrgRole) || 'MEMBER';
+        // Prefer org role from store when project belongs to active org (no fallback to memberships[0])
+        const orgRole: OrgRole =
+            projectOrgId === activeOrgId && (activeOrgRole === 'OWNER' || activeOrgRole === 'ADMIN' || activeOrgRole === 'MEMBER')
+                ? activeOrgRole
+                : (memberships.find(m => m.orgId === projectOrgId)?.role as OrgRole) || 'MEMBER';
         const projectRole = (project.role as ProjectRole) || 'VIEWER';
-
-        // Improved Global Permission Check: 
-        // 1. If we can't map to a specific org, but user is an Admin/Owner in ALL their orgs.
-        // 2. If we are in 'all' view and the project's own role is elevated, trust it
-        //    if the user is an admin of ANY organization.
-        const isEveryOrgAdmin = memberships.length > 0 && memberships.every(m => m.role === 'OWNER' || m.role === 'ADMIN');
-        const hasAnyOrgAdmin = memberships.some(m => m.role === 'OWNER' || m.role === 'ADMIN');
-
-        const isOrgOwnerOrAdmin =
-            orgRole === 'OWNER' ||
-            orgRole === 'ADMIN' ||
-            (selectedOrgId === 'all' && isEveryOrgAdmin) ||
-            (selectedOrgId === 'all' && !membership && hasAnyOrgAdmin && (projectRole === 'ADMIN' || projectRole === 'OWNER'));
+        const isOrgOwnerOrAdmin = orgRole === 'OWNER' || orgRole === 'ADMIN';
 
         return {
             orgRole,
             projectRole,
             isOrgOwnerOrAdmin,
-            // Display Role: prioritize Org Role if it's elevated
-            displayRole: isOrgOwnerOrAdmin ? (orgRole === 'MEMBER' && hasAnyOrgAdmin ? (memberships.find(m => m.role === 'OWNER' || m.role === 'ADMIN')?.role || 'ADMIN') : orgRole) : projectRole
+            displayRole: isOrgOwnerOrAdmin ? orgRole : projectRole
         };
-    }, [memberships, selectedOrgId]);
+    }, [activeOrgId, activeOrgRole, memberships]);
 
     /**
      * Calculates UI-specific action permissions for a project
@@ -594,7 +558,6 @@ export default function ProjectsPage() {
                     access: projectData.access,
                     status: projectData.status,
                     tags: projectData.tags,
-                    orgId: projectData.orgId,
                 });
                 toast.success('Project created successfully', undefined, { id: toastId, soundEnabled: true });
             }
@@ -622,32 +585,6 @@ export default function ProjectsPage() {
                             </span>
                         </div>
 
-                        {memberships.length > 0 && (
-                            <div className="ml-2 relative">
-                                <select
-                                    className="appearance-none bg-white border border-gray-200 text-gray-700 text-[11px] font-semibold rounded-lg py-1.5 pl-3 pr-8 focus:outline-none focus:ring-1 focus:ring-[#091590] focus:border-[#091590] cursor-pointer min-w-[200px] hover:border-gray-300 transition-colors shadow-sm"
-                                    value={selectedOrgId}
-                                    onChange={(e) => handleOrgChange(e.target.value)}
-                                    disabled={loading}
-                                >
-                                    <option value="all">Global (All Projects)</option>
-                                    {memberships
-                                        .filter(m => m.status === 'ACTIVE')
-                                        .map((m) => (
-                                            <option key={m.orgId} value={m.orgId}>
-                                                {m.orgName} • {m.role}
-                                            </option>
-                                        ))}
-                                </select>
-                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                    {loading ? (
-                                        <div className="w-3 h-3 border-2 border-gray-300 border-t-[#091590] rounded-full animate-spin"></div>
-                                    ) : (
-                                        <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
-                                    )}
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 justify-between sm:justify-end">
@@ -694,15 +631,17 @@ export default function ProjectsPage() {
                                 </button>
                             </div>
 
-                            <button
-                                onClick={() => setIsCreateModalOpen(true)}
-                                className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white active:scale-[0.98] font-medium px-4 h-8 text-xs rounded-md ml-1 sm:ml-2 transition-colors duration-200 border border-transparent shadow-sm whitespace-nowrap"
-                                title="Create New Project"
-                            >
-                                <Plus className="w-3.5 h-3.5 sm:mr-1.5" />
-                                <span className="hidden sm:inline">New Project</span>
-                                <span className="sm:hidden">New</span>
-                            </button>
+                            {canCreateProject && (
+                                <button
+                                    onClick={() => setIsCreateModalOpen(true)}
+                                    className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white active:scale-[0.98] font-medium px-4 h-8 text-xs rounded-md ml-1 sm:ml-2 transition-colors duration-200 border border-transparent shadow-sm whitespace-nowrap"
+                                    title="Create New Project"
+                                >
+                                    <Plus className="w-3.5 h-3.5 sm:mr-1.5" />
+                                    <span className="hidden sm:inline">New Project</span>
+                                    <span className="sm:hidden">New</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1234,7 +1173,6 @@ export default function ProjectsPage() {
                     setEditingProject(null);
                 }}
                 onSubmit={handleProjectFormSubmit}
-                defaultOrgId={selectedOrgId !== 'all' ? selectedOrgId : undefined}
                 initialData={editingProject ? {
                     name: editingProject.name,
                     description: editingProject.description || '',
@@ -1244,7 +1182,6 @@ export default function ProjectsPage() {
                     access: editingProject.access,
                     status: editingProject.status,
                     tags: editingProject.tags.map(t => ({ name: t.name, color: t.color })),
-                    orgId: editingProject.orgId || user?.currentOrgId,
                 } : undefined}
             />
 

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 import { useOrganizationMembers } from '@/hooks/use-organization-members';
 import { Tabs, TabItem } from '@/components/ui/Tabs';
 import { Avatar } from '@/components/ui/Avatar';
@@ -23,14 +24,17 @@ import {
     Crown,
     UserPlus,
     Activity,
-    TrendingUp
+    TrendingUp,
+    Clock,
 } from 'lucide-react';
 import { OrgRole } from '@/types/invitation';
 import { Modal } from '@/components/ui/Modal';
 import { useOrgPermissions, type OrgRole as PermissionOrgRole } from '@/lib/permissions';
+import { useOrgSettings, useUpdateOrgSettings } from '@/hooks/use-org-settings';
 
 const TABS: TabItem[] = [
     { id: 'members', label: 'Members', icon: <Users className="w-4 h-4" /> },
+    { id: 'productivity', label: 'Productivity & Tracking', icon: <Clock className="w-4 h-4" /> },
     { id: 'overview', label: 'Overview', icon: <Building2 className="w-4 h-4" /> },
     { id: 'security', label: 'Security', icon: <Shield className="w-4 h-4" /> },
     { id: 'billing', label: 'Billing', icon: <CreditCard className="w-4 h-4" /> },
@@ -38,7 +42,9 @@ const TABS: TabItem[] = [
 
 export default function OrganizationSettingsPage() {
     const { data: user } = useUser();
-    const orgId = user?.currentOrgId || user?.memberships?.[0]?.orgId;
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+    const activeOrgRole = useOrgStore((s) => s.activeOrgRole);
+    const orgId = activeOrgId ?? '';
     const orgName = user?.memberships?.find(m => m.orgId === orgId)?.orgName || 'Organization';
     const [activeTab, setActiveTab] = useState('members');
     const [searchQuery, setSearchQuery] = useState('');
@@ -51,12 +57,23 @@ export default function OrganizationSettingsPage() {
         ownerId: currentMembership?.ownerId
     }), [currentMembership]);
 
-    // Calculate permissions using centralized system
+    // Use store role for permissions (OWNER/ADMIN can invite and change roles)
     const permissions = useOrgPermissions(
         user?.id,
         org,
-        currentMembership?.role as PermissionOrgRole | undefined
+        (activeOrgRole ?? currentMembership?.role) as PermissionOrgRole | undefined
     );
+
+    // ADMIN cannot promote to OWNER (role escalation blocked)
+    const roleOptions = useMemo(() => {
+        const all = [
+            { label: 'Owner', value: OrgRole.OWNER, icon: <Shield className="w-4 h-4" /> },
+            { label: 'Admin', value: OrgRole.ADMIN, icon: <Settings className="w-4 h-4" /> },
+            { label: 'Member', value: OrgRole.MEMBER, icon: <UserCircle className="w-4 h-4" /> },
+        ];
+        if (activeOrgRole === 'ADMIN') return all.filter((o) => o.value !== OrgRole.OWNER);
+        return all;
+    }, [activeOrgRole]);
 
     // Role Change States
     const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
@@ -66,6 +83,16 @@ export default function OrganizationSettingsPage() {
     const [confirmationText, setConfirmationText] = useState('');
 
     const { members, isLoading, updateRole, updateRoleAsync, isUpdating } = useOrganizationMembers(orgId || '', searchQuery);
+    const { data: orgSettings, isLoading: orgSettingsLoading } = useOrgSettings();
+    const { mutate: updateOrgSettings, isPending: isUpdatingOrgSettings } = useUpdateOrgSettings();
+
+    const isOwner = activeOrgRole === 'OWNER';
+    const isAdmin = activeOrgRole === 'ADMIN';
+    const showProductivityTab = isOwner || isAdmin;
+    const tabsFiltered = useMemo(() => {
+        if (showProductivityTab) return TABS;
+        return TABS.filter((t) => t.id !== 'productivity');
+    }, [showProductivityTab]);
 
     const handleOpenRoleModal = (member: any) => {
         setSelectedMember(member);
@@ -105,7 +132,7 @@ export default function OrganizationSettingsPage() {
                 {/* Tabs & Search Row */}
                 <div className="flex items-center justify-between gap-4 border-b border-gray-200">
                     <Tabs
-                        items={TABS}
+                        items={tabsFiltered}
                         activeTab={activeTab}
                         onChange={setActiveTab}
                         className="border-b-0 -mb-[1px]"
@@ -124,7 +151,64 @@ export default function OrganizationSettingsPage() {
             </div>
 
             <div className="flex-1 min-h-0 flex flex-col">
-                {activeTab === 'members' ? (
+                {activeTab === 'productivity' ? (
+                    <div className="flex-1 flex flex-col min-h-0 space-y-4">
+                        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden p-6">
+                            <h2 className="text-lg font-semibold text-gray-900 mb-1">Productivity & Tracking</h2>
+                            <p className="text-sm text-gray-500 mb-6">Configure time, attendance, and timesheet behavior for this organization.</p>
+                            {orgSettingsLoading ? (
+                                <div className="space-y-4 animate-pulse">
+                                    {[1, 2, 3, 4, 5].map((i) => (
+                                        <div key={i} className="h-10 bg-gray-100 rounded-lg" />
+                                    ))}
+                                </div>
+                            ) : orgSettings ? (
+                                <div className="space-y-4">
+                                    {[
+                                        { key: 'requireAttendance' as const, label: 'Require Attendance' },
+                                        { key: 'requireCheckInForTimer' as const, label: 'Require Check-In For Timer' },
+                                        { key: 'allowManualTimeEntry' as const, label: 'Allow Manual Time Entry' },
+                                        { key: 'allowMultipleTimers' as const, label: 'Allow Multiple Timers' },
+                                        { key: 'requireTimesheetApproval' as const, label: 'Require Timesheet Approval' },
+                                        { key: 'enableUserPresence' as const, label: 'Enable User Presence' },
+                                        { key: 'enforceStrictProjectRole' as const, label: 'Enforce Strict Project Role' },
+                                        { key: 'lockTimesheetAfterApproval' as const, label: 'Lock Timesheet After Approval' },
+                                        { key: 'autoSubmitTimesheet' as const, label: 'Auto Submit Timesheet' },
+                                    ].map(({ key, label }) => (
+                                        <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                                            <span className="text-sm font-medium text-gray-700">{label}</span>
+                                            {isOwner ? (
+                                                <button
+                                                    role="switch"
+                                                    aria-checked={!!orgSettings[key]}
+                                                    onClick={() => {
+                                                        updateOrgSettings({ [key]: !orgSettings[key] }, {
+                                                            onSuccess: () => toast.success('Settings updated'),
+                                                            onError: (err: any) => toast.error(err?.response?.data?.message || 'Update failed'),
+                                                        });
+                                                    }}
+                                                    disabled={isUpdatingOrgSettings}
+                                                    className={cn(
+                                                        'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:ring-offset-2 disabled:opacity-50',
+                                                        orgSettings[key] ? 'bg-[#091590]' : 'bg-gray-200'
+                                                    )}
+                                                >
+                                                    <span className={cn('pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition', orgSettings[key] ? 'translate-x-5' : 'translate-x-1')} />
+                                                </button>
+                                            ) : (
+                                                <span className={cn('text-sm font-medium', orgSettings[key] ? 'text-green-600' : 'text-gray-400')}>
+                                                    {orgSettings[key] ? 'On' : 'Off'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500">Failed to load settings.</p>
+                            )}
+                        </div>
+                    </div>
+                ) : activeTab === 'members' ? (
                     <div className="flex-1 flex flex-col min-h-0 space-y-4">
                         {/* Members Table */}
                         <div className="flex-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col min-height-[500px]">
@@ -294,11 +378,7 @@ export default function OrganizationSettingsPage() {
                                     className="w-full"
                                     value={newRole}
                                     onChange={(val) => setNewRole(val as OrgRole)}
-                                    options={[
-                                        { label: 'Owner', value: OrgRole.OWNER, icon: <Shield className="w-4 h-4" /> },
-                                        { label: 'Admin', value: OrgRole.ADMIN, icon: <Settings className="w-4 h-4" /> },
-                                        { label: 'Member', value: OrgRole.MEMBER, icon: <UserCircle className="w-4 h-4" /> },
-                                    ]}
+                                    options={roleOptions}
                                 />
                                 <p className="text-xs text-gray-500 -mt-2 ml-1">
                                     Selecting a new role will update permissions for this member.

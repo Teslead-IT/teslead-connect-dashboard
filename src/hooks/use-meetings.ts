@@ -6,15 +6,10 @@ import {
     MeetingResponse,
     PaginatedMeetingsResponse,
 } from '@/services/meetings.service';
-import { useUser } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 
 // Re-export types for convenience
 export type { MeetingResponse, MeetingCreatePayload, MeetingUpdatePayload, PaginatedMeetingsResponse };
-
-// Helper to extract orgId safely
-const getOrgIdFromUser = (user: any) => {
-    return user?.currentOrgId || user?.organizationId || user?.memberships?.[0]?.orgId || user?.orgId || user?.organizations?.[0]?.id || '';
-};
 
 /**
  * Fetch all meetings (paginated, with optional filters)
@@ -27,13 +22,12 @@ export function useMeetings(params?: {
     fromDate?: string;
     toDate?: string;
 }) {
-    const { data: user } = useUser();
-    const orgId = getOrgIdFromUser(user);
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
 
     return useQuery({
-        queryKey: ['meetings', orgId, params],
+        queryKey: ['meetings', activeOrgId, params],
         queryFn: () => meetingsApi.getAll(params),
-        enabled: !!orgId,
+        enabled: !!activeOrgId,
     });
 }
 
@@ -41,13 +35,12 @@ export function useMeetings(params?: {
  * Fetch a single meeting by ID
  */
 export function useMeeting(meetingId: string) {
-    const { data: user } = useUser();
-    const orgId = getOrgIdFromUser(user);
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
 
     return useQuery({
-        queryKey: ['meeting', orgId, meetingId],
+        queryKey: ['meeting', activeOrgId, meetingId],
         queryFn: () => meetingsApi.getById(meetingId),
-        enabled: !!meetingId && !!orgId,
+        enabled: !!meetingId && !!activeOrgId,
     });
 }
 
@@ -114,12 +107,11 @@ export function useDeleteMeeting() {
  * Fetch meetings for a specific project (Project MOM Tab)
  */
 export function useProjectMeetings(projectId: string, params?: { page?: number; limit?: number }) {
-    const { data: user } = useUser();
-    const orgId = getOrgIdFromUser(user);
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
 
     return useQuery({
-        queryKey: ['project-meetings', orgId, projectId, params],
+        queryKey: ['project-meetings', activeOrgId, projectId, params],
         queryFn: () => meetingsApi.getByProject(projectId, params),
-        enabled: !!projectId && !!orgId,
+        enabled: !!projectId && !!activeOrgId,
     });
 }

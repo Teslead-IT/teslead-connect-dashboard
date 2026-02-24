@@ -1,22 +1,26 @@
 "use client";
 
-import React, { useEffect, Suspense } from "react";
+import React, { useEffect, Suspense, useMemo } from "react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useUser, useSwitchOrg } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { useUser, useSwitchOrg, useAllOrgs } from "@/hooks/use-auth";
+import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { Loader } from "@/components/ui/Loader";
-import { LogOut, ChevronRight, Building2, CheckCircle2, Video, FileText } from "lucide-react";
+import { LogOut, ChevronRight, Building2, CheckCircle2, Video, FileText, Clock } from "lucide-react";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { authApi } from "@/services/auth.service";
 import { clearAuthTokens } from "@/lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useOrgStore } from "@/stores/orgStore";
+import { useProjectStore } from "@/stores/projectStore";
+import { useTimerStore } from "@/stores/timerStore";
+import { useOrgSwitchStore } from "@/stores/orgSwitchStore";
 
 function OrganizationsPageContent() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const returnTo = searchParams.get('returnTo') || '/dashboard';
 
     const { data: user, isLoading: isUserLoading } = useUser();
+    const { data: allOrgs, isLoading: isOrgsLoading } = useAllOrgs();
     const { mutate: switchOrg, isPending: isSwitching } = useSwitchOrg();
     const queryClient = useQueryClient();
 
@@ -27,18 +31,10 @@ function OrganizationsPageContent() {
         }
     }, [user, isUserLoading, router]);
 
-    const handleOrgSelect = (orgId: string) => {
-        switchOrg(orgId, {
-            onSuccess: () => {
-                router.push(returnTo);
-            }
-        });
-    };
-
     const handleLogout = async () => {
         queryClient.clear();
         clearAuthTokens();
-        // Optional: Call backend logout if needed
+        useOrgStore.getState().clearOrg();
         try {
             await authApi.logout();
         } catch (e) {
@@ -47,7 +43,66 @@ function OrganizationsPageContent() {
         router.push('/auth/login');
     };
 
-    if (isUserLoading || !user) {
+    // Prioritize allOrgs data if available, fallback to user.memberships
+    const memberships = React.useMemo(() => {
+        const rawOrgs = Array.isArray(allOrgs)
+            ? allOrgs
+            : (allOrgs as any)?.data || (allOrgs as any)?.organizations || [];
+
+        if (rawOrgs.length > 0) {
+            return rawOrgs.map((org: any) => ({
+                orgId: org.id || org.orgId,
+                orgName: org.name || org.orgName,
+                slug: org.slug,
+                role: org.role,
+                lastLoginTime: org.lastLoginTime
+            }));
+        }
+
+        return (user?.memberships || []).map((m: any) => ({
+            orgId: m.orgId,
+            orgName: m.orgName,
+            slug: m.slug,
+            role: m.role,
+            lastLoginTime: m.lastLoginTime
+        }));
+    }, [allOrgs, user?.memberships]);
+
+    // Model A: Set org only when user explicitly selects one. Never auto-apply user.currentOrgId.
+    // Optimistic: set store + navigate immediately so redirect works even if switchOrg API is slow/fails.
+    const handleOrgSelect = (orgId: string) => {
+        const { isRunning, activeTimer } = useTimerStore.getState();
+        const timerHasTask = activeTimer?.taskId != null;
+
+        const m = memberships.find((item: any) => item.orgId === orgId);
+        const role = m?.role?.toUpperCase?.();
+        const validRole = (role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER') ? role : undefined;
+
+        if (isRunning && !timerHasTask) {
+            useOrgSwitchStore.getState().setPending(orgId, validRole);
+            router.replace('/dashboard');
+            return;
+        }
+
+        useOrgStore.getState().setOrg(orgId, validRole);
+        useProjectStore.getState().clearProject();
+        useOrgStore.getState().setSwitching(true);
+        router.replace('/dashboard');
+        switchOrg(orgId);
+    };
+
+    const formatTime = (timeStr?: string) => {
+        if (!timeStr) return '';
+        try {
+            const date = parseISO(timeStr);
+            if (!isValid(date)) return timeStr;
+            return formatDistanceToNow(date, { addSuffix: true });
+        } catch {
+            return timeStr;
+        }
+    };
+
+    if (isUserLoading || isOrgsLoading || !user) {
         return (
             <div className="h-screen w-full flex items-center justify-center bg-white">
                 <Loader size={200} />
@@ -55,11 +110,9 @@ function OrganizationsPageContent() {
         );
     }
 
-    const memberships = user.memberships || [];
     const displayName = user.name || user.username || user.email?.split('@')[0] || 'User';
     // Add null check or default if avatar doesn't exist on user type
     const displayAvatar = (user as any).avatarUrl || null;
-
     return (
         <div className="flex flex-col h-screen w-full bg-white text-gray-900 font-sans overflow-hidden">
             {/* Custom Header matching the dashboard TopNav styling */}
@@ -190,7 +243,7 @@ function OrganizationsPageContent() {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {memberships.map((membership) => (
+                                {memberships.map((membership: any) => (
                                     <button
                                         key={membership.orgId}
                                         onClick={() => handleOrgSelect(membership.orgId)}
@@ -212,6 +265,12 @@ function OrganizationsPageContent() {
                                                     <span className="w-1 h-1 rounded-full bg-gray-300"></span>
                                                     <span className="uppercase font-medium">{membership.role}</span>
                                                 </div>
+                                                {membership.lastLoginTime && (
+                                                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-gray-400 font-medium bg-gray-50/50 w-fit px-2 py-0.5 rounded-md border border-gray-100/50">
+                                                        <Clock className="w-3 h-3 text-gray-300" />
+                                                        <span>Last accessed {formatTime(membership.lastLoginTime)}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="p-2 rounded-lg text-gray-400 group-hover:text-gray-600 group-hover:bg-gray-100 transition-colors">

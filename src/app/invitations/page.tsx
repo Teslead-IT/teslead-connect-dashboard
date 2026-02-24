@@ -10,15 +10,19 @@ import { SendInviteModal, PendingInvitesList } from '@/components/invitations';
 import { NotificationBell } from '@/components/notifications';
 import { Button } from '@/components/ui/Button';
 import { useInvitations } from '@/hooks/use-invitations';
+import { useOrgStore } from '@/stores/orgStore';
+import { useUser } from '@/hooks/use-auth';
 
 export default function InvitationsPage() {
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-
-    // Example organization data (replace with actual data from your app)
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+    const activeOrgRole = useOrgStore((s) => s.activeOrgRole);
+    const { data: user } = useUser();
     const currentOrg = {
-        id: 'org_123',
-        name: 'Acme Inc',
+        id: activeOrgId ?? '',
+        name: user?.memberships?.find(m => m.orgId === activeOrgId)?.orgName || 'Organization',
     };
+    const canInvite = activeOrgRole === 'OWNER' || activeOrgRole === 'ADMIN';
 
     // Example projects (replace with actual data)
     const projects = [
@@ -55,13 +59,15 @@ export default function InvitationsPage() {
                             {/* Notification Bell */}
                             <NotificationBell />
 
-                            {/* Send Invite Button */}
-                            <Button
-                                variant="primary"
-                                onClick={() => setIsInviteModalOpen(true)}
-                            >
-                                + Invite Member
-                            </Button>
+                            {/* Send Invite Button — only OWNER/ADMIN */}
+                            {canInvite && (
+                                <Button
+                                    variant="primary"
+                                    onClick={() => setIsInviteModalOpen(true)}
+                                >
+                                    + Invite Member
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
