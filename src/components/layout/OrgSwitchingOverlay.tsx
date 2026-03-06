@@ -40,7 +40,7 @@ export function OrgSwitchingOverlay() {
                             <Building2 className="absolute inset-0 m-auto w-5 h-5 text-[#091590]" />
                         </div>
                         <div className="flex flex-col items-center gap-2 text-center">
-                            <p className="text-base font-semibold text-gray-900">Switching organization</p>
+                            <p className="text-base font-semibold text-gray-900">{useOrgStore.getState().switchingLabel}</p>
                             <p className="text-sm text-gray-500">Updating context and loading your workspace…</p>
                         </div>
                         <div className="flex items-center gap-1.5 text-gray-400">

@@ -86,7 +86,7 @@ function OrganizationsPageContent() {
 
         useOrgStore.getState().setOrg(orgId, validRole);
         useProjectStore.getState().clearProject();
-        useOrgStore.getState().setSwitching(true);
+        useOrgStore.getState().setSwitching(true, 'Selecting organization');
         router.replace('/dashboard');
         switchOrg(orgId);
     };
