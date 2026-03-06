@@ -398,7 +398,7 @@ export default function ProjectDetailPage() {
             {/* Compact Combined Header */}
             <div className="bg-white border-b border-gray-200 px-3 py-2 sm:px-4 sm:py-1.5">
                 <div className="flex flex-wrap items-center justify-between gap-y-2">
-                    <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                         <button
                             onClick={() => {
                                 if (window.history.length > 1) {
@@ -439,10 +439,12 @@ export default function ProjectDetailPage() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-2">
                         <ProjectSearchBox
                             value={searchQuery}
                             onChange={setSearchQuery}
-                            placeholder="Search..."
+                            placeholder="Search tasks..."
                         />
                     </div>
                 </div>

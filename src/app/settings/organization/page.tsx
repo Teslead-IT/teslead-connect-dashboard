@@ -153,7 +153,7 @@ export default function OrganizationSettingsPage() {
             <div className="flex-1 min-h-0 flex flex-col">
                 {activeTab === 'productivity' ? (
                     <div className="flex-1 flex flex-col min-h-0 space-y-4">
-                        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden p-6">
+                        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-y-auto p-6">
                             <h2 className="text-lg font-semibold text-gray-900 mb-1">Productivity & Tracking</h2>
                             <p className="text-sm text-gray-500 mb-6">Configure time, attendance, and timesheet behavior for this organization.</p>
                             {orgSettingsLoading ? (
