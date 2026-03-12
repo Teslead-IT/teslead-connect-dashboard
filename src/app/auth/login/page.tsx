@@ -24,6 +24,7 @@ function LoginPageContent() {
     const containerRef = useRef<HTMLDivElement>(null);
     const imageRef = useRef<HTMLDivElement>(null);
     const formRef = useRef<HTMLDivElement>(null);
+    const hasAnimated = useRef(false);
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -43,6 +44,9 @@ function LoginPageContent() {
     }, [backendUser, isBackendLoading, isFetching, isAuth0Loading, router, returnTo]);
 
     useEffect(() => {
+        if (hasAnimated.current) return;
+        hasAnimated.current = true;
+
         // Entrance animation
         const ctx = gsap.context(() => {
             gsap.fromTo(imageRef.current,
@@ -86,7 +90,7 @@ function LoginPageContent() {
     const showSocialLogin = isAuth0Configured();
     const errorMessage = error ? (error as any)?.response?.data?.message || (error as any)?.message || 'Login failed' : null;
 
-    if (isAuth0Loading || isBackendLoading || isFetching || isRedirecting) {
+    if (isAuth0Loading || (isBackendLoading && !backendUser) || isRedirecting) {
         return (
             <div className="h-screen w-full flex items-center justify-center bg-white">
                 <Loader size={200} />
@@ -99,7 +103,7 @@ function LoginPageContent() {
             {/* Left Side - Visuals */}
             <div ref={imageRef} className="hidden lg:flex w-1/2 relative overflow-hidden">
                 <Image
-                    src="/login.jpg"
+                    src="/login.png"
                     alt="Login Visual"
                     fill
                     className="object-cover"
@@ -116,10 +120,10 @@ function LoginPageContent() {
 
             {/* Right Side - Form Container */}
             <div ref={formRef} className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 lg:p-10 relative z-10 bg-white shadow-2xl">
-                <div className="w-full max-w-md space-y-8">
+                <div className="w-full max-w-sm space-y-6">
 
 
-                    <div className="text-center lg:text-left space-y-2">
+                    <div className="text-center lg:text-left space-y-1.5">
                         <div className="flex items-center gap-3 justify-center lg:justify-start mb-3">
                             <Image src="/logo/single-logo.png" alt="Logo" width={26} height={26} className="object-contain" />
                             <h1 className="text-2xl font-bold tracking-tight text-blue-600">
@@ -131,24 +135,24 @@ function LoginPageContent() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-                        <div className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                        <div className="space-y-3.5">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
                                     Email, Phone, or Username
                                 </label>
                                 <input
                                     type="text"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                                    className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
                                     placeholder="Your Name"
                                     required
                                     disabled={isLoading}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
                                     Password
                                 </label>
                                 <div className="relative">
@@ -156,7 +160,7 @@ function LoginPageContent() {
                                         type={showPassword ? "text" : "password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm pr-12"
+                                        className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm pr-12"
                                         placeholder="••••••••"
                                         required
                                         disabled={isLoading}

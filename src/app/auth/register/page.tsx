@@ -34,6 +34,7 @@ function RegisterPageContent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
+  const hasAnimated = useRef(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -61,6 +62,9 @@ function RegisterPageContent() {
   }, [backendUser, isBackendLoading, isFetching, isAuth0Loading, router, returnTo]);
 
   useEffect(() => {
+    if (hasAnimated.current) return;
+    hasAnimated.current = true;
+
     // Entrance animation
     const ctx = gsap.context(() => {
       gsap.fromTo(formRef.current,
@@ -108,7 +112,7 @@ function RegisterPageContent() {
   const showSocialLogin = isAuth0Configured();
   const errorMessage = error ? (error as any)?.response?.data?.message || (error as any)?.message || 'Registration failed' : null;
 
-  if (isAuth0Loading || isBackendLoading || isFetching) {
+  if (isAuth0Loading || (isBackendLoading && !backendUser)) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-white">
         <Loader size={200} />
@@ -120,7 +124,7 @@ function RegisterPageContent() {
     <div ref={containerRef} className="h-screen w-full flex bg-[#f8fafc] font-sans overflow-hidden">
       {/* Left Side - Form Container */}
       <div ref={formRef} className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-10 relative z-10 bg-white shadow-2xl">
-        <div className="w-full max-w-md space-y-6">
+        <div className="w-full max-w-sm space-y-5">
 
 
           {/* Back Button for OTP Step */}
@@ -150,14 +154,14 @@ function RegisterPageContent() {
             </div>
           )}
 
-          <div className="text-center lg:text-left space-y-3">
+          <div className="text-center lg:text-left space-y-2">
             <div className="flex items-center gap-3 justify-center lg:justify-start">
               <Image src="/logo/single-logo.png" alt="Logo" width={26} height={26} className="object-contain" />
               <h1 className="text-2xl font-bold tracking-tight text-blue-600">
                 Create your account
               </h1>
             </div>
-            <p className="text-gray-500 text-base">
+            <p className="text-gray-500 text-sm">
               Sign up with {signupMethod === 'email' ? 'email' : 'phone'} to get started
             </p>
           </div>
@@ -167,7 +171,7 @@ function RegisterPageContent() {
             <button
               type="button"
               onClick={() => setSignupMethod('email')}
-              className={`flex-1 py-3 text-sm font-bold rounded-none transition-all duration-300 ${signupMethod === 'email' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+              className={`flex-1 py-2 text-sm font-bold rounded-none transition-all duration-300 ${signupMethod === 'email' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
                 }`}
             >
               Email
@@ -175,7 +179,7 @@ function RegisterPageContent() {
             <button
               type="button"
               onClick={() => { setSignupMethod('phone'); setPhoneStep('REQUEST'); }}
-              className={`flex-1 py-3 text-sm font-bold rounded-none transition-all duration-300 ${signupMethod === 'phone' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+              className={`flex-1 py-2 text-sm font-bold rounded-none transition-all duration-300 ${signupMethod === 'phone' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
                 }`}
             >
               Phone
@@ -187,14 +191,14 @@ function RegisterPageContent() {
               {/* Common Name Field (Except Phone Step 2) */}
               {(signupMethod === 'email' || (signupMethod === 'phone' && phoneStep === 'REQUEST')) && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
                     Full Name
                   </label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
                     placeholder="Your Name"
                     required
                     disabled={isLoading}
@@ -205,14 +209,14 @@ function RegisterPageContent() {
               {/* Email Input */}
               {signupMethod === 'email' && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
                     Email Address
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
                     placeholder="john@example.com"
                     required
                     disabled={isLoading}
@@ -223,14 +227,14 @@ function RegisterPageContent() {
               {/* Phone Input */}
               {signupMethod === 'phone' && phoneStep === 'REQUEST' && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
                     Phone Number
                   </label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
                     placeholder="+919876543210"
                     pattern="^\+[1-9]\d{1,14}$"
                     required
@@ -242,14 +246,14 @@ function RegisterPageContent() {
               {/* OTP Input for Phone */}
               {signupMethod === 'phone' && phoneStep === 'VERIFY' && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
                     Verification Code (OTP)
                   </label>
                   <input
                     type="text"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
                     placeholder="Enter 6-digit OTP"
                     required
                     disabled={isLoading}
@@ -268,7 +272,7 @@ function RegisterPageContent() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm pr-14"
+                      className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm pr-14"
                       placeholder="Create a strong password"
                       required
                       disabled={isLoading}
@@ -352,7 +356,7 @@ function RegisterPageContent() {
       {/* Right Side - Visuals */}
       <div ref={imageRef} className="hidden lg:flex w-1/2 relative overflow-hidden">
         <Image
-          src="/login.jpg"
+          src="/login.png"
           alt="Register Visual"
           fill
           className="object-cover"
