@@ -356,7 +356,7 @@ function RegisterPageContent() {
       {/* Right Side - Visuals */}
       <div ref={imageRef} className="hidden lg:flex w-1/2 relative overflow-hidden">
         <Image
-          src="/login.png"
+          src="/login2.png"
           alt="Register Visual"
           fill
           className="object-cover"
