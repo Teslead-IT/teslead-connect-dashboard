@@ -26,7 +26,7 @@ export function SocialLoginButton({ provider, disabled }: SocialLoginButtonProps
             <Button
                 type="button"
                 variant="secondary"
-                className="w-full relative cursor-pointer py-2.5 rounded-xl border-gray-200 hover:bg-gray-300 hover:border-gray-300 transition-all duration-200"
+                className="w-full relative cursor-pointer py-2 rounded-none border-gray-200 hover:bg-gray-300 hover:border-gray-300 transition-all duration-200"
                 onClick={handleLogin}
                 disabled={disabled}
             >
@@ -34,11 +34,11 @@ export function SocialLoginButton({ provider, disabled }: SocialLoginButtonProps
                     <Image
                         src={`/icons/${provider}.svg`}
                         alt={`${provider} logo`}
-                        width={20}
-                        height={20}
-                        className="w-5 h-5"
+                        width={18}
+                        height={18}
+                        className="w-4.5 h-4.5"
                     />
-                    <span className="font-medium text-gray-700">
+                    <span className="font-medium text-gray-700 text-sm">
                         {provider === 'google' ? 'Google' : 'GitHub'}
                     </span>
                 </div>
