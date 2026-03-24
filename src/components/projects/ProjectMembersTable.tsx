@@ -9,6 +9,7 @@ import { User, Shield, UserCog, Eye, AtSign, Calendar, MoreVertical } from 'luci
 import { Loader } from '@/components/ui/Loader';
 import { MemberContextMenu } from './MemberContextMenu';
 import { AssignTasksToMemberModal } from './AssignTasksToMemberModal';
+import { useAttendanceForUsers } from '@/hooks/use-attendance';
 
 // Register AG Grid Modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -32,14 +33,24 @@ const ROLE_COLORS = {
 const MemberNameRenderer = (props: ICellRendererParams) => {
     const member: ProjectMember = props.data;
     const initial = member.user.name.charAt(0).toUpperCase();
+    const statusMap = (props.context as { attendanceStatusMap?: Map<string, string> })?.attendanceStatusMap;
+    const status = member.user.id ? statusMap?.get(member.user.id) : undefined;
+    const isOnline = status === 'checked_in';
+    const isOnBreak = status === 'on_break';
 
     return (
         <div className="flex items-center gap-3 h-full">
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs flex-shrink-0 border border-slate-200">
+            <div className="relative w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs flex-shrink-0 border border-slate-200">
                 {member.user.avatarUrl ? (
                     <img src={member.user.avatarUrl} alt={member.user.name} className="w-full h-full rounded-full object-cover" />
                 ) : (
                     initial
+                )}
+                {isOnline && (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" title="Checked in" />
+                )}
+                {isOnBreak && (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 border-2 border-white rounded-full" title="On break" />
                 )}
             </div>
             <div className="flex flex-col justify-center min-w-0">
@@ -108,6 +119,8 @@ const DEFAULT_COL_DEF = {
 };
 
 export function ProjectMembersTable({ members, isLoading, projectId, currentUserRole, searchQuery = '' }: ProjectMembersTableProps) {
+    const memberUserIds = useMemo(() => members.map((m) => m.user.id).filter(Boolean) as string[], [members]);
+    const attendanceStatusMap = useAttendanceForUsers(memberUserIds);
     const columnDefs: ColDef[] = useMemo(() => [
         {
             headerName: 'S.No',
@@ -202,6 +215,7 @@ export function ProjectMembersTable({ members, isLoading, projectId, currentUser
                 rowData={members}
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
+                context={{ attendanceStatusMap }}
                 quickFilterText={searchQuery || undefined}
                 rowHeight={60}
                 headerHeight={48}

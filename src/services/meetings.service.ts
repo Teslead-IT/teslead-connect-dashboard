@@ -1,22 +1,14 @@
 /**
  * Meetings API Service
- * All meeting-related API calls are centralized here
+ * Org for URL paths from org store. x-org-id header attached by api-client.
  */
 
 import { apiClient } from '@/lib/api-client';
-import { tokenStorage } from '@/lib/token-storage';
+import { useOrgStore } from '@/stores/orgStore';
 
 function getOrgId(): string {
-    const user = tokenStorage.getUser();
-    const orgId = user?.currentOrgId || user?.organizationId || user?.memberships?.[0]?.orgId || user?.orgId || user?.organizations?.[0]?.id || '';
-
-    // Debug logging for mention issue
-    if (!orgId) {
-        console.warn('[MeetingsService] getOrgId failed. User object:', user);
-    } else {
-        console.log('[MeetingsService] getOrgId resolved:', orgId);
-    }
-
+    const orgId = useOrgStore.getState().activeOrgId ?? '';
+    if (!orgId) console.warn('[MeetingsService] activeOrgId is null');
     return orgId;
 }
 

@@ -72,8 +72,8 @@ export function getOrgPermissions(
         canInviteToOrg: isOwnerOrAdmin,
         canResendInvite: isOwnerOrAdmin,
 
-        // Update role: Allow any OWNER (not just creator)
-        canUpdateMemberRole: isOwner,
+        // Update role: OWNER and ADMIN (backend may allow ADMIN to manage members)
+        canUpdateMemberRole: isOwnerOrAdmin,
 
         // OWNER and ADMIN can manage projects
         canCreateProject: isOwnerOrAdmin,
@@ -111,20 +111,23 @@ export function getProjectPermissions(
     const isOrgOwner = orgRole === 'OWNER';
     const isOrgAdmin = orgRole === 'ADMIN';
     const isProjectAdmin = projectRole === 'ADMIN';
+    const isProjectMember = projectRole === 'MEMBER';
     const isViewer = projectRole === 'VIEWER';
 
-    // Viewers can only view, not edit
-    const canEdit = !isViewer;
+    // Backend: Create/Update task → ADMIN or MEMBER; Delete task → ADMIN only; Viewer → read-only
+    const canCreateTask = isProjectAdmin || isProjectMember;
+    const canEditTask = isProjectAdmin || isProjectMember;
+    const canDeleteTask = isProjectAdmin; // ADMIN only
 
-    // Admins (project or org) + project owner can manage
+    // Admins (project or org) + project owner can manage workflow/settings/members
     const canManage = isProjectAdmin || isProjectOwner || isOrgOwner || isOrgAdmin;
 
     return {
-        canCreateTask: canEdit,
-        canEditTask: canEdit,
-        canDeleteTask: canEdit,
-        canAssignTask: canEdit,
-        canUpdateTaskStatus: canEdit,
+        canCreateTask,
+        canEditTask,
+        canDeleteTask,
+        canAssignTask: canEditTask,
+        canUpdateTaskStatus: canEditTask,
         canManageWorkflow: canManage,
         canEditProjectSettings: canManage,
         canAddMembers: canManage,

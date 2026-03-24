@@ -1,25 +1,26 @@
 "use client";
 
-import React, { useEffect, Suspense } from "react";
+import React, { useEffect, Suspense, useMemo } from "react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useUser, useSwitchOrg } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { useUser, useSwitchOrg, useAllOrgs } from "@/hooks/use-auth";
+import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { Loader } from "@/components/ui/Loader";
-import { LogOut, ChevronRight, Building2, CheckCircle2, Video, FileText, Search, HelpCircle, UserPlus, Grid } from "lucide-react";
-import { UserStatusMenu } from "@/components/layout/UserStatusMenu";
-import { TimerMenu } from "@/components/layout/TimerMenu";
-import { NotificationBell } from "@/components/notifications";
+import { LogOut, ChevronRight, Building2, CheckCircle2, Video, FileText, Clock } from "lucide-react";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { authApi } from "@/services/auth.service";
 import { clearAuthTokens } from "@/lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useOrgStore } from "@/stores/orgStore";
+import { useProjectStore } from "@/stores/projectStore";
+import { useTimerStore } from "@/stores/timerStore";
+import { useOrgSwitchStore } from "@/stores/orgSwitchStore";
 
 function OrganizationsPageContent() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const returnTo = searchParams.get('returnTo') || '/dashboard';
 
     const { data: user, isLoading: isUserLoading } = useUser();
+    const { data: allOrgs, isLoading: isOrgsLoading } = useAllOrgs();
     const { mutate: switchOrg, isPending: isSwitching } = useSwitchOrg();
     const queryClient = useQueryClient();
 
@@ -30,18 +31,10 @@ function OrganizationsPageContent() {
         }
     }, [user, isUserLoading, router]);
 
-    const handleOrgSelect = (orgId: string) => {
-        switchOrg(orgId, {
-            onSuccess: () => {
-                router.push(returnTo);
-            }
-        });
-    };
-
     const handleLogout = async () => {
         queryClient.clear();
         clearAuthTokens();
-        // Optional: Call backend logout if needed
+        useOrgStore.getState().clearOrg();
         try {
             await authApi.logout();
         } catch (e) {
@@ -50,7 +43,66 @@ function OrganizationsPageContent() {
         router.push('/auth/login');
     };
 
-    if (isUserLoading || !user) {
+    // Prioritize allOrgs data if available, fallback to user.memberships
+    const memberships = React.useMemo(() => {
+        const rawOrgs = Array.isArray(allOrgs)
+            ? allOrgs
+            : (allOrgs as any)?.data || (allOrgs as any)?.organizations || [];
+
+        if (rawOrgs.length > 0) {
+            return rawOrgs.map((org: any) => ({
+                orgId: org.id || org.orgId,
+                orgName: org.name || org.orgName,
+                slug: org.slug,
+                role: org.role,
+                lastLoginTime: org.lastLoginTime
+            }));
+        }
+
+        return (user?.memberships || []).map((m: any) => ({
+            orgId: m.orgId,
+            orgName: m.orgName,
+            slug: m.slug,
+            role: m.role,
+            lastLoginTime: m.lastLoginTime
+        }));
+    }, [allOrgs, user?.memberships]);
+
+    // Model A: Set org only when user explicitly selects one. Never auto-apply user.currentOrgId.
+    // Optimistic: set store + navigate immediately so redirect works even if switchOrg API is slow/fails.
+    const handleOrgSelect = (orgId: string) => {
+        const { isRunning, activeTimer } = useTimerStore.getState();
+        const timerHasTask = activeTimer?.taskId != null;
+
+        const m = memberships.find((item: any) => item.orgId === orgId);
+        const role = m?.role?.toUpperCase?.();
+        const validRole = (role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER') ? role : undefined;
+
+        if (isRunning && !timerHasTask) {
+            useOrgSwitchStore.getState().setPending(orgId, validRole);
+            router.replace('/dashboard');
+            return;
+        }
+
+        useOrgStore.getState().setOrg(orgId, validRole);
+        useProjectStore.getState().clearProject();
+        useOrgStore.getState().setSwitching(true, 'Selecting organization');
+        router.replace('/dashboard');
+        switchOrg(orgId);
+    };
+
+    const formatTime = (timeStr?: string) => {
+        if (!timeStr) return '';
+        try {
+            const date = parseISO(timeStr);
+            if (!isValid(date)) return timeStr;
+            return formatDistanceToNow(date, { addSuffix: true });
+        } catch {
+            return timeStr;
+        }
+    };
+
+    if (isUserLoading || isOrgsLoading || !user) {
         return (
             <div className="h-screen w-full flex items-center justify-center bg-white">
                 <Loader size={200} />
@@ -58,11 +110,9 @@ function OrganizationsPageContent() {
         );
     }
 
-    const memberships = user.memberships || [];
     const displayName = user.name || user.username || user.email?.split('@')[0] || 'User';
     // Add null check or default if avatar doesn't exist on user type
     const displayAvatar = (user as any).avatarUrl || null;
-
     return (
         <div className="flex flex-col h-screen w-full bg-white text-gray-900 font-sans overflow-hidden">
             {/* Custom Header matching the dashboard TopNav styling */}
@@ -78,21 +128,7 @@ function OrganizationsPageContent() {
                 </div>
 
                 {/* Right Actions */}
-                <div className="flex items-center gap-3">
-                    <UserStatusMenu />
-
-                    <div className="flex items-center gap-1 pr-4 border-r border-gray-100 hidden sm:flex">
-                        <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" title="Help Center">
-                            <HelpCircle className="w-5 h-5" />
-                        </button>
-                        <TimerMenu />
-                        <NotificationBell />
-                    </div>
-
-                    <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer hidden sm:block" title="Apps">
-                        <Grid className="w-5 h-5" />
-                    </button>
-
+                <div className="flex items-center gap-4">
                     {/* User Profile */}
                     <div className="flex items-center gap-2.5 pl-1 group hover:bg-gray-50 p-1.5 rounded-xl transition-all cursor-pointer">
                         <div className="hidden md:flex flex-col items-end">
@@ -110,6 +146,11 @@ function OrganizationsPageContent() {
                             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
                         </div>
                     </div>
+
+                    {/* Logout Button */}
+                    <button onClick={handleLogout} className="flex items-center justify-center p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Sign out">
+                        <LogOut className="w-5 h-5" />
+                    </button>
                 </div>
             </header>
 
@@ -177,27 +218,12 @@ function OrganizationsPageContent() {
 
                     {/* Footer Left */}
                     <div className="mt-8 pt-8 flex items-center justify-between text-sm text-gray-500 border-t border-gray-200 shrink-0">
-                        <button onClick={handleLogout} className="flex items-center gap-2 hover:text-gray-900 transition-colors cursor-pointer">
-                            <LogOut className="w-4 h-4" />
-                            Sign out
-                        </button>
-                        {/* <div className="flex gap-4">
-                            <a href="#" className="hover:text-gray-900 transition-colors">Support</a>
-                            <a href="#" className="hover:text-gray-900 transition-colors">Terms</a>
-                            <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
-                        </div> */}
                     </div>
                 </div>
 
                 {/* Right Side - Organizations List */}
                 <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col relative overflow-y-auto bg-white">
-                    {/* Mobile Logout (shows only on mobile) */}
-                    <div className="lg:hidden flex justify-end mb-8">
-                        <button onClick={handleLogout} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer text-sm">
-                            <LogOut className="w-4 h-4" />
-                            Sign out
-                        </button>
-                    </div>
+
 
                     <div className="max-w-xl w-full mx-auto lg:mt-24">
                         <div className="flex items-center justify-between mb-8">
@@ -217,7 +243,7 @@ function OrganizationsPageContent() {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {memberships.map((membership) => (
+                                {memberships.map((membership: any) => (
                                     <button
                                         key={membership.orgId}
                                         onClick={() => handleOrgSelect(membership.orgId)}
@@ -239,6 +265,12 @@ function OrganizationsPageContent() {
                                                     <span className="w-1 h-1 rounded-full bg-gray-300"></span>
                                                     <span className="uppercase font-medium">{membership.role}</span>
                                                 </div>
+                                                {membership.lastLoginTime && (
+                                                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-gray-400 font-medium bg-gray-50/50 w-fit px-2 py-0.5 rounded-md border border-gray-100/50">
+                                                        <Clock className="w-3 h-3 text-gray-300" />
+                                                        <span>Last accessed {formatTime(membership.lastLoginTime)}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="p-2 rounded-lg text-gray-400 group-hover:text-gray-600 group-hover:bg-gray-100 transition-colors">

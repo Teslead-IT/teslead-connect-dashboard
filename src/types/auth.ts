@@ -1,4 +1,14 @@
 // Type definitions for Authentication
+export interface Organization {
+    id: string;
+    name: string;
+    slug: string;
+    role: string;
+    joinedAt: string;
+    createdAt: string;
+    lastLoginTime?: string;
+}
+
 export interface Membership {
     orgId: string;
     orgName: string;
@@ -6,8 +16,10 @@ export interface Membership {
     status: string;
     role: string;
     ownerId?: string; // Organization creator/owner ID for permission checks
+    lastLoginTime?: string; // Last accessed time for the org
 }
 
+/** Identity only. Must NOT contain attendance, presence, session, activeTimer, or other org-scoped runtime state. */
 export interface User {
     id: string;
     email: string;

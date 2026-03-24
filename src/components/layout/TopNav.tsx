@@ -1,24 +1,53 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useUser } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
+import { useUser, useSwitchOrg } from '@/hooks/use-auth';
+import { useTimerStore } from '@/stores/timerStore';
+import { useOrgSwitchStore } from '@/stores/orgSwitchStore';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
-import { Search, HelpCircle, Building2, UserPlus } from 'lucide-react';
+import { useOrgStore } from '@/stores/orgStore';
+import { useProjectStore } from '@/stores/projectStore';
+import { useQueryClient } from '@tanstack/react-query';
+import { authKeys } from '@/hooks/use-auth';
+import { Search, HelpCircle, Building2, UserPlus, ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSidebar } from '@/context/SidebarContext';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notifications';
 import { SendInviteModal } from '@/components/invitations';
 import { AppsMenu } from './AppsMenu';
-import { TimerMenu } from './TimerMenu';
-import { UserStatusMenu } from './UserStatusMenu';
+import { GlobalTimerNav } from './GlobalTimerNav';
+import { AttendanceStatusMenu } from './AttendanceStatusMenu';
 import { useOrgPermissions, type OrgRole } from '@/lib/permissions';
 
 export function TopNav() {
+    const router = useRouter();
+    const queryClient = useQueryClient();
     const { data: backendUser, isLoading } = useUser();
     const { user: auth0User } = useAuth0User();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+    const setOrg = useOrgStore((s) => s.setOrg);
+    const setSwitching = useOrgStore((s) => s.setSwitching);
+    const clearProject = useProjectStore((s) => s.clearProject);
     const [isScrolled, setIsScrolled] = React.useState(false);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
+    const orgDropdownRef = useRef<HTMLDivElement>(null);
+    const { mutate: switchOrg, isPending: isSwitchingOrg } = useSwitchOrg();
+    const isTimerRunning = useTimerStore((s) => s.isRunning);
+    const activeTimer = useTimerStore((s) => s.activeTimer);
+    const setPendingOrgSwitch = useOrgSwitchStore((s) => s.setPending);
     const { isCollapsed } = useSidebar();
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (orgDropdownRef.current && !orgDropdownRef.current.contains(e.target as Node)) {
+                setOrgDropdownOpen(false);
+            }
+        };
+        if (orgDropdownOpen) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [orgDropdownOpen]);
 
     React.useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -26,23 +55,20 @@ export function TopNav() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Prioritize Backend data, fallback to Auth0 data
     const displayName = backendUser?.name || auth0User?.name || backendUser?.username || backendUser?.email?.split('@')[0] || auth0User?.nickname || 'User';
     const displayAvatar = backendUser?.avatarUrl || auth0User?.picture;
-    const currentOrgId = backendUser?.currentOrgId || backendUser?.memberships?.[0]?.orgId;
-    const currentMembership = backendUser?.memberships?.find(m => m.orgId === currentOrgId);
+    const currentMembership = backendUser?.memberships?.find(m => m.orgId === activeOrgId);
     const orgName = currentMembership?.orgName;
     const email = backendUser?.email;
-    const userRole = currentMembership?.role as OrgRole | undefined;
+    const activeOrgRole = useOrgStore((s) => s.activeOrgRole);
+    const userRole = (activeOrgRole ?? currentMembership?.role) as OrgRole | undefined;
 
     // Get organization context for permissions
     const org = useMemo(() => {
-        // TODO: Once backend provides ownerId in memberships, use it here
-        // For now, we'll need to fetch it from org details or use fallback
         return { ownerId: currentMembership?.ownerId };
     }, [currentMembership]);
 
-    // Calculate permissions using centralized system
+    // Calculate permissions using centralized system (store role preferred)
     const permissions = useOrgPermissions(backendUser?.id, org, userRole);
 
     return (
@@ -83,20 +109,91 @@ export function TopNav() {
                 {/* Right Actions - Professional & Balanced */}
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-3 pr-4 border-r border-gray-100">
-                        {/* Organization Badge if exists */}
-                        {orgName && (
-                            <Link
-                                href="/settings/organization"
-                                className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-gray-50/50 hover:bg-blue-50/50 border border-gray-100 hover:border-blue-100 rounded-full transition-all group/org"
-                            >
-                                <Building2 className="w-3.5 h-3.5 text-gray-400 group-hover/org:text-[#091590] transition-colors" />
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold text-gray-500 group-hover/org:text-[#091590] uppercase tracking-tight transition-colors">{orgName}</span>
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{email}</span>
-                                </div>
-                            </Link>
+                        {/* Org Switcher (updates activeOrgId, clears cache, resets app — not a filter) */}
+                        {backendUser?.memberships && backendUser.memberships.length > 0 && (
+                            <div className="relative hidden xl:block" ref={orgDropdownRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setOrgDropdownOpen((o) => !o)}
+                                    disabled={isSwitchingOrg}
+                                    className={cn(
+                                        'flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/50 hover:bg-blue-50/50 border border-gray-100 hover:border-blue-100 rounded-full transition-all group/org min-w-0',
+                                        isSwitchingOrg && 'opacity-70 pointer-events-none'
+                                    )}
+                                    title="Switch organization"
+                                >
+                                    <Building2 className="w-3.5 h-3.5 text-gray-400 group-hover/org:text-[#091590] transition-colors shrink-0" />
+                                    <div className="flex flex-col items-start text-left min-w-0">
+                                        <span className="text-[10px] font-bold text-gray-500 group-hover/org:text-[#091590] uppercase tracking-tight truncate max-w-[120px]">{orgName || 'Organization'}</span>
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{email}</span>
+                                    </div>
+                                    <ChevronDown className={cn('w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform', orgDropdownOpen && 'rotate-180')} />
+                                </button>
+                                <AnimatePresence>
+                                    {orgDropdownOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -4 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -4 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute top-full left-0 mt-1.5 py-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                                        >
+                                            <div className="px-3 py-2 border-b border-gray-100">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Switch organization</p>
+                                            </div>
+                                            {backendUser.memberships
+                                                .filter((m) => m.status === 'ACTIVE')
+                                                .map((m) => {
+                                                    const isActive = m.orgId === activeOrgId;
+                                                    return (
+                                                        <button
+                                                            key={m.orgId}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (m.orgId === activeOrgId) {
+                                                                    setOrgDropdownOpen(false);
+                                                                    return;
+                                                                }
+                                                                setOrgDropdownOpen(false);
+                                                                const role = m.role?.toUpperCase?.();
+                                                                const validRole = role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER' ? role : undefined;
+                                                                const timerHasTask = activeTimer?.taskId != null;
+                                                                if (isTimerRunning && !timerHasTask) {
+                                                                    setPendingOrgSwitch(m.orgId, validRole);
+                                                                    return;
+                                                                }
+                                                                setOrg(m.orgId, validRole);
+                                                                clearProject();
+                                                                queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
+                                                                setSwitching(true);
+                                                                router.replace('/dashboard');
+                                                                switchOrg(m.orgId);
+                                                            }}
+                                                            className={cn(
+                                                                'w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors',
+                                                                isActive ? 'bg-blue-50/80 text-[#091590] font-medium' : 'hover:bg-gray-50 text-gray-700'
+                                                            )}
+                                                        >
+                                                            {isActive ? <Check className="w-4 h-4 shrink-0 text-[#091590]" /> : <span className="w-4 shrink-0" />}
+                                                            <span className="truncate">{m.orgName || m.slug || m.orgId}</span>
+                                                            <span className="text-[10px] text-gray-400 uppercase ml-auto shrink-0">{m.role}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            <Link
+                                                href="/settings/organization"
+                                                className="flex items-center gap-2 px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-50 border-t border-gray-100"
+                                                onClick={() => setOrgDropdownOpen(false)}
+                                            >
+                                                <Building2 className="w-4 h-4" />
+                                                Manage organizations
+                                            </Link>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         )}
-                        <UserStatusMenu />
+                        <AttendanceStatusMenu />
                     </div>
 
                     {/* Action Group */}
@@ -119,7 +216,7 @@ export function TopNav() {
                             <HelpCircle className="w-5 h-5" />
                         </button>
 
-                        <TimerMenu />
+                        <GlobalTimerNav />
                         {/* 🔔 Real-time Notification Bell with WebSocket */}
                         <NotificationBell />
                     </div>
@@ -166,7 +263,7 @@ export function TopNav() {
             <SendInviteModal
                 isOpen={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
-                orgId={currentOrgId || ''}
+                orgId={activeOrgId || ''}
                 orgName={orgName || 'Organization'}
             />
         </motion.header>

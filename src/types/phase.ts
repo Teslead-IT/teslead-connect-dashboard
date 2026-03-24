@@ -6,6 +6,23 @@ export interface Phase {
     endDate: string | null;
     access: 'PUBLIC' | 'PRIVATE';
     orderIndex: number;
+    status?: {
+        id: string;
+        name: string;
+        color: string;
+    } | null;
+    completionPercentage?: number;
+    tags?: Array<{
+        id: string;
+        name: string;
+        color: string;
+    }>;
+    assignees?: Array<{
+        id: string;
+        name: string;
+        email: string;
+        avatarUrl?: string;
+    }>;
     createdAt: string;
     updatedAt: string;
 }
@@ -17,6 +34,11 @@ export interface TaskList {
     phaseId: string | null;
     access: 'PUBLIC' | 'PRIVATE';
     orderIndex: number;
+    tags?: Array<{
+        id: string;
+        name: string;
+        color: string;
+    }>;
     createdAt: string;
     updatedAt: string;
 }
@@ -36,6 +58,8 @@ export interface StructuredTask {
     priority: number;
     order: number;
     dueDate: string | null;
+    startDate: string | null;
+    completionPercentage: number;
     parentId: string | null;
     status: {
         id: string;
@@ -64,6 +88,10 @@ export interface CreatePhasePayload {
     startDate?: string;
     endDate?: string;
     access?: 'PUBLIC' | 'PRIVATE';
+    statusId?: string;
+    completionPercentage?: number;
+    tagIds?: string[];
+    assigneeIds?: string[];
 }
 
 export interface UpdatePhasePayload {
@@ -71,6 +99,10 @@ export interface UpdatePhasePayload {
     startDate?: string;
     endDate?: string;
     access?: 'PUBLIC' | 'PRIVATE';
+    statusId?: string;
+    completionPercentage?: number;
+    tagIds?: string[];
+    assigneeIds?: string[];
 }
 
 export interface CreateTaskListPayload {
@@ -78,11 +110,13 @@ export interface CreateTaskListPayload {
     phaseId: string;
     name: string;
     access?: 'PUBLIC' | 'PRIVATE';
+    tagIds?: string[];
 }
 
 export interface UpdateTaskListPayload {
     name?: string;
     access?: 'PUBLIC' | 'PRIVATE';
+    tagIds?: string[];
 }
 
 export interface ReorderPayload {
