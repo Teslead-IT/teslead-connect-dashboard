@@ -138,7 +138,7 @@ export const invitationsApi = {
     }): Promise<UserSearchResponse> {
         const { data } = await apiClient.get<UserSearchResponse>(
             INVITE_ENDPOINTS.SEARCH_USERS,
-            { params: { ...params, orgId: params.orgId } }
+            { params: { query: params.query, limit: params.limit, page: params.page, projectId: params.projectId, orgId: params.orgId } }
         );
         return data;
     },

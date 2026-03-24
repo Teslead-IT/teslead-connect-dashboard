@@ -16,6 +16,7 @@ import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import { tokenStorage } from '@/lib/token-storage';
 import { API_CONFIG } from '@/lib/config';
+import { useUser } from '@/hooks/use-auth';
 import { notificationApi } from '@/services/notification.service';
 import type { Notification, NotificationType } from '@/types/invitation';
 import { invitationKeys } from './use-invitations';
@@ -95,6 +96,9 @@ export function useNotifications(
     } = options;
 
     const queryClient = useQueryClient();
+    const { data: user } = useUser();
+    const userIdRef = useRef<string | undefined>(undefined);
+    userIdRef.current = user?.id;
     const socketRef = useRef<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const handleNotificationRef = useRef<(notification: Notification) => void>(() => { });
@@ -193,16 +197,17 @@ export function useNotifications(
             socketRef.current = null;
         }
 
-        // Ensure we have a valid token before attempting connection
+        // Ensure we have a valid token and user (userId from fresh /auth/me, not localStorage)
         const token = tokenStorage.getToken(API_CONFIG.STORAGE.ACCESS_TOKEN);
         if (!token) {
             console.warn('[Notification] No auth token found, skipping connection');
             return;
         }
-
-        // Get user info for userId (backend expects userId in handshake auth)
-        const user = tokenStorage.getUser();
-        const userId = user?.id || user?._id || user?.sub;
+        const userId = userIdRef.current;
+        if (!userId) {
+            console.warn('[Notification] User not loaded yet, skipping connection');
+            return;
+        }
 
         // Construct proper URL
         // If BASE_URL has /api suffix, remove it to find the root domain for socket
@@ -282,9 +287,9 @@ export function useNotifications(
     }, [markAllAsRead]);
 
     useEffect(() => {
-        if (autoConnect) connect();
+        if (autoConnect && user?.id) connect();
         return () => disconnect();
-    }, [autoConnect, connect, disconnect]);
+    }, [autoConnect, user?.id, connect, disconnect]);
 
     return {
         notifications,

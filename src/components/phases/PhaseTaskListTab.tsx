@@ -54,6 +54,7 @@ import { useCreateTask, useUpdateTask, useDeleteTask, useProjectWorkflow } from 
 import { useProjectMembers } from '@/hooks/use-projects';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { TaskViewModal } from '@/components/tasks/TaskViewModal';
+import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { Dialog } from '@/components/ui/Dialog';
 import type { PhaseWithTaskLists, TaskListWithTasks, StructuredTask } from '@/types/phase';
@@ -93,6 +94,10 @@ interface PhaseTaskListTabProps {
     projectName?: string;
     projectColor?: string | null;
     isEditable: boolean;
+    /** Create task: ADMIN or MEMBER only (backend aligned) */
+    canCreateTask?: boolean;
+    /** Delete task: ADMIN only (backend aligned) */
+    canDeleteTask?: boolean;
     currentUserRole?: ProjectRole;
     searchQuery?: string;
 }
@@ -106,6 +111,8 @@ export default function PhaseTaskListTab({
     projectName,
     projectColor,
     isEditable,
+    canCreateTask = isEditable,
+    canDeleteTask = false,
     currentUserRole,
     searchQuery = ''
 }: PhaseTaskListTabProps) {
@@ -580,7 +587,7 @@ export default function PhaseTaskListTab({
         );
     }
 
-    const toolbarEl = isEditable && (
+    const toolbarEl = (isEditable || canCreateTask) && (
         <div className="flex items-center gap-2">
             {/* Group By */}
             <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
@@ -615,7 +622,7 @@ export default function PhaseTaskListTab({
             </div>
 
             {/* Add dropdown - hover shows Add task, Add phase, Add task list */}
-            {isEditable && (
+            {(isEditable || canCreateTask) && (
                 <div className="relative group/add">
                     <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors shadow-sm">
                         <Plus className="w-3.5 h-3.5" />
@@ -623,23 +630,25 @@ export default function PhaseTaskListTab({
                         <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                     </button>
                     <div className="absolute right-0 top-full pt-1 min-w-[160px] py-1 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 invisible group-hover/add:opacity-100 group-hover/add:visible transition-opacity z-50">
-                        <button
-                            onClick={() => {
-                                const firstPhase = phases[0];
-                                const firstTl = firstPhase?.taskLists?.[0];
-                                if (firstTl) {
-                                    setCreateTaskModal({ isOpen: true, taskListId: firstTl.id, phaseId: firstPhase.id });
-                                } else if (firstPhase) {
-                                    toast.error('Create a Task List first', 'You need at least one task list before adding tasks.');
-                                } else {
-                                    toast.error('Create a Phase first', 'You need at least one phase before adding tasks.');
-                                }
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50 flex items-center gap-2 text-gray-700"
-                        >
-                            <Plus className="w-4 h-4 text-emerald-500" />
-                            Add Task
-                        </button>
+                        {canCreateTask && (
+                            <button
+                                onClick={() => {
+                                    const firstPhase = phases[0];
+                                    const firstTl = firstPhase?.taskLists?.[0];
+                                    if (firstTl) {
+                                        setCreateTaskModal({ isOpen: true, taskListId: firstTl.id, phaseId: firstPhase.id });
+                                    } else if (firstPhase) {
+                                        toast.error('Create a Task List first', 'You need at least one task list before adding tasks.');
+                                    } else {
+                                        toast.error('Create a Phase first', 'You need at least one phase before adding tasks.');
+                                    }
+                                }}
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50 flex items-center gap-2 text-gray-700"
+                            >
+                                <Plus className="w-4 h-4 text-emerald-500" />
+                                Add Task
+                            </button>
+                        )}
                         <button
                             onClick={() => setShowAddPhase(true)}
                             className="w-full px-3 py-2 text-left text-sm hover:bg-indigo-50 flex items-center gap-2 text-gray-700"
@@ -838,15 +847,17 @@ export default function PhaseTaskListTab({
                             },
                             onDeletePhase: (phaseId: string, name: string) =>
                                 setDeleteDialog({ isOpen: true, type: 'phase', id: phaseId, name }),
-                            onDeleteTask: (taskId: string, name: string) =>
-                                setDeleteDialog({ isOpen: true, type: 'task', id: taskId, name }),
-                            onCreateSubtask: (parentTask: StructuredTask, taskListId: string) =>
-                                setCreateTaskModal({ isOpen: true, taskListId, parentTask }),
+                            onDeleteTask: canDeleteTask ? (taskId: string, name: string) =>
+                                setDeleteDialog({ isOpen: true, type: 'task', id: taskId, name }) : undefined,
+                            onCreateSubtask: canCreateTask ? (parentTask: StructuredTask, taskListId: string) =>
+                                setCreateTaskModal({ isOpen: true, taskListId, parentTask }) : undefined,
+                            projectId,
                         }}
                     />
                 </div>
             ) : (
                 <TasksBoardView
+                    projectId={projectId}
                     phases={phases}
                     workflow={workflow}
                     isEditable={isEditable}
@@ -854,8 +865,8 @@ export default function PhaseTaskListTab({
                     onUpdateStatus={handleUpdateStatus}
                     onEditTask={(task) => setTaskViewModal({ isOpen: true, selectedTaskId: task.id, startInEditMode: true })}
                     onViewTask={(taskId) => setTaskViewModal({ isOpen: true, selectedTaskId: taskId, startInEditMode: false })}
-                    onDeleteTask={(taskId, name) => setDeleteDialog({ isOpen: true, type: 'task', id: taskId, name })}
-                    onCreateSubtask={(task) => setCreateTaskModal({ isOpen: true, parentTask: task, taskListId: (task as any).taskListId })}
+                    onDeleteTask={canDeleteTask ? (taskId, name) => setDeleteDialog({ isOpen: true, type: 'task', id: taskId, name }) : undefined}
+                    onCreateSubtask={canCreateTask ? (task) => setCreateTaskModal({ isOpen: true, parentTask: task, taskListId: (task as any).taskListId }) : undefined}
                 />
             )}
 
@@ -919,10 +930,10 @@ export default function PhaseTaskListTab({
                     await updateTaskMutation.mutateAsync({ taskId, data });
                     toast.success('Task updated');
                 }}
-                onDeleteTask={async (taskId) => {
+                onDeleteTask={canDeleteTask ? async (taskId) => {
                     await deleteTaskMutation.mutateAsync(taskId);
                     toast.success('Task deleted');
-                }}
+                } : undefined}
                 onTaskUpdated={() => { }}
                 onTaskDeleted={() => { }}
             />
@@ -969,8 +980,8 @@ export default function PhaseTaskListTab({
                     onAddTask={() => { setCreateTaskModal({ isOpen: true, taskListId: contextMenu.row.taskListId!, phaseId: contextMenu.row.phaseId }); setContextMenu(null); }}
                     onEditTask={() => { setTaskViewModal({ isOpen: true, selectedTaskId: contextMenu.row.taskId!, startInEditMode: true }); setContextMenu(null); }}
                     onDeletePhase={() => { setDeleteDialog({ isOpen: true, type: 'phase', id: contextMenu.row.phaseId, name: contextMenu.row.name }); setContextMenu(null); }}
-                    onDeleteTask={() => { setDeleteDialog({ isOpen: true, type: 'task', id: contextMenu.row.taskId!, name: contextMenu.row.name }); setContextMenu(null); }}
-                    onCreateSubtask={() => { setCreateTaskModal({ isOpen: true, parentTask: contextMenu.row.taskData, taskListId: contextMenu.row.taskListId }); setContextMenu(null); }}
+                    onDeleteTask={canDeleteTask ? () => { setDeleteDialog({ isOpen: true, type: 'task', id: contextMenu.row.taskId!, name: contextMenu.row.name }); setContextMenu(null); } : undefined}
+                    onCreateSubtask={canCreateTask ? () => { setCreateTaskModal({ isOpen: true, parentTask: contextMenu.row.taskData, taskListId: contextMenu.row.taskListId }); setContextMenu(null); } : undefined}
                 />
             )}
 
@@ -984,6 +995,7 @@ export default function PhaseTaskListTab({
 // ============================================================================
 
 function TasksBoardView({
+    projectId,
     phases,
     workflow,
     isEditable,
@@ -994,6 +1006,7 @@ function TasksBoardView({
     onDeleteTask,
     onCreateSubtask,
 }: {
+    projectId: string;
     phases: PhaseWithTaskLists[];
     workflow: any[];
     isEditable: boolean;
@@ -1001,8 +1014,8 @@ function TasksBoardView({
     onUpdateStatus: (taskId: string, statusId: string) => void;
     onEditTask: (task: any) => void;
     onViewTask?: (taskId: string) => void;
-    onDeleteTask: (taskId: string, name: string) => void;
-    onCreateSubtask: (task: any) => void;
+    onDeleteTask?: (taskId: string, name: string) => void;
+    onCreateSubtask?: (task: any) => void;
 }) {
     const [draggedTask, setDraggedTask] = useState<any>(null);
 
@@ -1012,7 +1025,7 @@ function TasksBoardView({
             (p.taskLists || []).forEach(tl => {
                 const add = (items: StructuredTask[], parentId?: string) => {
                     (items || []).forEach(t => {
-                        out.push({ ...t, parentId: parentId || null, taskListId: tl.id });
+                        out.push({ ...t, parentId: parentId || null, taskListId: tl.id, phaseId: p.id });
                         if (t.children?.length) add(t.children, t.id);
                     });
                 };
@@ -1082,15 +1095,15 @@ function TasksBoardView({
                                             <div className="flex items-start justify-between gap-1 mb-1">
                                                 <h4 className="text-sm font-medium text-gray-900 flex-1 line-clamp-2">{task.title}</h4>
                                                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
-                                                    <button onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('trigger-timer', { detail: { taskName: task.title } })); }} className="p-1 hover:bg-blue-100 bg-blue-50 border border-blue-200 rounded text-blue-600 shadow-sm" title="Start Timer"><Timer className="w-3 h-3" /></button>
+                                                    <TaskTimerButton taskId={task.id} projectId={projectId} phaseId={task.phaseId} taskListId={task.taskListId} taskName={task.title} />
                                                     {onViewTask && (
                                                         <button onClick={() => onViewTask(task.id)} className="p-1 hover:bg-indigo-50 rounded" title="View"><Eye className="w-3 h-3 text-indigo-600" /></button>
                                                     )}
                                                     {isEditable && (
                                                         <>
                                                             <button onClick={() => onEditTask(task)} className="p-1 hover:bg-blue-50 rounded" title="Edit"><Pencil className="w-3 h-3" /></button>
-                                                            <button onClick={() => onDeleteTask(task.id, task.title)} className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-3 h-3" /></button>
-                                                            <button onClick={() => onCreateSubtask(task)} className="p-1 hover:bg-gray-100 rounded"><Plus className="w-3 h-3" /></button>
+                                                            {onDeleteTask && <button onClick={() => onDeleteTask(task.id, task.title)} className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-3 h-3" /></button>}
+                                                            {onCreateSubtask && <button onClick={() => onCreateSubtask(task)} className="p-1 hover:bg-gray-100 rounded"><Plus className="w-3 h-3" /></button>}
                                                         </>
                                                     )}
                                                 </div>
@@ -1137,8 +1150,8 @@ function RowContextMenu({
     onAddTask: () => void;
     onEditTask: () => void;
     onDeletePhase: () => void;
-    onDeleteTask: () => void;
-    onCreateSubtask: () => void;
+    onDeleteTask?: () => void;
+    onCreateSubtask?: () => void;
 }) {
     return (
         <>
@@ -1158,8 +1171,8 @@ function RowContextMenu({
                 {(row.rowType === 'task' || row.rowType === 'subtask') && (
                     <>
                         <button onClick={onEditTask} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Pencil className="w-4 h-4" />View / Edit</button>
-                        {isEditable && <button onClick={onCreateSubtask} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Plus className="w-4 h-4" />Add Subtask</button>}
-                        {isEditable && <><div className="h-px bg-gray-100 my-1" /><button onClick={onDeleteTask} className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"><Trash2 className="w-4 h-4" />Delete Task</button></>}
+                        {isEditable && onCreateSubtask && <button onClick={onCreateSubtask} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Plus className="w-4 h-4" />Add Subtask</button>}
+                        {isEditable && onDeleteTask && <><div className="h-px bg-gray-100 my-1" /><button onClick={onDeleteTask} className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"><Trash2 className="w-4 h-4" />Delete Task</button></>}
                     </>
                 )}
             </div>
@@ -1310,20 +1323,18 @@ function TaskNameCell(params: ICellRendererParams) {
             )}
             {ctx.isEditable && (
                 <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity pr-2">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('trigger-timer', { detail: { taskName: row.name } })); }}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors mr-1"
-                        title="Start Timer"
-                    >
-                        <Timer className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); ctx.onCreateSubtask(row.taskData, row.taskListId); }}
-                        className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        title="Add Subtask"
-                    >
-                        <Plus className="w-3.5 h-3.5" />
-                    </button>
+                    {row.taskId && ctx.projectId && (
+                        <TaskTimerButton taskId={row.taskId} projectId={ctx.projectId} phaseId={row.phaseId} taskListId={row.taskListId} taskName={row.name} />
+                    )}
+                    {ctx.onCreateSubtask && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); ctx.onCreateSubtask?.(row.taskData, row.taskListId); }}
+                            className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            title="Add Subtask"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.onEditTask?.(row.taskData); }}
                         className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -1331,13 +1342,15 @@ function TaskNameCell(params: ICellRendererParams) {
                     >
                         <Pencil className="w-3.5 h-3.5" />
                     </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); ctx.onDeleteTask(row.taskId, row.name); }}
-                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
-                    >
-                        <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {ctx.onDeleteTask && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); ctx.onDeleteTask?.(row.taskId, row.name); }}
+                            className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Delete"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
             )}
         </div>
