@@ -47,6 +47,12 @@ function LoginPageContent() {
         if (hasAnimated.current) return;
         hasAnimated.current = true;
 
+        const isTransition = sessionStorage.getItem('authTransition') === 'true';
+        if (isTransition) {
+            sessionStorage.removeItem('authTransition');
+            return;
+        }
+
         // Entrance animation
         const ctx = gsap.context(() => {
             gsap.fromTo(imageRef.current,
@@ -82,7 +88,11 @@ function LoginPageContent() {
         gsap.to(imageRef.current, { x: "100%", duration: 0.8, ease: "power3.inOut" });
         gsap.to(formRef.current, {
             x: "-100%", duration: 0.8, ease: "power3.inOut", onComplete: () => {
-                router.push(returnToUrl !== '/dashboard' ? `/auth/register?returnTo=${encodeURIComponent(returnToUrl)}` : "/auth/register");
+                sessionStorage.setItem('authTransition', 'true');
+                const targetUrl = returnToUrl !== '/dashboard' 
+                    ? `/auth/register?returnTo=${encodeURIComponent(returnToUrl)}` 
+                    : "/auth/register";
+                router.push(targetUrl);
             }
         });
     };
@@ -103,7 +113,7 @@ function LoginPageContent() {
             {/* Left Side - Visuals */}
             <div ref={imageRef} className="hidden lg:flex w-1/2 relative overflow-hidden">
                 <Image
-                    src="/login.png"
+                    src="/login2.png"
                     alt="Login Visual"
                     fill
                     className="object-cover"
