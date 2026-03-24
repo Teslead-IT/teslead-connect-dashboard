@@ -25,6 +25,8 @@ import {
     Calendar,
     ListTodo,
     Building2,
+    Clock,
+    ClipboardCheck,
 } from 'lucide-react';
 
 interface NavItemBase {
@@ -62,6 +64,16 @@ const navItems: NavItem[] = [
         label: 'Meetings',
         href: '/meetings',
         icon: <Calendar className="w-5 h-5 flex-shrink-0" />,
+    },
+    {
+        label: 'Timesheet',
+        href: '/dashboard/timesheet',
+        icon: <Clock className="w-5 h-5 flex-shrink-0" />,
+    },
+    {
+        label: 'Attendance',
+        href: '/dashboard/attendance',
+        icon: <ClipboardCheck className="w-5 h-5 flex-shrink-0" />,
     },
     {
         label: 'Documents',

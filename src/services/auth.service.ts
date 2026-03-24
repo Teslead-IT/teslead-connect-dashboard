@@ -14,6 +14,7 @@ import type {
     ResetPasswordPayload,
     ChangePasswordPayload,
     User,
+    Organization,
 } from '@/types/auth';
 
 export const authApi = {
@@ -155,12 +156,23 @@ export const authApi = {
     },
 
     /**
-     * Switch current organization
+     * Switch current organization.
+     * Sends orgId in body for backend; x-org-id is also set by interceptor from store after setActiveOrg(orgId).
      */
     async switchOrg(orgId: string): Promise<AuthResponse> {
         const { data } = await apiClient.post<AuthResponse>(
             API_CONFIG.ENDPOINTS.AUTH.SWITCH_ORG,
             { orgId }
+        );
+        return data;
+    },
+
+    /**
+     * Get all organizations for current user
+     */
+    async getAllOrgs(): Promise<Organization[]> {
+        const { data } = await apiClient.get<Organization[]>(
+            API_CONFIG.ENDPOINTS.ORG.ALL
         );
         return data;
     },

@@ -4,12 +4,14 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
 import { useUser } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopNav } from '@/components/layout/TopNav';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { Loader } from '@/components/ui/Loader';
-
+import { ToastContainer } from '@/components/ui/Toast';
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
+import { OrgBootSync } from '@/components/OrgBootSync';
 import { motion } from 'framer-motion';
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
@@ -17,6 +19,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <OrgBootSync />
             <Sidebar />
             <TopNav />
             <motion.main
@@ -29,6 +32,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     {children}
                 </div>
             </motion.main>
+            <ToastContainer />
         </div>
     );
 }
@@ -39,24 +43,24 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const router = useRouter();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
 
-    // Check both Auth0 session (Social Login) and Backend session (Email/Password)
     const { user: auth0User, isLoading: isAuth0Loading } = useAuth0User();
     const { data: backendUser, isLoading: isBackendLoading, isFetching: isBackendFetching } = useUser();
 
     useEffect(() => {
-        // Wait for auth check to complete
-        if (isBackendLoading) {
+        if (isBackendLoading) return;
+
+        if (!backendUser && !isBackendFetching) {
+            router.replace('/auth/login');
             return;
         }
 
-        // If no backend session (access token) exists, redirect to login
-        // We do not rely on auth0User here because we need valid backend tokens for API calls
-        // We also wait if we are currently fetching/verifying the user
-        if (!backendUser && !isBackendFetching) {
-            router.replace('/auth/login');
+        // Model A: User must explicitly select org. No default fallback.
+        if (backendUser && activeOrgId === null) {
+            router.replace('/organization');
         }
-    }, [backendUser, isBackendLoading, isBackendFetching, router]);
+    }, [backendUser, isBackendLoading, isBackendFetching, activeOrgId, router]);
 
     // Show loading state while checking authentication
     if (isBackendLoading) {

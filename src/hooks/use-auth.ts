@@ -11,6 +11,12 @@ import { authApi } from '@/services/auth.service';
 import { setAuthTokens, clearAuthTokens, setAuthSession } from '@/lib/api-client';
 import { tokenStorage } from '@/lib/token-storage';
 import { API_CONFIG } from '@/lib/config';
+import { useOrgStore, type OrgRole } from '@/stores/orgStore';
+import { useProjectStore } from '@/stores/projectStore';
+import { useTimerStore } from '@/stores/timerStore';
+import { useAttendanceStore } from '@/stores/attendanceStore';
+import { usePresenceStore } from '@/stores/presenceStore';
+import { disconnectPresenceSocket } from '@/lib/presence-socket';
 import type {
     AuthResponse,
     LoginCredentials,
@@ -28,18 +34,11 @@ export const authKeys = {
 };
 
 /**
- * Hook: Get Current User
- * Fetches user data from backend, with smart caching
+ * Hook: Get Current User (Identity Only)
+ * Fetches user data from backend. Not persisted to localStorage (tokens only).
+ * Returns identity only—no attendance, presence, session, or other runtime state.
+ * Role/org derive from memberships + activeOrgId in Zustand.
  */
-const MOCK_USER: User = {
-    id: 'u1',
-    email: 'demo@teslead.com',
-    fullName: 'Demo Administrator',
-    currentOrgId: 'org-1',
-    memberships: [{ orgId: 'org-1', role: 'owner' }],
-    organizationId: 'org-1'
-} as any;
-
 export function useUser() {
     return useQuery({
         queryKey: authKeys.user(),
@@ -49,17 +48,15 @@ export function useUser() {
 
             try {
                 const data = await authApi.getMe();
-                // Sync latest user data to storage so services can access it synchronously
-                if (data.user) {
-                    tokenStorage.setUser(data.user);
-                }
+                // Do NOT persist user to localStorage — tokens only. Role/org from Zustand + fresh /auth/me.
                 return data.user || null;
             } catch (error) {
                 console.error('Failed to fetch user:', error);
                 return null;
             }
         },
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 0, // Always revalidate so role changes (e.g. downgrade) are reflected on refresh
+        refetchOnWindowFocus: true, // Re-fetch when user returns to tab
         gcTime: 30 * 60 * 1000, // 30 minutes
     });
 }
@@ -201,28 +198,20 @@ export function useLogout() {
 
     return useMutation({
         mutationFn: async () => {
-            // Immediately clear user cache to prevent showing authenticated state
             queryClient.setQueryData(authKeys.user(), null);
-
-            // Clear tokens from storage
             clearAuthTokens();
-
-            // Call backend logout
+            useOrgStore.getState().clearOrg();
             return authApi.logout();
         },
         onSuccess: () => {
-            // Clear all cached data
             queryClient.clear();
-
-            // Redirect to Next.js Auth0 Logout to clear cookie (important for Social Login)
             if (typeof window !== 'undefined') {
                 window.location.href = '/api/auth/logout';
             }
         },
         onError: () => {
-            // Even on error, clear local state and redirect
             queryClient.clear();
-
+            useOrgStore.getState().clearOrg();
             if (typeof window !== 'undefined') {
                 window.location.href = '/api/auth/logout';
             }
@@ -279,33 +268,62 @@ export const usePhoneSignupVerify = () => {
             if (data.refreshToken) {
                 tokenStorage.setToken(API_CONFIG.STORAGE.REFRESH_TOKEN, data.refreshToken);
             }
-            tokenStorage.setUser(data.user);
+            queryClient.setQueryData(authKeys.user(), data.user);
             queryClient.invalidateQueries({ queryKey: authKeys.user() });
         },
     });
 };
 
+/** Minimum time (ms) to show switching overlay so the animation is visible and UI can update */
+const SWITCH_OVERLAY_MIN_MS = 600;
+
 /**
- * Hook: Switch Organization
+ * Hook: Switch Organization (Model A)
+ * Caller (org page or TopNav) sets store + optionally navigates; this syncs with backend.
+ * Keeps overlay visible for at least SWITCH_OVERLAY_MIN_MS for a smooth transition.
  */
 export function useSwitchOrg() {
     const queryClient = useQueryClient();
-    const router = useRouter();
+
+    const clearOverlayAfterDelay = () => {
+        setTimeout(() => {
+            useOrgStore.getState().setSwitching(false);
+        }, SWITCH_OVERLAY_MIN_MS);
+    };
 
     return useMutation({
-        mutationFn: (orgId: string) => authApi.switchOrg(orgId),
-        onSuccess: (data: AuthResponse) => {
-            // Update tokens and user session
-            setAuthSession(data.accessToken, data.refreshToken, data.user);
-
-            // Update cached user data
-            queryClient.setQueryData(authKeys.user(), data.user);
-
-            // Invalidate all queries to refresh data (projects, tasks, etc.)
-            queryClient.invalidateQueries();
-
-            // Force refresh to ensure all components pick up the new context
-            router.refresh();
+        mutationFn: async (orgId: string) => {
+            return authApi.switchOrg(orgId);
         },
+        onSuccess: (data: AuthResponse, orgId: string) => {
+            setAuthSession(data.accessToken, data.refreshToken, data.user);
+            queryClient.setQueryData(authKeys.user(), data.user);
+            const role = data.user.memberships?.find((m) => m.orgId === orgId)?.role?.toUpperCase?.() as OrgRole | undefined;
+            if (role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER') {
+                useOrgStore.getState().setOrg(orgId, role);
+            }
+            useProjectStore.getState().clearProject();
+            useTimerStore.getState().clearTimer();
+            useAttendanceStore.getState().clearAttendance();
+            usePresenceStore.getState().clearPresence();
+            disconnectPresenceSocket();
+            queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
+            queryClient.invalidateQueries({ queryKey: ['org-settings'] });
+            clearOverlayAfterDelay();
+        },
+        onError: () => {
+            clearOverlayAfterDelay();
+        },
+    });
+}
+
+/**
+ * Hook: Get all organizations for current user
+ */
+export function useAllOrgs() {
+    return useQuery({
+        queryKey: [...authKeys.all, 'organizations'],
+        queryFn: () => authApi.getAllOrgs(),
+        staleTime: 5 * 60 * 1000, // 5 minutes
     });
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useUser } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -92,7 +93,8 @@ export default function DashboardPage() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const currentOrg = user?.memberships?.find(m => m.orgId === user.currentOrgId);
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+    const currentOrg = user?.memberships?.find(m => m.orgId === activeOrgId);
     const orgName = currentOrg?.orgName || 'Your Organization';
 
     const colDefs: ColDef[] = useMemo(() => [

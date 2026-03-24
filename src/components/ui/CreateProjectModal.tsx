@@ -20,10 +20,7 @@ import {
     Lock,
     Globe,
     Palette,
-    Building2,
-    ChevronDown
 } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
 import { ColorPicker } from 'primereact/colorpicker';
 
 export interface TagData {
@@ -47,12 +44,10 @@ export interface CreateProjectModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (projectData: ProjectFormData) => void | Promise<void>;
-    defaultOrgId?: string;
     initialData?: ProjectFormData;
 }
 
-
-export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, initialData }: CreateProjectModalProps) {
+export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: CreateProjectModalProps) {
     const [formData, setFormData] = useState<ProjectFormData>({
         name: '',
         description: '',
@@ -62,22 +57,15 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, in
         access: 'PRIVATE',
         status: 'NOT_STARTED',
         tags: [],
-        orgId: '',
     });
 
-    const { user } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Tag state
     const [tagInput, setTagInput] = useState('');
-    const [tagColor, setTagColor] = useState('#10B981'); // Default green for tags
-
+    const [tagColor, setTagColor] = useState('#10B981');
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // Reset form when modal closes or opens with new data
     useEffect(() => {
         if (!isOpen) {
-            // Reset logic when closing...
             setFormData({
                 name: '',
                 description: '',
@@ -87,27 +75,18 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, in
                 access: 'PRIVATE',
                 status: 'NOT_STARTED',
                 tags: [],
-                orgId: defaultOrgId && defaultOrgId !== 'all' ? defaultOrgId : (user?.currentOrgId || ''),
             });
             setErrors({});
             setTagInput('');
             setTagColor('#10B981');
         } else if (initialData) {
-            // Populate form with initial data for editing
             setFormData({
                 ...initialData,
-                // Ensure dates are in YYYY-MM-DD format for input[type="date"]
                 startDate: initialData.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : '',
                 endDate: initialData.endDate ? new Date(initialData.endDate).toISOString().split('T')[0] : '',
             });
-        } else {
-            // Default logic for new project...
-            if ((!formData.orgId || formData.orgId === 'all') && user?.currentOrgId) {
-                const targetOrg = (defaultOrgId && defaultOrgId !== 'all') ? defaultOrgId : user.currentOrgId;
-                setFormData(prev => ({ ...prev, orgId: targetOrg }));
-            }
         }
-    }, [isOpen, initialData, user?.currentOrgId, defaultOrgId]);
+    }, [isOpen, initialData]);
 
     // Prevent body scroll when modal is open
     useEffect(() => {
@@ -196,31 +175,6 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, defaultOrgId, in
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
                     <div className="flex items-center gap-4">
                         <h2 className="text-lg font-semibold text-gray-900">{initialData ? 'Edit Project' : 'New Project'}</h2>
-
-                        {/* Organization Selector */}
-                        {user?.memberships && (
-                            <div className="relative group">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                    <Building2 className="w-4 h-4 text-gray-400" />
-                                </div>
-                                <select
-                                    value={formData.orgId}
-                                    onChange={(e) => setFormData({ ...formData, orgId: e.target.value })}
-                                    className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg py-1.5 pl-9 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer min-w-[200px] hover:border-gray-300 transition-all shadow-sm"
-                                >
-                                    {user.memberships
-                                        .filter(m => (m.role === 'OWNER' || m.role === 'ADMIN') && m.status === 'ACTIVE')
-                                        .map((m) => (
-                                            <option key={m.orgId} value={m.orgId}>
-                                                {m.orgName}
-                                            </option>
-                                        ))}
-                                </select>
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                    <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
-                                </div>
-                            </div>
-                        )}
                     </div>
                     <button
                         onClick={onClose}

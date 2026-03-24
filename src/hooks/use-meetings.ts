@@ -6,6 +6,7 @@ import {
     MeetingResponse,
     PaginatedMeetingsResponse,
 } from '@/services/meetings.service';
+import { useOrgStore } from '@/stores/orgStore';
 
 // Re-export types for convenience
 export type { MeetingResponse, MeetingCreatePayload, MeetingUpdatePayload, PaginatedMeetingsResponse };
@@ -21,9 +22,12 @@ export function useMeetings(params?: {
     fromDate?: string;
     toDate?: string;
 }) {
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+
     return useQuery({
-        queryKey: ['meetings', params],
+        queryKey: ['meetings', activeOrgId, params],
         queryFn: () => meetingsApi.getAll(params),
+        enabled: !!activeOrgId,
     });
 }
 
@@ -31,10 +35,12 @@ export function useMeetings(params?: {
  * Fetch a single meeting by ID
  */
 export function useMeeting(meetingId: string) {
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+
     return useQuery({
-        queryKey: ['meeting', meetingId],
+        queryKey: ['meeting', activeOrgId, meetingId],
         queryFn: () => meetingsApi.getById(meetingId),
-        enabled: !!meetingId,
+        enabled: !!meetingId && !!activeOrgId,
     });
 }
 
@@ -63,7 +69,7 @@ export function useUpdateMeeting() {
             meetingsApi.update(id, data),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
-            queryClient.invalidateQueries({ queryKey: ['meeting', variables.id] });
+            queryClient.invalidateQueries({ queryKey: ['meeting'] });
         },
     });
 }
@@ -78,7 +84,7 @@ export function usePublishMeeting() {
         mutationFn: (meetingId: string) => meetingsApi.publish(meetingId),
         onSuccess: (_, meetingId) => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
-            queryClient.invalidateQueries({ queryKey: ['meeting', meetingId] });
+            queryClient.invalidateQueries({ queryKey: ['meeting'] });
         },
     });
 }
@@ -101,9 +107,11 @@ export function useDeleteMeeting() {
  * Fetch meetings for a specific project (Project MOM Tab)
  */
 export function useProjectMeetings(projectId: string, params?: { page?: number; limit?: number }) {
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+
     return useQuery({
-        queryKey: ['project-meetings', projectId, params],
+        queryKey: ['project-meetings', activeOrgId, projectId, params],
         queryFn: () => meetingsApi.getByProject(projectId, params),
-        enabled: !!projectId,
+        enabled: !!projectId && !!activeOrgId,
     });
 }

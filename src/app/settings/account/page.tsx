@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useUser, useChangePassword } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 import { Tabs, TabItem } from '@/components/ui/Tabs';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
@@ -32,6 +33,7 @@ const TABS: TabItem[] = [
 
 export default function AccountSettingsPage() {
     const { data: user } = useUser();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
     const toast = useToast();
     const [activeTab, setActiveTab] = useState('profile');
 
@@ -147,7 +149,7 @@ export default function AccountSettingsPage() {
                                 <p className="text-base text-gray-500 mb-4">{user?.email}</p>
                                 <div className="flex items-center gap-3">
                                     <Badge variant="info" className="px-3 py-1 bg-blue-50 text-[#091590] border-blue-100 font-semibold uppercase text-xs tracking-wider">
-                                        {user?.memberships?.[0]?.role || 'Owner'}
+                                        {user?.memberships?.find(m => m.orgId === activeOrgId)?.role || 'Member'}
                                     </Badge>
                                     <Badge variant="success" className="px-3 py-1 bg-green-50 text-green-700 border-green-100 font-semibold uppercase text-xs tracking-wider">
                                         Verified

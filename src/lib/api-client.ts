@@ -1,6 +1,8 @@
 /**
  * API Client with Automatic Token Handling
  * - Attaches access tokens to requests
+ * - Attaches x-org-id from org store (Model A: header-only tenant context)
+ * - Throws if org required but not selected
  * - Auto-refreshes tokens on 401 errors
  * - Handles token expiration gracefully
  */
@@ -8,6 +10,8 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { API_CONFIG } from './config';
 import { tokenStorage } from './token-storage';
+import { useOrgStore } from '@/stores/orgStore';
+import { useProjectStore } from '@/stores/projectStore';
 
 // Create axios instance with base configuration
 export const apiClient: AxiosInstance = axios.create({
@@ -17,6 +21,13 @@ export const apiClient: AxiosInstance = axios.create({
     },
     timeout: 30000, // 30 seconds
 });
+
+/** Routes that do not require org context (auth, invite accept, etc.) */
+function isOrgScopedRoute(url?: string): boolean {
+    if (!url) return false;
+    const path = url.replace(API_CONFIG.BASE_URL, '').split('?')[0];
+    return !path.startsWith('/auth') && !path.startsWith('/invites/accept') && !path.startsWith('/invites/reject');
+}
 
 // Track if we're currently refreshing to avoid multiple refresh calls
 let isRefreshing = false;
@@ -37,14 +48,23 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 };
 
 /**
- * Request Interceptor: Attach Access Token
+ * Request Interceptor: Attach Access Token + x-org-id (Model A)
  */
 apiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const token = tokenStorage.getToken(API_CONFIG.STORAGE.ACCESS_TOKEN);
+        const orgId = useOrgStore.getState().activeOrgId;
 
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        if (!orgId && isOrgScopedRoute(config.url)) {
+            throw new Error('Organization not selected');
+        }
+
+        if (orgId && config.headers) {
+            config.headers['x-org-id'] = orgId;
         }
 
         return config;
@@ -54,13 +74,25 @@ apiClient.interceptors.request.use(
     }
 );
 
+/** Handler for 403 (permission denied). Set by app to show toast. Do not retry or mask. */
+let on403Handler: (() => void) | null = null;
+export function setOn403Handler(handler: (() => void) | null) {
+    on403Handler = handler;
+}
+
 /**
- * Response Interceptor: Auto-Refresh Token on 401
+ * Response Interceptor: 403 → show permission toast; 401 → auto-refresh
  */
 apiClient.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+        // 403: Permission denied — show toast, do not retry, do not mask
+        if (error.response?.status === 403) {
+            on403Handler?.();
+            return Promise.reject(error);
+        }
 
         // If error is not 401 or request already retried, reject immediately
         if (error.response?.status !== 401 || originalRequest._retry) {
@@ -142,10 +174,12 @@ apiClient.interceptors.response.use(
 );
 
 /**
- * Logout Handler: Clear tokens and redirect
+ * Logout Handler: Clear tokens, org context, and redirect
  */
 function handleLogout() {
     tokenStorage.clearAll();
+    useOrgStore.getState().clearOrg();
+    useProjectStore.getState().clearProject();
 
     // Only redirect if we're in the browser and NOT on an auth or invite page
     if (typeof window !== 'undefined') {
@@ -166,11 +200,11 @@ export function setAuthTokens(accessToken: string, refreshToken?: string) {
 }
 
 /**
- * Helper function to set full auth session (tokens + user)
+ * Helper function to set full auth session (tokens only; user lives in React Query cache / Zustand)
+ * Do not persist user/role to localStorage — always derive from fresh /auth/me and org selection.
  */
-export function setAuthSession(accessToken: string, refreshToken: string | undefined, user: any) {
+export function setAuthSession(accessToken: string, refreshToken: string | undefined, _user?: any) {
     setAuthTokens(accessToken, refreshToken);
-    tokenStorage.setUser(user);
 }
 
 /**
