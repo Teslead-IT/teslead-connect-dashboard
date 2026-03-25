@@ -159,7 +159,7 @@ export function Sidebar() {
             <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto no-scrollbar">
                 {navItems.map((item) => {
                     const hasChildrenItem = hasChildren(item);
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    const isActive = pathname === item.href || (pathname.startsWith(item.href + '/') && !navItems.some(ni => ni.href !== item.href && pathname.startsWith(ni.href)));
 
                     return (
                         <div key={item.href} className="relative">
