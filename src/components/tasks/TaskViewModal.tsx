@@ -20,12 +20,21 @@ import {
     Layers,
     Timer,
     Clock,
+    Stars,
+    Bug,
+    Zap,
+    RefreshCw,
+    FlaskConical,
+    FileText,
+    Settings,
+    ClipboardCheck,
+    Flame,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import { Dialog } from '@/components/ui/Dialog';
 import type { PhaseWithTaskLists } from '@/types/phase';
 import type { StructuredTask } from '@/types/phase';
-import type { CreateTaskPayload, TaskPriority, WorkflowStage } from '@/types/task';
+import type { CreateTaskPayload, TaskPriority, WorkflowStage, TaskType } from '@/types/task';
 import type { ProjectMember } from '@/types/project';
 
 import { useProject } from '@/hooks/use-projects';
@@ -55,6 +64,18 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string; color: string; bg:
     { value: 3, label: 'Medium', color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-200' },
     { value: 4, label: 'High', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200' },
     { value: 5, label: 'Critical', color: 'text-red-600', bg: 'bg-red-50 border-red-200' },
+];
+
+const TASK_TYPE_OPTIONS: { value: TaskType; label: string; color: string; bg: string; icon: any }[] = [
+    { value: 'FEAT', label: 'Feature', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200', icon: Stars },
+    { value: 'BUG', label: 'Bug', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: Bug },
+    { value: 'IMPR', label: 'Improvement', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: Zap },
+    { value: 'REF', label: 'Refactor', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: RefreshCw },
+    { value: 'RND', label: 'R&D', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: FlaskConical },
+    { value: 'DOC', label: 'Documentation', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', icon: FileText },
+    { value: 'OPS', label: 'Operations', color: 'text-teal-600', bg: 'bg-teal-50 border-teal-200', icon: Settings },
+    { value: 'TEST', label: 'Testing', color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-200', icon: ClipboardCheck },
+    { value: 'HOT', label: 'Hotfix', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', icon: Flame },
 ];
 
 const ANIM_DURATION = 0.25;
@@ -575,6 +596,19 @@ function TaskDetailsPanel({
                 </div>
             </div>
             <div>
+                <label className={labelClasses}>Task Type</label>
+                {(() => {
+                    const typeOpt = TASK_TYPE_OPTIONS.find(o => o.value === (task as any).type) || TASK_TYPE_OPTIONS[0];
+                    const Icon = typeOpt.icon;
+                    return (
+                        <div className={cn("inline-flex items-center gap-2 px-3 py-2 border", typeOpt.bg, typeOpt.color, rounded)}>
+                            <Icon className="w-3.5 h-3.5" />
+                            <span className="text-sm font-bold uppercase">{typeOpt.label}</span>
+                        </div>
+                    );
+                })()}
+            </div>
+            <div>
                 <label className={cn(labelClasses, "flex items-center gap-2")}><Flag className="w-3 h-3" /> Priority</label>
                 <div className={fieldClasses}>{PRIORITY_LABELS[task.priority] ?? `Priority ${task.priority}`}</div>
             </div>
@@ -650,6 +684,7 @@ function TaskEditForm({
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
         assigneeIds: task.assignees?.map((a: any) => a.userId || a.user?.id || a.id) || [],
         parentId: task.parentId,
+        type: (task as any).type || 'FEAT',
         taskListId,
         phaseId: '',
     });
@@ -675,6 +710,7 @@ function TaskEditForm({
             dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
             assigneeIds: task.assignees?.map((a: any) => a.userId || a.user?.id || a.id) || [],
             parentId: task.parentId,
+            type: (task as any).type || 'FEAT',
             taskListId,
             phaseId: '',
         });
@@ -715,6 +751,32 @@ function TaskEditForm({
             <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Description</label>
                 <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className={cn(inputClass, "resize-none")} placeholder="Add details..." />
+            </div>
+
+            <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5"><Tag className="w-3 h-3 inline mr-1 text-purple-500" />Task Type <span className="text-red-400">*</span></label>
+                <div className="grid grid-cols-3 gap-2">
+                    {TASK_TYPE_OPTIONS.map((opt) => {
+                        const Icon = opt.icon;
+                        const isSelected = formData.type === opt.value;
+                        return (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, type: opt.value })}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-2 rounded-md border text-xs font-semibold transition-all duration-200 active:scale-95",
+                                    isSelected
+                                        ? `${opt.bg} ${opt.color} border-current shadow-sm`
+                                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                                )}
+                            >
+                                <Icon className={cn("w-3.5 h-3.5", isSelected ? opt.color : "text-gray-400")} />
+                                {opt.label}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

@@ -1,8 +1,8 @@
-import { TaskPriority, CreateTaskPayload, Task, WorkflowStage } from '@/types/task';
+import { TaskPriority, CreateTaskPayload, Task, WorkflowStage, TaskType } from '@/types/task';
 import type { ProjectMember } from '@/types/project';
 import type { PhaseWithTaskLists, TaskList } from '@/types/phase';
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Flag, Calendar, Users, AlignLeft, CheckCircle2, Layers, ListTodo, Search, Check, AlertCircle } from 'lucide-react';
+import { X, Flag, Calendar, Users, AlignLeft, CheckCircle2, Layers, ListTodo, Search, Check, AlertCircle, Stars, Bug, Zap, RefreshCw, FlaskConical, FileText, Settings, ClipboardCheck, Flame, Tag } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 
 interface CreateTaskModalProps {
@@ -29,6 +29,18 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string; color: string; bg:
     { value: 5, label: 'Critical', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: '⬆' },
 ];
 
+const TASK_TYPE_OPTIONS: { value: TaskType; label: string; color: string; bg: string; icon: any }[] = [
+    { value: 'FEAT', label: 'Feature', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200', icon: Stars },
+    { value: 'BUG', label: 'Bug', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: Bug },
+    { value: 'IMPR', label: 'Improvement', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: Zap },
+    { value: 'REF', label: 'Refactor', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: RefreshCw },
+    { value: 'RND', label: 'R&D', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: FlaskConical },
+    { value: 'DOC', label: 'Documentation', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', icon: FileText },
+    { value: 'OPS', label: 'Operations', color: 'text-teal-600', bg: 'bg-teal-50 border-teal-200', icon: Settings },
+    { value: 'TEST', label: 'Testing', color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-200', icon: ClipboardCheck },
+    { value: 'HOT', label: 'Hotfix', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', icon: Flame },
+];
+
 export function CreateTaskModal({
     isOpen,
     onClose,
@@ -52,6 +64,7 @@ export function CreateTaskModal({
         dueDate: '',
         assigneeIds: [],
         parentId: null,
+        type: 'FEAT',
         taskListId: taskListId || '',
         phaseId: phaseId || '',
     });
@@ -84,6 +97,7 @@ export function CreateTaskModal({
                     dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : '',
                     assigneeIds: initialData.assigneeIds || initialData.assignees?.map((a: any) => a.id || a.userId) || [],
                     parentId: initialData.parentId,
+                    type: initialData.type || 'FEAT',
                     taskListId: taskListId || '',
                     phaseId: phaseId || '',
                 });
@@ -96,6 +110,7 @@ export function CreateTaskModal({
                     dueDate: '',
                     assigneeIds: [],
                     parentId: parentTask?.id || null,
+                    type: 'FEAT',
                     taskListId: taskListId || '',
                     phaseId: phaseId || '',
                 });
@@ -440,6 +455,37 @@ export function CreateTaskModal({
                                     <AlertCircle className="w-2.5 h-2.5" /> Task title is required
                                 </p>
                             )}
+                        </div>
+
+                        {/* Task Type */}
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <Tag className="w-3 h-3 text-purple-500" /> Task Type <span className="text-red-400">*</span>
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {TASK_TYPE_OPTIONS.map((opt) => {
+                                    const Icon = opt.icon;
+                                    const isSelected = formData.type === opt.value;
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            disabled={isReadOnly}
+                                            onClick={() => setFormData({ ...formData, type: opt.value })}
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-2 rounded-md border text-xs font-semibold transition-all transition-all duration-200 active:scale-95",
+                                                isSelected
+                                                    ? `${opt.bg} ${opt.color} border-current shadow-sm scale-[1.02]`
+                                                    : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50",
+                                                isReadOnly && "opacity-50 grayscale cursor-default scale-100"
+                                            )}
+                                        >
+                                            <Icon className={cn("w-3.5 h-3.5", isSelected ? opt.color : "text-gray-400")} />
+                                            {opt.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {/* Description */}

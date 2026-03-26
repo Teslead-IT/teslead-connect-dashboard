@@ -28,7 +28,7 @@ const initial: Pick<AttendanceState, 'status' | 'sessionStart' | 'breakStart' | 
 export const useAttendanceStore = create<AttendanceState>((set) => ({
     ...initial,
     setAttendance: (data) => set({
-        status: data.status ?? 'NOT_CHECKED_IN',
+        status: data.status ?? 'not_checked_in',
         sessionStart: data.sessionStart ?? null,
         breakStart: data.breakStart ?? null,
         lunchStart: data.lunchStart ?? null,

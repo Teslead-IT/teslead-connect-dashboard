@@ -30,10 +30,20 @@ import {
     FileText,
     Lock,
     Globe,
+    Tag,
+    Copy,
     Check,
     Search,
     X,
     Timer,
+    Stars,
+    Bug,
+    Zap,
+    RefreshCw,
+    FlaskConical,
+    Settings,
+    ClipboardCheck,
+    Flame,
 } from 'lucide-react';
 import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
@@ -58,7 +68,19 @@ import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { Dialog } from '@/components/ui/Dialog';
 import type { PhaseWithTaskLists, TaskListWithTasks, StructuredTask } from '@/types/phase';
-import type { CreateTaskPayload } from '@/types/task';
+import type { CreateTaskPayload, TaskType } from '@/types/task';
+
+const TASK_TYPE_OPTIONS: { value: TaskType; label: string; color: string; bg: string; icon: any }[] = [
+    { value: 'FEAT', label: 'Feature', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200', icon: Stars },
+    { value: 'BUG', label: 'Bug', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: Bug },
+    { value: 'IMPR', label: 'Improvement', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: Zap },
+    { value: 'REF', label: 'Refactor', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: RefreshCw },
+    { value: 'RND', label: 'R&D', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: FlaskConical },
+    { value: 'DOC', label: 'Documentation', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', icon: FileText },
+    { value: 'OPS', label: 'Operations', color: 'text-teal-600', bg: 'bg-teal-50 border-teal-200', icon: Settings },
+    { value: 'TEST', label: 'Testing', color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-200', icon: ClipboardCheck },
+    { value: 'HOT', label: 'Hotfix', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', icon: Flame },
+];
 
 type RowType = 'phase' | 'tasklist' | 'task' | 'subtask';
 
@@ -69,6 +91,7 @@ interface FlatRow {
     phaseId: string;
     taskListId?: string;
     taskId?: string;
+    formattedTaskId?: string;
 
     name: string;
     status?: { id: string; name: string; color: string };
@@ -77,6 +100,7 @@ interface FlatRow {
     startDate?: string | null;
     dueDate?: string | null;
     priority?: number;
+    type?: TaskType;
 
     childCount?: number;
     isExpanded?: boolean;
@@ -273,6 +297,7 @@ export default function PhaseTaskListTab({
                                     phaseId: phase.id,
                                     taskListId: taskList.id,
                                     taskId: task.id,
+                                    formattedTaskId: task.taskId,
                                     name: task.title,
                                     status: task.status,
                                     assignees: task.assignees,
@@ -280,6 +305,7 @@ export default function PhaseTaskListTab({
                                     startDate: null,
                                     dueDate: task.dueDate,
                                     priority: task.priority,
+                                    type: task.type,
                                     childCount: children.length,
                                     isExpanded: isTaskExpanded,
                                     hasChildren: children.length > 0,
@@ -533,6 +559,13 @@ export default function PhaseTaskListTab({
             sortable: false,
             filter: false,
             cellRenderer: ViewButtonCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Type',
+            field: 'type',
+            width: 100,
+            cellRenderer: TypeCell,
             cellClass: '!p-0',
         },
         {
@@ -1108,6 +1141,18 @@ function TasksBoardView({
                                                     )}
                                                 </div>
                                             </div>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                {(() => {
+                                                    const typeOpt = TASK_TYPE_OPTIONS.find(o => o.value === task.type) || TASK_TYPE_OPTIONS[0];
+                                                    const Icon = typeOpt.icon;
+                                                    return (
+                                                        <div className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase", typeOpt.bg, typeOpt.color)}>
+                                                            <Icon className="w-2.5 h-2.5" />
+                                                            {typeOpt.value}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
                                             {subtasks.length > 0 && (
                                                 <div className="text-[10px] text-gray-500 mt-1">{subtasks.length} subtask(s)</div>
                                             )}
@@ -1290,8 +1335,38 @@ function TaskNameCell(params: ICellRendererParams) {
 
     // ---- TASK / SUBTASK ROW ----
     const indent = row.level * 24 + 8;
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (row.formattedTaskId) {
+            navigator.clipboard.writeText(row.formattedTaskId);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
     return (
-        <div className="flex items-center h-full w-full pr-3 group/task" style={{ paddingLeft: `${indent}px` }}>
+        <div className="flex items-center h-full w-full pr-3 group/task relative" style={{ paddingLeft: `${indent}px` }}>
+            {row.formattedTaskId && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1 group/copy shrink-0">
+                    <span className="text-[9px] font-bold text-black bg-white border border-gray-100 px-1.5 py-0.5 rounded tracking-tight min-w-[32px] text-center shadow-xs">
+                        {row.formattedTaskId.split('-').pop()}
+                    </span>
+                    <button
+                        onClick={handleCopy}
+                        className="p-1 opacity-0 group-hover/task:opacity-100 text-indigo-500 hover:text-indigo-600 rounded transition-all"
+                        title={`Copy full ID: ${row.formattedTaskId}`}
+                    >
+                        {copied ? (
+                            <Check className="w-2.5 h-2.5 text-emerald-500" />
+                        ) : (
+                            <Copy className="w-2.5 h-2.5" />
+                        )}
+                    </button>
+                </div>
+            )}
+
             {row.hasChildren ? (
                 <button
                     onClick={(e) => { e.stopPropagation(); ctx.toggleTask(row.taskId!); }}
@@ -1307,6 +1382,7 @@ function TaskNameCell(params: ICellRendererParams) {
                     <FileText className="w-3.5 h-3.5 text-gray-300" />
                 </div>
             )}
+
             <span
                 className={cn(
                     "text-[13px] truncate flex-1 min-w-0",
@@ -1402,6 +1478,24 @@ function ViewButtonCell(params: ICellRendererParams) {
                 <Eye className="w-3 h-3" />
                 View
             </button>
+        </div>
+    );
+}
+
+function TypeCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
+
+    const typeValue = (row.taskData as any)?.type || 'FEAT';
+    const typeOpt = TASK_TYPE_OPTIONS.find(o => o.value === typeValue) || TASK_TYPE_OPTIONS[0];
+    const Icon = typeOpt.icon;
+
+    return (
+        <div className="flex items-center h-full px-2">
+            <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-sm border text-[10px] font-bold uppercase tracking-tight shadow-[0_1px_2px_rgba(0,0,0,0.02)]", typeOpt.bg, typeOpt.color, "border-transparent")}>
+                <Icon className="w-3 h-3" />
+                {typeOpt.value}
+            </div>
         </div>
     );
 }

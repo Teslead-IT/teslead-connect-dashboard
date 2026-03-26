@@ -19,7 +19,8 @@ export { disconnectPresenceSocket } from '@/lib/presence-socket';
 export function usePresence() {
     const activeOrgId = useOrgStore((s) => s.activeOrgId);
     const { data: orgSettings } = useOrgSettings();
-    const setOnlineUsers = usePresenceStore((s) => s.setOnlineUsers);
+    const { setPresence, setAllPresences, clearPresence } = usePresenceStore();
+    const presences = usePresenceStore((s) => s.presences);
     const enabled = !!activeOrgId && !!orgSettings?.enableUserPresence;
     const connectedOrgRef = useRef<string | null>(null);
 
@@ -49,18 +50,26 @@ export function usePresence() {
         });
 
         socket.on('connect', () => {
-            // Backend may send initial list or updates via 'presence:list' / 'presence:update'
+            // console.log('Presence socket connected');
         });
-        socket.on('presence:list', (userIds: string[]) => {
-            setOnlineUsers(Array.isArray(userIds) ? userIds : []);
+
+        // Listen for batch list update (if backend sends it)
+        socket.on('presence:list', (data: Record<string, any>) => {
+            setAllPresences(data);
         });
-        socket.on('presence:update', (payload: { onlineUserIds?: string[] }) => {
-            if (Array.isArray(payload?.onlineUserIds)) {
-                setOnlineUsers(payload.onlineUserIds);
-            }
+
+        // Listen for individual updates
+        socket.on('presence_updated', (data: { userId: string; status: string; message?: string; updatedAt?: string }) => {
+            const { userId, status, message, updatedAt } = data;
+            setPresence(userId, {
+                status: status as any,
+                message,
+                updatedAt,
+            });
         });
+
         socket.on('disconnect', () => {
-            setOnlineUsers([]);
+            clearPresence();
         });
 
         setPresenceSocket(socket);
@@ -69,7 +78,8 @@ export function usePresence() {
             setPresenceSocket(null);
             connectedOrgRef.current = null;
         };
-    }, [enabled, activeOrgId, setOnlineUsers]);
+    }, [enabled, activeOrgId, setPresence, setAllPresences, clearPresence]);
 
-    return usePresenceStore((s) => s.onlineUserIds);
+    return presences;
 }
+

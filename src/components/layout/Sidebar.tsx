@@ -70,11 +70,11 @@ const navItems: NavItem[] = [
         href: '/dashboard/timesheet',
         icon: <Clock className="w-5 h-5 flex-shrink-0" />,
     },
-    {
-        label: 'Attendance',
-        href: '/dashboard/attendance',
-        icon: <ClipboardCheck className="w-5 h-5 flex-shrink-0" />,
-    },
+    // {
+    //     label: 'Attendance',
+    //     href: '/dashboard/attendance',
+    //     icon: <ClipboardCheck className="w-5 h-5 flex-shrink-0" />,
+    // },
     {
         label: 'Documents',
         href: '/documents',

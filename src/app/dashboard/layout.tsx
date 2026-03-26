@@ -12,6 +12,7 @@ import { Loader } from '@/components/ui/Loader';
 import { ToastContainer } from '@/components/ui/Toast';
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
 import { OrgBootSync } from '@/components/OrgBootSync';
+import { PresenceSync } from '@/components/PresenceSync';
 import { motion } from 'framer-motion';
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     return (
         <div className="min-h-screen bg-gray-50">
             <OrgBootSync />
+            <PresenceSync />
             <Sidebar />
             <TopNav />
             <motion.main

@@ -3,13 +3,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser, useSwitchOrg } from '@/hooks/use-auth';
 import { useTimerStore } from '@/stores/timerStore';
+import { useAttendanceStore } from '@/stores/attendanceStore';
 import { useOrgSwitchStore } from '@/stores/orgSwitchStore';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
 import { useOrgStore } from '@/stores/orgStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { authKeys } from '@/hooks/use-auth';
-import { Search, HelpCircle, Building2, UserPlus, ChevronDown, Check } from 'lucide-react';
+import { Search, HelpCircle, Building2, UserPlus, ChevronDown, Check, Utensils, Coffee, Home, Moon, Clock } from 'lucide-react';
+import { usePresenceStore } from '@/stores/presenceStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSidebar } from '@/context/SidebarContext';
 import { cn } from '@/lib/utils';
@@ -70,6 +72,40 @@ export function TopNav() {
 
     // Calculate permissions using centralized system (store role preferred)
     const permissions = useOrgPermissions(backendUser?.id, org, userRole);
+
+    // Get current user presence & attendance
+    const attendanceStatus = useAttendanceStore((s) => s.status);
+    const userPresence = usePresenceStore((s) => backendUser?.id ? s.presences[backendUser.id] : null);
+    
+    // Priority: Attendance status (local source of truth) > Presence status (WS source for others)
+    const activeStatus = (attendanceStatus && attendanceStatus !== 'not_checked_in' && attendanceStatus !== 'checked_out')
+        ? attendanceStatus
+        : (userPresence?.status || 'ONLINE');
+
+    const getPresenceConfig = (status: string) => {
+        const s = status?.toLowerCase();
+        switch (s) {
+            case 'online':
+            case 'checked_in':
+                return { color: 'bg-green-500', icon: <Check className="w-[7px] h-[7px] text-white" strokeWidth={4} /> };
+            case 'lunch':
+            case 'on_lunch':
+                return { color: 'bg-amber-500', icon: <Utensils className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+            case 'break':
+            case 'on_break':
+                return { color: 'bg-amber-500', icon: <Coffee className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+            case 'wfh':
+                return { color: 'bg-blue-500', icon: <Home className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+            case 'offline':
+            case 'checked_out':
+            case 'not_checked_in':
+                return { color: 'bg-gray-400', icon: <Moon className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+            default:
+                return { color: 'bg-green-500', icon: null };
+        }
+    };
+
+    const presenceConfig = getPresenceConfig(activeStatus);
 
     return (
         <motion.header
@@ -253,7 +289,12 @@ export function TopNav() {
                                 </div>
                             )}
                             {/* Online status indicator */}
-                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
+                            <div className={cn(
+                                "absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full shadow-sm flex items-center justify-center transition-colors duration-300",
+                                presenceConfig.color
+                            )}>
+                                {presenceConfig.icon}
+                            </div>
                         </div>
                     </Link>
                 </div>
