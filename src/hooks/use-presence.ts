@@ -10,7 +10,9 @@ import { io, Socket } from 'socket.io-client';
 import { API_CONFIG } from '@/lib/config';
 import { tokenStorage } from '@/lib/token-storage';
 import { useOrgStore } from '@/stores/orgStore';
-import { usePresenceStore } from '@/stores/presenceStore';
+import { usePresenceStore, type UserPresenceStatus } from '@/stores/presenceStore';
+import { useAttendanceStore } from '@/stores/attendanceStore';
+import { useUser } from '@/hooks/use-auth';
 import { useOrgSettings } from '@/hooks/use-org-settings';
 import { setPresenceSocket, disconnectPresenceSocket } from '@/lib/presence-socket';
 
@@ -19,10 +21,31 @@ export { disconnectPresenceSocket } from '@/lib/presence-socket';
 export function usePresence() {
     const activeOrgId = useOrgStore((s) => s.activeOrgId);
     const { data: orgSettings } = useOrgSettings();
+    const { data: backendUser } = useUser();
+    const attendanceStatus = useAttendanceStore((s) => s.status);
     const { setPresence, setAllPresences, clearPresence } = usePresenceStore();
     const presences = usePresenceStore((s) => s.presences);
     const enabled = !!activeOrgId && !!orgSettings?.enableUserPresence;
     const connectedOrgRef = useRef<string | null>(null);
+
+    // Synchronize current user's local attendance status to presence store instantly
+    useEffect(() => {
+        if (!backendUser?.id) return;
+
+        let mappedStatus: UserPresenceStatus | null = null;
+        if (attendanceStatus === 'checked_in') mappedStatus = 'ONLINE';
+        else if (attendanceStatus === 'on_break') mappedStatus = 'BREAK';
+        else if (attendanceStatus === 'on_lunch') mappedStatus = 'LUNCH';
+        else if (attendanceStatus === 'checked_out' || attendanceStatus === 'not_checked_in') mappedStatus = 'OFFLINE';
+
+        if (mappedStatus && presences[backendUser.id]?.status !== mappedStatus) {
+            setPresence(backendUser.id, {
+                ...presences[backendUser.id],
+                status: mappedStatus as any,
+                updatedAt: new Date().toISOString()
+            });
+        }
+    }, [backendUser?.id, attendanceStatus, setPresence, presences]);
 
     useEffect(() => {
         if (!enabled) {

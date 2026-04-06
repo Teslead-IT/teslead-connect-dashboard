@@ -80,10 +80,10 @@ export function TopNav() {
     // Priority: Attendance status (local source of truth) > Presence status (WS source for others)
     const activeStatus = (attendanceStatus && attendanceStatus !== 'not_checked_in' && attendanceStatus !== 'checked_out')
         ? attendanceStatus
-        : (userPresence?.status || 'ONLINE');
+        : (userPresence?.status || attendanceStatus || 'OFFLINE');
 
     const getPresenceConfig = (status: string) => {
-        const s = status?.toLowerCase();
+        const s = status?.toString()?.toLowerCase();
         switch (s) {
             case 'online':
             case 'checked_in':
@@ -101,7 +101,7 @@ export function TopNav() {
             case 'not_checked_in':
                 return { color: 'bg-gray-400', icon: <Moon className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
             default:
-                return { color: 'bg-green-500', icon: null };
+                return { color: 'bg-gray-400', icon: null };
         }
     };
 

@@ -450,10 +450,9 @@ function ManualTimeEntryForm({
 }
 
 function TaskTimesheetsTab({ taskId, projectId }: { taskId: string; projectId: string }) {
-    const { data: entries = [], isLoading, refetch } = useTimeEntries({ taskId });
+    const { data: entries = [], isLoading, refetch } = useTimeEntries({ taskId, projectId });
     const { data: orgSettings } = useOrgSettings();
     const allowManualEntry = orgSettings?.allowManualTimeEntry ?? false;
-    const lockAfterApproval = orgSettings?.lockTimesheetAfterApproval ?? false;
     const [showAddForm, setShowAddForm] = useState(false);
     const createEntry = useCreateTimeEntry();
 
@@ -462,59 +461,111 @@ function TaskTimesheetsTab({ taskId, projectId }: { taskId: string; projectId: s
     if (isLoading) {
         return (
             <div className="p-6 flex items-center justify-center text-gray-400">
-                <span className="text-sm">Loading time entries...</span>
+                <div className="flex flex-col items-center gap-2">
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#091590]/30" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Loading...</span>
+                </div>
             </div>
         );
     }
+
     return (
-        <div className="p-6 space-y-3">
+        <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Time entries</p>
+                <div>
+                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Time Entries</h3>
+                    <p className="text-[9px] text-gray-400 mt-0.5">Logs for this specific task</p>
+                </div>
                 {allowManualEntry && (
                     <button
                         type="button"
                         onClick={() => setShowAddForm((v) => !v)}
-                        className="text-xs font-medium text-[#091590] hover:underline"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-[#091590] uppercase tracking-wider bg-blue-50 border border-blue-100 rounded hover:bg-blue-100 transition-colors"
                     >
-                        {showAddForm ? 'Cancel' : '+ Log time'}
+                        {showAddForm ? 'Cancel' : (
+                            <><Timer className="w-3 h-3" /> Add Manual Timer</>
+                        )}
                     </button>
                 )}
             </div>
+
             {showAddForm && allowManualEntry && (
-                <ManualTimeEntryForm
-                    taskId={taskId}
-                    projectId={projectId}
-                    onSuccess={() => { setShowAddForm(false); refetch(); }}
-                    onCancel={() => setShowAddForm(false)}
-                    createMutation={createEntry}
-                    rounded={ROUNDED}
-                />
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                    <ManualTimeEntryForm
+                        taskId={taskId}
+                        projectId={projectId}
+                        onSuccess={() => { setShowAddForm(false); refetch(); }}
+                        onCancel={() => setShowAddForm(false)}
+                        createMutation={createEntry}
+                        rounded={ROUNDED}
+                    />
+                </div>
             )}
+
             {entries.length === 0 && !showAddForm ? (
-                <div className="py-8 text-center text-gray-500">
-                    <Clock className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                    <p className="text-sm font-medium">No time entries for this task</p>
-                    <p className="text-xs mt-1">Start the timer and stop it to log time, or add manual entries if allowed.</p>
+                <div className="py-12 text-center border-2 border-dashed border-gray-100 rounded-xl bg-gray-50/30">
+                    <Clock className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No logs found</p>
+                    <p className="text-[10px] text-gray-400 mt-2 max-w-[200px] mx-auto leading-relaxed">
+                        Track time or add manual entries to see them listed here.
+                    </p>
                 </div>
             ) : (
-                <ul className="space-y-2">
-                    {entries.map((entry) => (
-                        <li
-                            key={entry.id}
-                            className={cn(
-                                'flex items-center justify-between gap-2 px-3 py-2 border border-gray-200 bg-gray-50/50 text-sm', ROUNDED
-                            )}
-                        >
-                            <span className="text-gray-700">
-                                {new Date(entry.startedAt).toLocaleString()} – {new Date(entry.endedAt).toLocaleTimeString()}
-                            </span>
-                            <span className="font-mono text-[#091590]">{(entry.durationMinutes / 60).toFixed(2)}h</span>
-                            {entry.timesheetStatus && (
-                                <span className="text-[10px] font-medium text-gray-500 uppercase">{entry.timesheetStatus}</span>
-                            )}
-                        </li>
-                    ))}
-                </ul>
+                <div className="space-y-2">
+                    {entries.map((entry) => {
+                        const start = entry.startedAt ? new Date(entry.startedAt) : null;
+                        const end = entry.endedAt ? new Date(entry.endedAt) : null;
+                        const dateFallback = (entry as any).date ? new Date((entry as any).date) : null;
+                        
+                        const isValidStart = start && !isNaN(start.getTime());
+                        const isValidEnd = end && !isNaN(end.getTime());
+                        const isValidDate = dateFallback && !isNaN(dateFallback.getTime());
+
+                        return (
+                            <div
+                                key={entry.id}
+                                className={cn(
+                                    'flex items-center justify-between gap-4 px-4 py-3 border border-gray-100 bg-white shadow-sm hover:border-blue-200 transition-all group',
+                                    ROUNDED
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
+                                        <Clock className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-gray-900 leading-none mb-1">
+                                            {isValidStart ? start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) 
+                                              : isValidDate ? dateFallback.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                                              : 'Unknown Date'}
+                                        </span>
+                                        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+                                            {isValidStart && isValidEnd 
+                                              ? `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                              : 'Manual Entry'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col items-end">
+                                    <span className="font-mono text-sm font-bold text-[#091590]">
+                                        {(entry.durationMinutes / 60).toFixed(2)}h
+                                    </span>
+                                    {entry.timesheetStatus && (
+                                        <span className={cn(
+                                            "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase mt-1",
+                                            entry.timesheetStatus === 'APPROVED' ? "bg-emerald-50 text-emerald-600" :
+                                            entry.timesheetStatus === 'SUBMITTED' ? "bg-amber-50 text-amber-600" :
+                                            "bg-slate-100 text-slate-500"
+                                        )}>
+                                            {entry.timesheetStatus}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             )}
         </div>
     );

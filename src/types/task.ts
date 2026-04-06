@@ -15,6 +15,15 @@ export interface WorkflowStage {
     statuses: Status[];
 }
 
+export interface CreateStatusDto {
+    stageId: string;
+    name: string;
+    color?: string;
+    isDefault?: boolean;
+}
+
+export interface StatusResponse extends Status { }
+
 export type TaskPriority = 1 | 2 | 3 | 4 | 5;
 export type TaskType = 'FEAT' | 'BUG' | 'IMPR' | 'REF' | 'RND' | 'DOC' | 'OPS' | 'TEST' | 'HOT';
 

@@ -4,7 +4,7 @@ import { cn, getInitials } from '@/lib/utils';
 export interface AvatarProps {
     name: string;
     src?: string;
-    size?: 'xs' | 'sm' | 'md' | 'lg';
+    size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
     className?: string;
 }
 
@@ -14,6 +14,8 @@ export function Avatar({ name, src, size = 'md', className }: AvatarProps) {
         sm: 'w-8 h-8 text-sm',
         md: 'w-10 h-10 text-base',
         lg: 'w-12 h-12 text-lg',
+        xl: 'w-16 h-16 text-xl',
+        '2xl': 'w-24 h-24 text-2xl',
     };
 
     const initials = getInitials(name);

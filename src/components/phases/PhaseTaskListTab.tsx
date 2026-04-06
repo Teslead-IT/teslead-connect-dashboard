@@ -930,6 +930,7 @@ export default function PhaseTaskListTab({
                     phases={phases}
                     projectName={projectName}
                     projectColor={projectColor}
+                    projectId={projectId}
                 />
             )}
 
@@ -1503,6 +1504,8 @@ function TypeCell(params: ICellRendererParams) {
 function StatusCell(params: ICellRendererParams) {
     const row = params.data as FlatRow;
     const ctx = params.context;
+
+    // console.log("Task CTX", row)
 
     /* Phase row: no status in backend – hide for now */
     if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
