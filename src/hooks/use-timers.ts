@@ -46,6 +46,7 @@ export function useStartTimer() {
             queryClient.invalidateQueries({ queryKey: timerKeys.active(activeOrgId ?? null) });
             queryClient.invalidateQueries({ queryKey: attendanceKeys.today(activeOrgId ?? null) });
             queryClient.invalidateQueries({ queryKey: attendanceKeys.me(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: ['teams'] });
         },
     });
 }
@@ -63,6 +64,7 @@ export function useStopTimer() {
             queryClient.invalidateQueries({ queryKey: attendanceKeys.today(activeOrgId ?? null) });
             queryClient.invalidateQueries({ queryKey: attendanceKeys.me(activeOrgId ?? null) });
             queryClient.invalidateQueries({ queryKey: timeEntryKeys.all });
+            queryClient.invalidateQueries({ queryKey: ['teams'] });
         },
     });
 }

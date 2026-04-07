@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTeams } from '@/hooks/use-teams';
 import { useUser } from '@/hooks/use-auth';
+import Image from 'next/image';
 import { Avatar } from '@/components/ui/Avatar';
 import { Loader } from '@/components/ui/Loader';
 import {
@@ -16,7 +17,9 @@ import {
     X,
     Users,
     Mail,
-    Briefcase
+    Briefcase,
+    Timer,
+    Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { UserPresenceStatus } from '@/stores/presenceStore';
@@ -69,9 +72,44 @@ const STATUS_CONFIG: Record<UserPresenceStatus, { label: string; icon: React.Rea
     },
 };
 
+function LiveTimer({ startedAt }: { startedAt: string }) {
+    const [elapsed, setElapsed] = useState('');
+
+    React.useEffect(() => {
+        const calculateElapsed = () => {
+            const start = new Date(startedAt).getTime();
+            const now = Date.now();
+            const diff = Math.max(0, now - start);
+            
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            const hDisplay = hours > 0 ? `${hours.toString().padStart(2, '0')}:` : '';
+            return `${hDisplay}${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        };
+
+        setElapsed(calculateElapsed());
+        const interval = setInterval(() => setElapsed(calculateElapsed()), 1000);
+        return () => clearInterval(interval);
+    }, [startedAt]);
+
+    return <span>{elapsed}</span>;
+}
+
 export default function TeamPage() {
     const { teams, isLoading, isError } = useTeams();
     const { data: user } = useUser();
+    const [expandedTimers, setExpandedTimers] = useState<Record<string, boolean>>({});
+
+    console.log('--- TEAMS DATA ---', teams);
+
+    const toggleTimer = (userId: string) => {
+        setExpandedTimers(prev => ({
+            ...prev,
+            [userId]: !prev[userId]
+        }));
+    };
 
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -149,13 +187,16 @@ export default function TeamPage() {
                         <AnimatePresence mode="popLayout">
                             {filteredTeams.map((member) => (
                                 <motion.div
-                                    key={member.user.id}
                                     layout
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
+                                    key={member.user.id}
+                                    className="flex flex-col relative"
+                                >
+                                <div
                                     className={cn(
-                                        "bg-white border rounded-lg p-3 hover:border-gray-300 transition-all duration-200 group flex items-center gap-3 shadow-sm",
+                                        "bg-white border rounded-lg p-3 hover:border-gray-300 transition-all duration-200 group flex items-center gap-3 shadow-sm relative z-10",
                                         member.user.id === user?.id
                                             ? "border-blue-100 border-l-4 border-l-blue-600"
                                             : "border-gray-100"
@@ -189,7 +230,7 @@ export default function TeamPage() {
                                         </div>
                                         <p className="text-[11px] text-gray-400 truncate mt-0.5 lowercase">{member.user.email}</p>
 
-                                        <div className="mt-2 flex items-center gap-2">
+                                        <div className="mt-2 flex items-center gap-2 flex-wrap">
                                             <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded leading-none border border-gray-200/50">
                                                 {member.role}
                                             </span>
@@ -201,14 +242,83 @@ export default function TeamPage() {
                                             )}>
                                                 {STATUS_CONFIG[member.presence?.status || 'OFFLINE'].label}
                                             </span>
+                                            {member.attendance?.status === 'checked_in' && (
+                                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded leading-none border text-emerald-600 bg-emerald-50 border-emerald-200">
+                                                    Checked In
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-col items-end gap-1 shrink-0 ml-1">
+                                    <div className="flex flex-col items-end gap-2 shrink-0 ml-1">
                                         <p className="text-[9px] text-gray-400 font-medium">
                                             {formatDistanceToNow(new Date(member.joinedAt), { addSuffix: false })}
                                         </p>
+                                        
+                                        {member.activeTimer && (
+                                            <button 
+                                                onClick={() => toggleTimer(member.user.id)}
+                                                className={cn(
+                                                    "p-1 transition-all duration-300 relative group/timer flex items-center justify-center",
+                                                    expandedTimers[member.user.id] 
+                                                        ? "text-indigo-600 scale-110" 
+                                                        : "text-indigo-600 hover:scale-110"
+                                                )}
+                                            >
+                                                <div className="relative w-6 h-6 z-10 flex items-center justify-center">
+                                                    <Image 
+                                                        src="/icons/timer.gif" 
+                                                        alt="Timer running" 
+                                                        width={24} 
+                                                        height={24}
+                                                        className="object-contain"
+                                                    />
+                                                </div>
+                                            </button>
+                                        )}
                                     </div>
+                                </div>
+                                <AnimatePresence>
+                                    {member.activeTimer && expandedTimers[member.user.id] && (
+                                        <motion.div 
+                                            initial={{ height: 0, opacity: 0, marginTop: -12 }}
+                                            animate={{ height: 'auto', opacity: 1, marginTop: -12 }}
+                                            exit={{ height: 0, opacity: 0, marginTop: -12 }}
+                                            className="overflow-hidden z-0"
+                                        >
+                                            <div className="mx-4 mb-2 relative pt-6 pb-2.5 px-3 bg-gradient-to-b from-white to-indigo-50/30 border border-t-0 border-indigo-100 rounded-b-xl flex items-center justify-between pointer-events-none shadow-[0_4px_12px_-4px_rgba(9,21,144,0.08)]">
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+                                                <Image 
+                                                    src="/icons/timer.png" 
+                                                    alt="Timer" 
+                                                    width={20} 
+                                                    height={20}
+                                                    className="object-contain"
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-0 min-w-0">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-[#091590]">
+                                                    {member.activeTimer.projectName || 'Active Task'}
+                                                </span>
+                                                <p className="text-[11px] font-bold truncate max-w-[140px] text-gray-700 leading-tight mt-0.5">
+                                                    {member.activeTimer.taskTitle}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-center shrink-0 relative overflow-hidden bg-[#091590] px-2 py-1 rounded-md shadow-sm border border-[#091590]/20">
+                                            <div className="absolute inset-0 bg-white/10 animate-pulse" />
+                                            <div className="relative flex items-center gap-1.5">
+                                                <Timer className="w-3 h-3 text-white" />
+                                                <span className="text-[10px] font-black font-mono tracking-widest text-white uppercase">
+                                                    <LiveTimer startedAt={member.activeTimer.startedAt} />
+                                                </span>
+                                            </div>
+                                        </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                                 </motion.div>
                             ))}
                         </AnimatePresence>

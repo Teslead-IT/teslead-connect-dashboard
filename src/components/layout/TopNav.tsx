@@ -21,6 +21,9 @@ import { AppsMenu } from './AppsMenu';
 import { GlobalTimerNav } from './GlobalTimerNav';
 import { AttendanceStatusMenu } from './AttendanceStatusMenu';
 import { useOrgPermissions, type OrgRole } from '@/lib/permissions';
+import { useStartTimer, useStopTimer } from '@/hooks/use-timers';
+import { useAttendanceCheckOut } from '@/hooks/use-attendance';
+import { Dialog } from '@/components/ui/Dialog';
 
 export function TopNav() {
     const router = useRouter();
@@ -38,7 +41,12 @@ export function TopNav() {
     const { mutate: switchOrg, isPending: isSwitchingOrg } = useSwitchOrg();
     const isTimerRunning = useTimerStore((s) => s.isRunning);
     const activeTimer = useTimerStore((s) => s.activeTimer);
-    const setPendingOrgSwitch = useOrgSwitchStore((s) => s.setPending);
+    
+    const [pendingOrgSwitch, setPendingOrgSwitch] = useState<{ orgId: string; role?: OrgRole } | null>(null);
+
+    const { mutateAsync: stopTimerAsync } = useStopTimer();
+    const { mutateAsync: checkOutAsync } = useAttendanceCheckOut();
+
     const { isCollapsed } = useSidebar();
 
     useEffect(() => {
@@ -75,6 +83,7 @@ export function TopNav() {
 
     // Get current user presence & attendance
     const attendanceStatus = useAttendanceStore((s) => s.status);
+    const isCheckedIn = attendanceStatus === 'checked_in' || attendanceStatus === 'on_break' || attendanceStatus === 'on_lunch';
     const userPresence = usePresenceStore((s) => backendUser?.id ? s.presences[backendUser.id] : null);
     
     // Priority: Attendance status (local source of truth) > Presence status (WS source for others)
@@ -192,18 +201,14 @@ export function TopNav() {
                                                                 }
                                                                 setOrgDropdownOpen(false);
                                                                 const role = m.role?.toUpperCase?.();
-                                                                const validRole = role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER' ? role : undefined;
-                                                                const timerHasTask = activeTimer?.taskId != null;
-                                                                if (isTimerRunning && !timerHasTask) {
-                                                                    setPendingOrgSwitch(m.orgId, validRole);
+                                                                const validRole = (role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER' ? role : undefined) as OrgRole | undefined;
+                                                                
+                                                                if (isTimerRunning || isCheckedIn) {
+                                                                    setPendingOrgSwitch({ orgId: m.orgId, role: validRole });
                                                                     return;
                                                                 }
-                                                                setOrg(m.orgId, validRole);
-                                                                clearProject();
-                                                                queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
-                                                                setSwitching(true);
-                                                                router.replace('/dashboard');
-                                                                switchOrg(m.orgId);
+                                                                
+                                                                completeOrgSwitch(m.orgId, validRole);
                                                             }}
                                                             className={cn(
                                                                 'w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors',
@@ -307,6 +312,40 @@ export function TopNav() {
                 orgId={activeOrgId || ''}
                 orgName={orgName || 'Organization'}
             />
+
+            <Dialog
+                isOpen={!!pendingOrgSwitch}
+                onClose={() => setPendingOrgSwitch(null)}
+                type="warning"
+                title="Active Session Running"
+                message="You have an active timer or are checked in. Switching organizations will stop your timer and check you out correctly from the current workspace. Proceed?"
+                confirmText="Stop Session & Switch"
+                cancelText="Cancel"
+                confirmVariant="destructive"
+                onConfirm={async () => {
+                    if (pendingOrgSwitch) {
+                        try {
+                            if (isTimerRunning) await stopTimerAsync();
+                            if (isCheckedIn) await checkOutAsync();
+                            completeOrgSwitch(pendingOrgSwitch.orgId, pendingOrgSwitch.role);
+                        } catch (error) {
+                            console.error('Cleanup before switch failed:', error);
+                            completeOrgSwitch(pendingOrgSwitch.orgId, pendingOrgSwitch.role);
+                        }
+                    }
+                }}
+                isLoading={isSwitchingOrg}
+            />
         </motion.header>
     );
+
+    function completeOrgSwitch(orgId: string, role?: OrgRole) {
+        setOrg(orgId, role);
+        clearProject();
+        queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
+        setSwitching(true);
+        router.replace('/dashboard');
+        switchOrg(orgId);
+        setPendingOrgSwitch(null);
+    }
 }

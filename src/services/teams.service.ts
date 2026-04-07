@@ -17,7 +17,13 @@ export interface TeamMember {
     presence?: UserPresence;
     attendance?: {
         status: string;
-        session?: any;
+        session?: { checkIn: string; checkOut?: string };
+    };
+    activeTimer?: {
+        id: string;
+        startedAt: string;
+        taskTitle: string;
+        projectName?: string;
     };
 }
 

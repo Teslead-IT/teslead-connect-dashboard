@@ -88,6 +88,11 @@ export const API_CONFIG = {
         PRESENCE: {
             UPDATE_STATUS: '/presence/status',
         },
+        ANALYTICS: {
+            ORG_PRODUCTIVITY: '/analytics/productivity/org',
+            MY_PRODUCTIVITY: '/analytics/productivity/mine',
+            USER_PRODUCTIVITY: (userId: string) => `/analytics/productivity/user/${userId}`,
+        },
     },
 
     // WebSocket Configuration
