@@ -10,7 +10,9 @@ import { io, Socket } from 'socket.io-client';
 import { API_CONFIG } from '@/lib/config';
 import { tokenStorage } from '@/lib/token-storage';
 import { useOrgStore } from '@/stores/orgStore';
-import { usePresenceStore } from '@/stores/presenceStore';
+import { usePresenceStore, type UserPresenceStatus } from '@/stores/presenceStore';
+import { useAttendanceStore } from '@/stores/attendanceStore';
+import { useUser } from '@/hooks/use-auth';
 import { useOrgSettings } from '@/hooks/use-org-settings';
 import { setPresenceSocket, disconnectPresenceSocket } from '@/lib/presence-socket';
 
@@ -19,9 +21,31 @@ export { disconnectPresenceSocket } from '@/lib/presence-socket';
 export function usePresence() {
     const activeOrgId = useOrgStore((s) => s.activeOrgId);
     const { data: orgSettings } = useOrgSettings();
-    const setOnlineUsers = usePresenceStore((s) => s.setOnlineUsers);
+    const { data: backendUser } = useUser();
+    const attendanceStatus = useAttendanceStore((s) => s.status);
+    const { setPresence, setAllPresences, clearPresence } = usePresenceStore();
+    const presences = usePresenceStore((s) => s.presences);
     const enabled = !!activeOrgId && !!orgSettings?.enableUserPresence;
     const connectedOrgRef = useRef<string | null>(null);
+
+    // Synchronize current user's local attendance status to presence store instantly
+    useEffect(() => {
+        if (!backendUser?.id) return;
+
+        let mappedStatus: UserPresenceStatus | null = null;
+        if (attendanceStatus === 'checked_in') mappedStatus = 'ONLINE';
+        else if (attendanceStatus === 'on_break') mappedStatus = 'BREAK';
+        else if (attendanceStatus === 'on_lunch') mappedStatus = 'LUNCH';
+        else if (attendanceStatus === 'checked_out' || attendanceStatus === 'not_checked_in') mappedStatus = 'OFFLINE';
+
+        if (mappedStatus && presences[backendUser.id]?.status !== mappedStatus) {
+            setPresence(backendUser.id, {
+                ...presences[backendUser.id],
+                status: mappedStatus as any,
+                updatedAt: new Date().toISOString()
+            });
+        }
+    }, [backendUser?.id, attendanceStatus, setPresence, presences]);
 
     useEffect(() => {
         if (!enabled) {
@@ -49,18 +73,26 @@ export function usePresence() {
         });
 
         socket.on('connect', () => {
-            // Backend may send initial list or updates via 'presence:list' / 'presence:update'
+            // console.log('Presence socket connected');
         });
-        socket.on('presence:list', (userIds: string[]) => {
-            setOnlineUsers(Array.isArray(userIds) ? userIds : []);
+
+        // Listen for batch list update (if backend sends it)
+        socket.on('presence:list', (data: Record<string, any>) => {
+            setAllPresences(data);
         });
-        socket.on('presence:update', (payload: { onlineUserIds?: string[] }) => {
-            if (Array.isArray(payload?.onlineUserIds)) {
-                setOnlineUsers(payload.onlineUserIds);
-            }
+
+        // Listen for individual updates
+        socket.on('presence_updated', (data: { userId: string; status: string; message?: string; updatedAt?: string }) => {
+            const { userId, status, message, updatedAt } = data;
+            setPresence(userId, {
+                status: status as any,
+                message,
+                updatedAt,
+            });
         });
+
         socket.on('disconnect', () => {
-            setOnlineUsers([]);
+            clearPresence();
         });
 
         setPresenceSocket(socket);
@@ -69,7 +101,8 @@ export function usePresence() {
             setPresenceSocket(null);
             connectedOrgRef.current = null;
         };
-    }, [enabled, activeOrgId, setOnlineUsers]);
+    }, [enabled, activeOrgId, setPresence, setAllPresences, clearPresence]);
 
-    return usePresenceStore((s) => s.onlineUserIds);
+    return presences;
 }
+

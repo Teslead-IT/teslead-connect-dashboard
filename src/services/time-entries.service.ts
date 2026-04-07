@@ -10,19 +10,21 @@ import type { TimeEntry } from '@/types/time-entry';
 export interface CreateTimeEntryPayload {
     taskId: string;
     projectId: string;
-    startedAt: string; // ISO
-    endedAt: string; // ISO
+    phaseId?: string;
+    taskListId?: string;
+    startTime: string; // ISO
+    endTime: string; // ISO
     description?: string;
 }
 
 export interface UpdateTimeEntryPayload {
-    startedAt?: string;
-    endedAt?: string;
+    startTime?: string;
+    endTime?: string;
     description?: string;
 }
 
 export const timeEntriesApi = {
-    async list(params: { taskId?: string; projectId?: string; userId?: string; from?: string; to?: string }): Promise<TimeEntry[]> {
+    async list(params: { taskId?: string; projectId?: string; userId?: string; from?: string; to?: string; date?: string }): Promise<TimeEntry[]> {
         const { data } = await apiClient.get<TimeEntry[]>(API_CONFIG.ENDPOINTS.TIME_ENTRIES.LIST, { params });
         return Array.isArray(data) ? data : [];
     },

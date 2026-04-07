@@ -24,6 +24,8 @@ function meToToday(me: AttendanceMeResponse): AttendanceToday {
         checked_in: 'checked_in',
         on_break: 'on_break',
         on_lunch: 'on_lunch',
+        lunch: 'on_lunch',
+        break: 'on_break',
         checked_out: 'checked_out',
     };
     const status = statusMap[apiStatus] ?? 'not_checked_in';
@@ -126,8 +128,11 @@ export function useAttendanceForUsers(userIds: string[]) {
             const q = queries[i];
             if (q?.data?.status) {
                 const s = (q.data.status as string).toLowerCase();
-                if (s === 'checked_in' || s === 'on_break') map.set(uid, s as 'checked_in' | 'on_break');
-                else map.set(uid, 'checked_out');
+                if (s === 'checked_in' || s === 'on_break' || s === 'on_lunch' || s === 'break' || s === 'lunch') {
+                    map.set(uid, (s === 'lunch' ? 'on_lunch' : s === 'break' ? 'on_break' : s) as any);
+                } else {
+                    map.set(uid, 'checked_out');
+                }
             } else {
                 map.set(uid, 'offline');
             }

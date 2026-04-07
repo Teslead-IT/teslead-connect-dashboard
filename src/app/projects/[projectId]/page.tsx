@@ -519,6 +519,7 @@ export default function ProjectDetailPage() {
                         initialData={editingTask || undefined}
                         isReadOnly={isReadOnly}
                         phases={phases}
+                        projectId={projectId}
                     />
                 )
             }

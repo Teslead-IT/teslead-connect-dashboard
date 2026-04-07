@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertCircle, CheckCircle, Info, AlertTriangle, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -129,7 +130,6 @@ export const Dialog: React.FC<DialogProps> = ({
     showAnimation = true,
     children,
 }) => {
-    const [isAnimating, setIsAnimating] = useState(false);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -138,12 +138,6 @@ export const Dialog: React.FC<DialogProps> = ({
 
     const config = typeConfig[type];
     const Icon = config.icon;
-
-    useEffect(() => {
-        if (isOpen) {
-            setIsAnimating(true);
-        }
-    }, [isOpen]);
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
@@ -187,42 +181,51 @@ export const Dialog: React.FC<DialogProps> = ({
         }
     };
 
-    if (!mounted || (!isOpen && !isAnimating)) return null;
+    if (!mounted) return null;
 
     return createPortal(
-        <div
-            className={cn(
-                'fixed inset-0 z-[100000] flex transition-all duration-300',
-                positionConfig[position],
-                isOpen && isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none',
-            )}
-            onClick={handleBackdropClick}
-        >
-            {/* Backdrop */}
-            <div
-                className={cn(
-                    'absolute inset-0 backdrop-blur-sm transition-opacity duration-300',
-                    'bg-slate-900/40 dark:bg-black/60',
-                    isOpen && isAnimating ? 'opacity-100' : 'opacity-0',
-                )}
-                onClick={handleBackdropClick}
-            />
+        <AnimatePresence mode="wait">
+            {isOpen && (
+                <div
+                    className={cn(
+                        'fixed inset-0 z-[100000] flex',
+                        positionConfig[position]
+                    )}
+                >
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                        animate={{ opacity: 1, backdropFilter: 'blur(4px)' }}
+                        exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                        className={cn(
+                            'absolute inset-0',
+                            'bg-slate-900/40 dark:bg-black/60',
+                        )}
+                        onClick={handleBackdropClick}
+                    />
 
-            {/* Dialog Content */}
-            <div
-                className={cn(
-                    'relative w-full mx-4 rounded-xl shadow-2xl overflow-hidden',
-                    'border transition-all duration-300',
-                    'bg-[#0f172a] dark:bg-[#0f172a]', // Match Image 1 dark background
-                    sizeConfig[size],
-                    borderColor || config.borderColor,
-                    className,
-                    showAnimation && isOpen && isAnimating
-                        ? 'scale-100 translate-y-0'
-                        : 'scale-95 translate-y-4',
-                )}
-                onClick={(e) => e.stopPropagation()}
-            >
+                    {/* Dialog Content */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ 
+                            type: 'spring', 
+                            damping: 25, 
+                            stiffness: 300,
+                            duration: 0.2
+                        }}
+                        className={cn(
+                            'relative w-full mx-4 rounded-xl shadow-2xl overflow-hidden',
+                            'border',
+                            'bg-[#0f172a] dark:bg-[#0f172a]',
+                            sizeConfig[size],
+                            borderColor || config.borderColor,
+                            className
+                        )}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                 {/* Header with Icon */}
                 <div
                     className={cn(
@@ -329,8 +332,10 @@ export const Dialog: React.FC<DialogProps> = ({
                         </button>
                     )}
                 </div>
-            </div>
-        </div>,
+                </motion.div>
+                </div>
+            )}
+        </AnimatePresence>,
         document.body
     );
 };

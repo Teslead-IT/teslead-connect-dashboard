@@ -8,6 +8,8 @@ import { useOrgStore } from '@/stores/orgStore';
 import { useTimerStore } from '@/stores/timerStore';
 import { timersApi } from '@/services/timers.service';
 import type { StartTimerPayload, StopTimerPayload } from '@/types/timer';
+import { attendanceKeys } from './use-attendance';
+import { timeEntryKeys } from './use-time-entries';
 
 export const timerKeys = {
     active: (orgId: string | null) => ['timers', 'active', orgId] as const,
@@ -42,6 +44,8 @@ export function useStartTimer() {
         onSuccess: (data) => {
             setTimer(data);
             queryClient.invalidateQueries({ queryKey: timerKeys.active(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: attendanceKeys.today(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: attendanceKeys.me(activeOrgId ?? null) });
         },
     });
 }
@@ -56,6 +60,9 @@ export function useStopTimer() {
         onSuccess: () => {
             clearTimer();
             queryClient.invalidateQueries({ queryKey: timerKeys.active(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: attendanceKeys.today(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: attendanceKeys.me(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: timeEntryKeys.all });
         },
     });
 }

@@ -15,7 +15,17 @@ export interface WorkflowStage {
     statuses: Status[];
 }
 
+export interface CreateStatusDto {
+    stageId: string;
+    name: string;
+    color?: string;
+    isDefault?: boolean;
+}
+
+export interface StatusResponse extends Status { }
+
 export type TaskPriority = 1 | 2 | 3 | 4 | 5;
+export type TaskType = 'FEAT' | 'BUG' | 'IMPR' | 'REF' | 'RND' | 'DOC' | 'OPS' | 'TEST' | 'HOT';
 
 export interface TaskStatus {
     id: string;
@@ -40,6 +50,7 @@ export interface TaskAssignee {
 
 export interface Task {
     id: string;
+    taskId: string;
     title: string;
     description?: string;
     parentId: string | null;
@@ -48,6 +59,7 @@ export interface Task {
     assigneeIds: string[];
     assignees?: TaskAssignee[];
     status: TaskStatus;
+    type: TaskType;
     startDate: string | null;
     completionPercentage: number;
     tags?: Array<{
@@ -67,6 +79,7 @@ export interface CreateTaskPayload {
     dueDate?: string;
     assigneeIds?: string[];
     statusId: string;
+    type?: TaskType;
     taskListId?: string;
     phaseId?: string;
     startDate?: string;
@@ -81,6 +94,7 @@ export interface UpdateTaskPayload {
     dueDate?: string;
     assigneeIds?: string[];
     statusId?: string;
+    type?: TaskType;
     parentId?: string | null;
     startDate?: string;
     completionPercentage?: number;

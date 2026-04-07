@@ -65,7 +65,7 @@ export function TaskTimerButton({ taskId, projectId, phaseId, taskListId, taskNa
                 onClick={handleStop}
                 disabled={stopTimer.isPending}
                 title="Stop Timer"
-                className={cn('p-1 text-red-600 hover:bg-red-50 rounded transition-colors', className)}
+                className={cn('p-1 text-red-600 transition-colors', className)}
             >
                 <Square className="w-3.5 h-3.5" fill="currentColor" />
             </button>
@@ -95,7 +95,7 @@ export function TaskTimerButton({ taskId, projectId, phaseId, taskListId, taskNa
             disabled={disabled || startTimer.isPending}
             title={title}
             className={cn(
-                'p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                'p-1 text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                 className
             )}
         >

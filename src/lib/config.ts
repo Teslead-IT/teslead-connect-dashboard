@@ -82,6 +82,12 @@ export const API_CONFIG = {
             SUBMIT: '/timesheets/submit',
             APPROVE: (id: string) => `/timesheets/${id}/approve`,
         },
+        TEAMS: {
+            LIST: '/teams',
+        },
+        PRESENCE: {
+            UPDATE_STATUS: '/presence/status',
+        },
     },
 
     // WebSocket Configuration

@@ -1,3 +1,5 @@
+import { TaskType } from './task';
+
 export interface Phase {
     id: string;
     name: string;
@@ -53,6 +55,7 @@ export interface TaskListWithTasks extends TaskList {
 
 export interface StructuredTask {
     id: string;
+    taskId: string;
     title: string;
     description?: string;
     priority: number;
@@ -61,6 +64,7 @@ export interface StructuredTask {
     startDate: string | null;
     completionPercentage: number;
     parentId: string | null;
+    type: TaskType;
     status: {
         id: string;
         name: string;

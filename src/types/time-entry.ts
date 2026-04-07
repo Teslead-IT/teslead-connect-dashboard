@@ -9,6 +9,8 @@ export interface TimeEntry {
     userId: string;
     startedAt: string;
     endedAt: string;
+    startTime?: string;
+    endTime?: string;
     durationMinutes: number;
     description?: string;
     timesheetId?: string;

@@ -7,6 +7,8 @@ import type {
     TasksResponse,
     TaskResponse,
     MyTasksResponse,
+    CreateStatusDto,
+    StatusResponse,
 } from '@/types/task';
 
 /**
@@ -20,6 +22,17 @@ export const workflowService = {
      */
     async getWorkflow(projectId: string): Promise<WorkflowStage[]> {
         const response = await apiClient.get<WorkflowStage[]>(`/projects/${projectId}/workflow`);
+        return response.data;
+    },
+
+    /**
+     * Create a new status
+     * @param projectId - Project ID
+     * @param payload - Status creation data
+     * @returns Created status
+     */
+    async createStatus(projectId: string, payload: CreateStatusDto): Promise<StatusResponse> {
+        const response = await apiClient.post<StatusResponse>(`/projects/${projectId}/statuses`, payload);
         return response.data;
     },
 };
