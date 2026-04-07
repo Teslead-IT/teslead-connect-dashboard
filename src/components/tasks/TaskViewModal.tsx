@@ -41,6 +41,7 @@ import { useProject } from '@/hooks/use-projects';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { useTimeEntries, useCreateTimeEntry } from '@/hooks/use-time-entries';
 import { useOrgSettings } from '@/hooks/use-org-settings';
+import { useToast } from '@/components/ui/Toast';
 
 interface TaskViewModalProps {
     isOpen: boolean;
@@ -363,7 +364,12 @@ export function TaskViewModal({
                                                     />
                                                 )}
                                                 {contentTab === 'timesheets' && (
-                                                    <TaskTimesheetsTab taskId={activeTask.id} projectId={projectId} />
+                                                    <TaskTimesheetsTab
+                                                        taskId={activeTask.id}
+                                                        projectId={projectId}
+                                                        phaseId={activeGroup?.phase.id}
+                                                        taskListId={activeTaskListId ?? undefined}
+                                                    />
                                                 )}
                                             </div>
                                         </>
@@ -399,6 +405,8 @@ export function TaskViewModal({
 function ManualTimeEntryForm({
     taskId,
     projectId,
+    phaseId,
+    taskListId,
     onSuccess,
     onCancel,
     createMutation,
@@ -406,20 +414,41 @@ function ManualTimeEntryForm({
 }: {
     taskId: string;
     projectId: string;
+    phaseId?: string;
+    taskListId?: string;
     onSuccess: () => void;
     onCancel: () => void;
-    createMutation: { mutate: (p: { taskId: string; projectId: string; startedAt: string; endedAt: string; description?: string }, options?: { onSuccess?: () => void }) => void; isPending: boolean; reset: () => void };
+    createMutation: { mutate: (p: any, options?: { onSuccess?: (data: any) => void, onError?: (err: any) => void }) => void; isPending: boolean; reset: () => void };
     rounded: string;
 }) {
-    const [startedAt, setStartedAt] = useState(() => new Date(Date.now() - 3600000).toISOString().slice(0, 16));
-    const [endedAt, setEndedAt] = useState(() => new Date().toISOString().slice(0, 16));
+    const toast = useToast();
+    const [startTime, setStartTime] = useState(() => new Date(Date.now() - 3600000).toISOString().slice(0, 16));
+    const [endTime, setEndTime] = useState(() => new Date().toISOString().slice(0, 16));
     const [description, setDescription] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const toastId = toast.loading('Adding time entry...');
         createMutation.mutate(
-            { taskId, projectId, startedAt: new Date(startedAt).toISOString(), endedAt: new Date(endedAt).toISOString(), description: description || undefined },
-            { onSuccess }
+            {
+                taskId,
+                projectId,
+                phaseId,
+                taskListId,
+                startTime: new Date(startTime).toISOString(),
+                endTime: new Date(endTime).toISOString(),
+                description: description || undefined,
+            },
+            {
+                onSuccess: () => {
+                    toast.success('Time entry added successfully', undefined, { id: toastId });
+                    onSuccess();
+                },
+                onError: (err: any) => {
+                    const message = err?.response?.data?.message || err?.message || 'Failed to add entry';
+                    toast.error('Failed to add time entry', message, { id: toastId });
+                }
+            }
         );
     };
 
@@ -427,11 +456,11 @@ function ManualTimeEntryForm({
         <form onSubmit={handleSubmit} className="p-3 border border-gray-200 bg-gray-50 rounded-lg space-y-2">
             <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Start</label>
-                <input type="datetime-local" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} className={cn('w-full px-2 py-1.5 border border-gray-200 text-sm', rounded)} required />
+                <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={cn('w-full px-2 py-1.5 border border-gray-200 text-sm', rounded)} required />
             </div>
             <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">End</label>
-                <input type="datetime-local" value={endedAt} onChange={(e) => setEndedAt(e.target.value)} className={cn('w-full px-2 py-1.5 border border-gray-200 text-sm', rounded)} required />
+                <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={cn('w-full px-2 py-1.5 border border-gray-200 text-sm', rounded)} required />
             </div>
             <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Description (optional)</label>
@@ -449,14 +478,31 @@ function ManualTimeEntryForm({
     );
 }
 
-function TaskTimesheetsTab({ taskId, projectId }: { taskId: string; projectId: string }) {
-    const { data: entries = [], isLoading, refetch } = useTimeEntries({ taskId, projectId });
+function TaskTimesheetsTab({
+    taskId,
+    projectId,
+    phaseId,
+    taskListId,
+}: {
+    taskId: string;
+    projectId: string;
+    phaseId?: string;
+    taskListId?: string;
+}) {
+    const [filterDate, setFilterDate] = useState(() => new Date().toISOString().split('T')[0]);
+    const { data: entries = [], isLoading, refetch } = useTimeEntries({ 
+        taskId, 
+        projectId, 
+        date: filterDate || undefined 
+    });
     const { data: orgSettings } = useOrgSettings();
     const allowManualEntry = orgSettings?.allowManualTimeEntry ?? false;
     const [showAddForm, setShowAddForm] = useState(false);
     const createEntry = useCreateTimeEntry();
 
     const ROUNDED = 'rounded';
+
+    console.log("Entries", entries)
 
     if (isLoading) {
         return (
@@ -471,22 +517,58 @@ function TaskTimesheetsTab({ taskId, projectId }: { taskId: string; projectId: s
 
     return (
         <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Time Entries</h3>
-                    <p className="text-[9px] text-gray-400 mt-0.5">Logs for this specific task</p>
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <div className="flex items-center gap-4">
+                    <div>
+                        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Time Entries</h3>
+                        <p className="text-[9px] text-gray-400 mt-0.5">Logs for this specific task</p>
+                    </div>
+                    {entries.length > 0 && (
+                        <div className="pl-4 border-l border-gray-100">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-0.5">Total Tracked Time</span>
+                            <span className="text-sm font-extrabold text-[#091590] leading-none">
+                                {(() => {
+                                    const total = entries.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
+                                    const h = Math.floor(total / 60);
+                                    const m = total % 60;
+                                    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                                })()}
+                            </span>
+                        </div>
+                    )}
                 </div>
-                {allowManualEntry && (
-                    <button
-                        type="button"
-                        onClick={() => setShowAddForm((v) => !v)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-[#091590] uppercase tracking-wider bg-blue-50 border border-blue-100 rounded hover:bg-blue-100 transition-colors"
-                    >
-                        {showAddForm ? 'Cancel' : (
-                            <><Timer className="w-3 h-3" /> Add Manual Timer</>
+                <div className="flex items-center gap-3">
+                    {/* Date Filter */}
+                    <div className="relative group">
+                        <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-[#091590] transition-colors" />
+                        <input
+                            type="date"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            className="pl-8 pr-8 py-1.5 text-[10px] font-bold text-[#091590] uppercase tracking-wider bg-white border border-slate-200 rounded hover:border-slate-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all w-36 shadow-sm"
+                        />
+                        {filterDate && (
+                            <button
+                                onClick={() => setFilterDate('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                            >
+                                <X className="w-2.5 h-2.5" />
+                            </button>
                         )}
-                    </button>
-                )}
+                    </div>
+
+                    {allowManualEntry && (
+                        <button
+                            type="button"
+                            onClick={() => setShowAddForm((v) => !v)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-[#091590] uppercase tracking-wider bg-blue-50 border border-blue-100 rounded hover:bg-blue-100 transition-colors shadow-sm"
+                        >
+                            {showAddForm ? 'Cancel' : (
+                                <><Timer className="w-3 h-3" /> Add Manual Timer</>
+                            )}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {showAddForm && allowManualEntry && (
@@ -494,6 +576,8 @@ function TaskTimesheetsTab({ taskId, projectId }: { taskId: string; projectId: s
                     <ManualTimeEntryForm
                         taskId={taskId}
                         projectId={projectId}
+                        phaseId={phaseId}
+                        taskListId={taskListId}
                         onSuccess={() => { setShowAddForm(false); refetch(); }}
                         onCancel={() => setShowAddForm(false)}
                         createMutation={createEntry}
@@ -513,13 +597,27 @@ function TaskTimesheetsTab({ taskId, projectId }: { taskId: string; projectId: s
             ) : (
                 <div className="space-y-2">
                     {entries.map((entry) => {
-                        const start = entry.startedAt ? new Date(entry.startedAt) : null;
-                        const end = entry.endedAt ? new Date(entry.endedAt) : null;
-                        const dateFallback = (entry as any).date ? new Date((entry as any).date) : null;
+                        const startRaw = entry.startTime || entry.startedAt;
+                        const endRaw = entry.endTime || entry.endedAt;
+                        const dateRaw = (entry as any).date; // date field is still not in the main type
+
+                        const start = startRaw ? new Date(startRaw) : null;
+                        const end = endRaw ? new Date(endRaw) : null;
+                        const dateFallback = dateRaw ? new Date(dateRaw) : null;
                         
                         const isValidStart = start && !isNaN(start.getTime());
                         const isValidEnd = end && !isNaN(end.getTime());
                         const isValidDate = dateFallback && !isNaN(dateFallback.getTime());
+
+                        const displayDate = isValidStart 
+                            ? start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                            : isValidDate
+                            ? dateFallback.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                            : 'Unknown Date';
+
+                        const durationStr = entry.durationMinutes >= 60 
+                            ? `${Math.floor(entry.durationMinutes / 60)}h ${entry.durationMinutes % 60}m`
+                            : `${entry.durationMinutes}m`;
 
                         return (
                             <div
@@ -535,21 +633,22 @@ function TaskTimesheetsTab({ taskId, projectId }: { taskId: string; projectId: s
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-gray-900 leading-none mb-1">
-                                            {isValidStart ? start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) 
-                                              : isValidDate ? dateFallback.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-                                              : 'Unknown Date'}
+                                            {displayDate}
                                         </span>
-                                        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
-                                            {isValidStart && isValidEnd 
-                                              ? `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                                              : 'Manual Entry'}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+                                                {isValidStart && isValidEnd 
+                                                  ? `${start.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                  : 'Manual Entry'}
+                                            </span>
+
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col items-end">
                                     <span className="font-mono text-sm font-bold text-[#091590]">
-                                        {(entry.durationMinutes / 60).toFixed(2)}h
+                                        {durationStr}
                                     </span>
                                     {entry.timesheetStatus && (
                                         <span className={cn(

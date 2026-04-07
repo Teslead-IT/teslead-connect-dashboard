@@ -8,11 +8,11 @@ import { timeEntriesApi, type CreateTimeEntryPayload, type UpdateTimeEntryPayloa
 
 export const timeEntryKeys = {
     all: ['time-entries'] as const,
-    list: (orgId: string | null, params: { taskId?: string; projectId?: string }) =>
+    list: (orgId: string | null, params: { taskId?: string; projectId?: string; date?: string }) =>
         [...timeEntryKeys.all, orgId, params] as const,
 };
 
-export function useTimeEntries(params: { taskId?: string; projectId?: string }) {
+export function useTimeEntries(params: { taskId?: string; projectId?: string; date?: string }) {
     const activeOrgId = useOrgStore((s) => s.activeOrgId);
     return useQuery({
         queryKey: timeEntryKeys.list(activeOrgId ?? null, params),
