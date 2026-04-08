@@ -20,8 +20,10 @@ import {
     Lock,
     Globe,
     Palette,
+    ChevronDown,
 } from 'lucide-react';
 import { ColorPicker } from 'primereact/colorpicker';
+import { Dropdown } from '@/components/ui/Dropdown';
 
 export interface TagData {
     name: string;
@@ -46,6 +48,19 @@ export interface CreateProjectModalProps {
     onSubmit: (projectData: ProjectFormData) => void | Promise<void>;
     initialData?: ProjectFormData;
 }
+
+const PROJECT_STATUS_OPTIONS = [
+    { value: 'NOT_STARTED', label: 'Not Started', dotColor: '#94a3b8' },
+    { value: 'PLANNING', label: 'Planning', dotColor: '#0ea5e9' },
+    { value: 'IN_PROGRESS', label: 'In Progress', dotColor: '#3b82f6' },
+    { value: 'ON_HOLD', label: 'On Hold', dotColor: '#f59e0b' },
+    { value: 'REVIEW', label: 'Review', dotColor: '#6366f1' },
+    { value: 'TESTING', label: 'Testing', dotColor: '#a855f7' },
+    { value: 'COMPLETED', label: 'Completed', dotColor: '#10b981' },
+    { value: 'CANCELLED', label: 'Cancelled', dotColor: '#f43f5e' },
+    { value: 'BLOCKED', label: 'Blocked', dotColor: '#ef4444' },
+    { value: 'ARCHIVED', label: 'Archived', dotColor: '#475569' },
+];
 
 export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: CreateProjectModalProps) {
     const [formData, setFormData] = useState<ProjectFormData>({
@@ -261,17 +276,16 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                         {/* Status */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                            <select
+                            <Dropdown
                                 value={formData.status}
-                                onChange={(e) => setFormData({ ...formData, status: e.target.value as ProjectStatus })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
-                            >
-                                <option value="NOT_STARTED">Not Started</option>
-                                <option value="IN_PROGRESS">In Progress</option>
-                                <option value="ON_HOLD">On Hold</option>
-                                <option value="COMPLETED">Completed</option>
-                                <option value="CANCELLED">Cancelled</option>
-                            </select>
+                                onChange={(value) => setFormData({ ...formData, status: value as ProjectStatus })}
+                                options={PROJECT_STATUS_OPTIONS.map(opt => ({
+                                    label: opt.label,
+                                    value: opt.value,
+                                    icon: <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.dotColor }} />
+                                }))}
+                                size="md"
+                            />
                         </div>
 
                         {/* Description with Rich Text Editor */}

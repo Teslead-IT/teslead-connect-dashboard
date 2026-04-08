@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
@@ -33,6 +35,7 @@ import { useUser } from '@/hooks/use-auth';
 import { useOrgStore } from '@/stores/orgStore';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { Dialog } from '@/components/ui/Dialog';
+import { Dropdown } from '@/components/ui/Dropdown';
 import { useOrganizationMembers } from '@/hooks/use-organization-members';
 import type { Project, Tag } from '@/types/project';
 import { getProjectPermissions, type OrgRole, type ProjectRole } from '@/lib/permissions';
@@ -42,11 +45,16 @@ type ViewMode = 'list' | 'kanban';
 
 // ==================== MAIN COMPONENT ====================
 const PROJECT_STATUS_OPTIONS = [
-    { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-slate-200 text-slate-800 border-slate-300' },
-    { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    { value: 'ON_HOLD', label: 'ON_HOLD', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-    { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-    { value: 'CANCELLED', label: 'Cancelled', color: 'bg-rose-100 text-rose-700 border-rose-200' },
+    { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-slate-100 text-slate-700 border-slate-200', dotColor: '#94a3b8' },
+    { value: 'PLANNING', label: 'Planning', color: 'bg-sky-100 text-sky-700 border-sky-200', dotColor: '#0ea5e9' },
+    { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 text-blue-700 border-blue-200', dotColor: '#3b82f6' },
+    { value: 'ON_HOLD', label: 'On Hold', color: 'bg-amber-100 text-amber-700 border-amber-200', dotColor: '#f59e0b' },
+    { value: 'REVIEW', label: 'Review', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', dotColor: '#6366f1' },
+    { value: 'TESTING', label: 'Testing', color: 'bg-purple-100 text-purple-700 border-purple-200', dotColor: '#a855f7' },
+    { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dotColor: '#10b981' },
+    { value: 'CANCELLED', label: 'Cancelled', color: 'bg-rose-100 text-rose-700 border-rose-200', dotColor: '#f43f5e' },
+    { value: 'BLOCKED', label: 'Blocked', color: 'bg-red-100 text-red-700 border-red-200', dotColor: '#ef4444' },
+    { value: 'ARCHIVED', label: 'Archived', color: 'bg-slate-200 text-slate-600 border-slate-300', dotColor: '#475569' },
 ];
 
 
@@ -297,10 +305,10 @@ export default function ProjectsPage() {
         return (
             <div className="h-full w-full flex items-center">
                 <span className={cn(
-                    "flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide border-0",
+                    "flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide transition-colors",
                     isPrivate
-                        ? 'bg-slate-100 text-slate-600'
-                        : 'bg-indigo-100 text-indigo-800'
+                        ? 'bg-slate-50 text-slate-500 border-l border-r border-slate-100'
+                        : 'bg-indigo-50 text-indigo-600 border-l border-r border-indigo-100'
                 )}>
                     {access}
                 </span>
@@ -314,12 +322,12 @@ export default function ProjectsPage() {
         return (
             <div className="h-full w-full flex items-center">
                 <span className={cn(
-                    "flex items-center justify-center w-full h-full px-2 text-[10px] font-bold border-0",
+                    "flex items-center justify-center w-full h-full px-2 text-[10px] font-bold transition-colors",
                     isOrgOwnerOrAdmin
-                        ? 'bg-purple-100 text-purple-800'
+                        ? 'bg-purple-50 text-purple-600 border-l border-r border-purple-100'
                         : displayRole === 'ADMIN'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-slate-100 text-slate-700'
+                            ? 'bg-blue-50 text-blue-600 border-l border-r border-blue-100'
+                            : 'bg-slate-50 text-slate-500 border-l border-r border-slate-100'
                 )}>
                     {displayRole}
                 </span>
@@ -363,17 +371,41 @@ export default function ProjectsPage() {
         const { value: status, data } = props;
         const { canEdit } = getProjectPermissionsForUI(data);
         const { onUpdateStatus } = props.context || {};
+        const [isOpen, setIsOpen] = useState(false);
+        const dropdownRef = useRef<HTMLDivElement>(null);
+        const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
         const statusConfig = PROJECT_STATUS_OPTIONS.find(s => s.value === status) || {
             value: status,
             label: status,
-            color: 'bg-gray-50 text-gray-600 border-gray-200'
+            color: 'bg-gray-50 text-gray-600 border-gray-200',
+            dotColor: '#6b7280'
         };
 
-        const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-            const newStatus = e.target.value;
-            if (newStatus !== status && onUpdateStatus) {
-                onUpdateStatus(data.id, newStatus);
+        useEffect(() => {
+            const handleClickOutside = (event: MouseEvent) => {
+                if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                    setIsOpen(false);
+                }
+            };
+            if (isOpen) {
+                document.addEventListener('mousedown', handleClickOutside);
+            }
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }, [isOpen]);
+
+        const handleToggle = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            if (isOpen) {
+                setIsOpen(false);
+            } else {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setDropdownPosition({
+                    top: rect.bottom + window.scrollY,
+                    left: rect.left + window.scrollX,
+                    width: Math.max(rect.width, 160)
+                });
+                setIsOpen(true);
             }
         };
 
@@ -381,7 +413,7 @@ export default function ProjectsPage() {
             return (
                 <div className="h-full w-full flex items-center">
                     <span className={cn(
-                        "flex items-center justify-center w-full h-full px-3 text-[10px] font-bold tracking-wide border-0",
+                        "flex items-center justify-center w-full h-full px-3 text-[10px] font-bold tracking-wide border-0 truncate",
                         statusConfig.color
                     )}>
                         {statusConfig.label}
@@ -391,26 +423,72 @@ export default function ProjectsPage() {
         }
 
         return (
-            <div className="status-select-wrapper h-full w-full group/status" onClick={(e) => e.stopPropagation()}>
-                <select
-                    value={status}
-                    onChange={handleChange}
+            <div className="relative h-full w-full" ref={dropdownRef}>
+                <button
+                    onClick={handleToggle}
                     className={cn(
-                        "status-select-base",
-                        statusConfig.color
+                        "flex items-center justify-between w-full h-full px-3 text-[10px] font-bold tracking-wide transition-all group/status",
+                        statusConfig.color,
+                        isOpen ? "brightness-90 opacity-100" : "hover:brightness-95"
                     )}
-                    style={{
-                        WebkitAppearance: 'none',
-                        MozAppearance: 'none'
-                    }}
                 >
-                    {PROJECT_STATUS_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
-                <ChevronDown className="status-select-icon" />
+                    <span className="truncate">{statusConfig.label}</span>
+                    <ChevronDown className={cn(
+                        "w-3.5 h-3.5 ml-1 transition-transform duration-200 opacity-50 group-hover/status:opacity-100",
+                        isOpen && "rotate-180 opacity-100"
+                    )} />
+                </button>
+
+                {typeof document !== 'undefined' && createPortal(
+                    <AnimatePresence>
+                        {isOpen && dropdownPosition && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                                transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                                style={{
+                                    position: 'absolute',
+                                    top: dropdownPosition.top + 4,
+                                    left: dropdownPosition.left,
+                                    width: dropdownPosition.width,
+                                    zIndex: 99999
+                                }}
+                                className="bg-white border border-gray-100 rounded-lg shadow-2xl py-1 px-1 overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {PROJECT_STATUS_OPTIONS.map((opt) => {
+                                    const isSelected = opt.value === status;
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => {
+                                                if (opt.value !== status && onUpdateStatus) {
+                                                    onUpdateStatus(data.id, opt.value);
+                                                }
+                                                setIsOpen(false);
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-2.5 w-full px-2.5 py-1.5 text-[11px] font-semibold transition-all rounded-md text-left mb-0.5 last:mb-0",
+                                                isSelected
+                                                    ? "bg-blue-50 text-blue-700 shadow-sm"
+                                                    : "hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                                            )}
+                                        >
+                                            <div
+                                                className="w-2 h-2 rounded-full shrink-0 shadow-inner"
+                                                style={{ backgroundColor: opt.dotColor }}
+                                            />
+                                            {opt.label}
+                                            {isSelected && <div className="ml-auto w-1 h-1 rounded-full bg-blue-500" />}
+                                        </button>
+                                    );
+                                })}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>,
+                    document.body
+                )}
             </div>
         );
     };

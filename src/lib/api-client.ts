@@ -86,11 +86,13 @@ export function setOn403Handler(handler: (() => void) | null) {
 apiClient.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
-        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; silent403?: boolean };
 
         // 403: Permission denied — show toast, do not retry, do not mask
         if (error.response?.status === 403) {
-            on403Handler?.();
+            if (!originalRequest.silent403) {
+                on403Handler?.();
+            }
             return Promise.reject(error);
         }
 

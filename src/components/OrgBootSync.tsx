@@ -1,7 +1,5 @@
-'use client';
-
 import { useActiveTimerSync } from '@/hooks/use-timers';
-import { useAttendanceToday } from '@/hooks/use-attendance';
+import { useAttendanceMe } from '@/hooks/use-attendance';
 import { usePresence } from '@/hooks/use-presence';
 
 /**
@@ -10,7 +8,7 @@ import { usePresence } from '@/hooks/use-presence';
  */
 export function OrgBootSync() {
     useActiveTimerSync();
-    useAttendanceToday();
+    useAttendanceMe();
     usePresence();
     return null;
 }

@@ -8,6 +8,8 @@ import { useOrgStore } from '@/stores/orgStore';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopNav } from '@/components/layout/TopNav';
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
+import { OrgBootSync } from '@/components/OrgBootSync';
+import { PresenceSync } from '@/components/PresenceSync';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Settings, Building2 } from 'lucide-react';
@@ -31,6 +33,8 @@ function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <OrgBootSync />
+            <PresenceSync />
             <Sidebar />
             <TopNav />
             <motion.main

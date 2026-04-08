@@ -65,7 +65,8 @@ export function useAttendanceToday() {
             return data;
         },
         enabled: !!activeOrgId,
-        staleTime: 0,
+        staleTime: 5 * 60 * 1000, // 5 minutes (maintain state across navigations)
+        gcTime: 30 * 60 * 1000, // 30 minutes
         refetchOnWindowFocus: true,
     });
 }
@@ -93,7 +94,8 @@ export function useAttendanceMe() {
             }
         },
         enabled: !!activeOrgId,
-        staleTime: 0,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes
         refetchOnWindowFocus: true,
     });
 }

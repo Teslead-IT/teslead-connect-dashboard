@@ -10,6 +10,8 @@ import { TopNav } from '@/components/layout/TopNav';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { Loader } from '@/components/ui/Loader';
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
+import { OrgBootSync } from '@/components/OrgBootSync';
+import { PresenceSync } from '@/components/PresenceSync';
 import { motion } from 'framer-motion';
 
 function ProjectsLayoutContent({ children }: { children: React.ReactNode }) {
@@ -17,6 +19,8 @@ function ProjectsLayoutContent({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <OrgBootSync />
+            <PresenceSync />
             <Sidebar />
             <TopNav />
             <motion.main

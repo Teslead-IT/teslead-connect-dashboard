@@ -10,7 +10,7 @@ import type { TimeEntry } from '@/types/time-entry';
 
 export const timersApi = {
     async getActive(): Promise<ActiveTimer | null> {
-        const { data } = await apiClient.get<ActiveTimer | null>(API_CONFIG.ENDPOINTS.TIMERS.ACTIVE);
+        const { data } = await apiClient.get<ActiveTimer | null>(API_CONFIG.ENDPOINTS.TIMERS.ACTIVE, { silent403: true } as any);
         return data ?? null;
     },
 

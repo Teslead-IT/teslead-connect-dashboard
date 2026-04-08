@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AgGridReact } from 'ag-grid-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     ColDef,
     ICellRendererParams,
@@ -1505,25 +1506,50 @@ function StatusCell(params: ICellRendererParams) {
     const row = params.data as FlatRow;
     const ctx = params.context;
 
-    // console.log("Task CTX", row)
-
-    /* Phase row: no status in backend – hide for now */
     if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
-
     if (!row.status) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
 
     const { workflow = [], onUpdateStatus, isEditable } = ctx || {};
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+
     const allStatuses = useMemo(() =>
         workflow.flatMap((s: any) => (s.statuses || []).map((st: any) => ({ ...st, stageName: s.name })))
         , [workflow]);
 
-    // Local state for immediate feedback
     const [localStatusId, setLocalStatusId] = useState(row.status.id);
 
-    // Sync local state with row data when it changes from server
     useEffect(() => {
         setLocalStatusId(row.status?.id || '');
     }, [row.status?.id]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isOpen) {
+            setIsOpen(false);
+        } else {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setDropdownPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: Math.max(rect.width, 180)
+            });
+            setIsOpen(true);
+        }
+    };
 
     const selectedStatus = useMemo(() => {
         if (localStatusId === row.status?.id) return row.status;
@@ -1532,67 +1558,102 @@ function StatusCell(params: ICellRendererParams) {
 
     const handleStatusChange = async (newStatusId: string) => {
         if (newStatusId === localStatusId) return;
-
-        // Optimistically update local state
         setLocalStatusId(newStatusId);
-
         try {
             await onUpdateStatus?.(row.taskId!, newStatusId);
         } catch {
-            // Revert on error
             setLocalStatusId(row.status?.id || '');
         }
     };
 
-    const statusName = (selectedStatus?.name || '').toLowerCase();
-    const isNotStarted = statusName.includes('not started') || statusName.includes('not_started');
     const color = selectedStatus?.color || '#64748b';
-    const chipStyle = isNotStarted
-        ? undefined
-        : { backgroundColor: `${color}18`, color, borderColor: 'transparent' };
-    const chipClass = isNotStarted
-        ? 'bg-slate-200 text-slate-800 border-0'
-        : 'border-0';
+    const statusStyle = {
+        backgroundColor: `${color}15`,
+        color,
+        borderColor: `${color}30`,
+    };
 
-    /* Editable: project-like select with chevron */
-    if (isEditable && row.taskId) {
+    if (!isEditable) {
         return (
-            <div className="status-select-wrapper h-full w-full max-w-[140px] flex items-center px-2" onClick={(e) => e.stopPropagation()}>
-                <select
-                    value={localStatusId}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    className={cn('status-select-base flex items-center justify-center rounded-sm', chipClass)}
-                    style={{
-                        ...chipStyle,
-                        WebkitAppearance: 'none',
-                        MozAppearance: 'none',
-                    }}
+            <div className="h-full w-full flex items-center px-2">
+                <span
+                    className="flex items-center justify-center w-full h-full px-3 text-[10px] font-bold tracking-wide border-0 truncate"
+                    style={statusStyle}
                 >
-                    {allStatuses.length > 0 ? (
-                        allStatuses.map((st: any) => (
-                            <option key={st.id} value={st.id}>{st.name}</option>
-                        ))
-                    ) : (
-                        <option value={row.status.id}>{row.status.name}</option>
-                    )}
-                </select>
-                <ChevronDown className="status-select-icon" style={chipStyle ? { color } : undefined} />
+                    {selectedStatus?.name}
+                </span>
             </div>
         );
     }
 
-    /* Read-only: minimal chip like project (no chevron) */
     return (
-        <div className="flex items-center h-full px-2">
-            <span
+        <div className="relative h-full w-full px-2 py-1" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
+            <button
+                onClick={handleToggle}
                 className={cn(
-                    'flex items-center justify-center px-3 py-1.5 text-[10px] font-bold tracking-wide rounded-sm',
-                    chipClass
+                    "flex items-center justify-between w-full h-full px-3 text-[10px] font-bold tracking-wide transition-all border rounded-sm",
+                    isOpen ? "brightness-90 opacity-100 ring-2 ring-blue-500/20" : "hover:brightness-95 border-transparent"
                 )}
-                style={chipStyle}
+                style={statusStyle}
             >
-                {selectedStatus?.name}
-            </span>
+                <span className="truncate">{selectedStatus?.name}</span>
+                <ChevronDown className={cn(
+                    "w-3.5 h-3.5 ml-1 transition-transform duration-200 opacity-50",
+                    isOpen && "rotate-180 opacity-100"
+                )} />
+            </button>
+
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {isOpen && dropdownPosition && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                            style={{
+                                position: 'absolute',
+                                top: dropdownPosition.top + 4,
+                                left: dropdownPosition.left,
+                                width: dropdownPosition.width,
+                                zIndex: 99999
+                            }}
+                            className="bg-white border border-gray-100 rounded-lg shadow-2xl py-1.5 px-1 overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                {allStatuses.map((opt: any) => {
+                                    const isSelected = opt.id === localStatusId;
+                                    const optColor = opt.color || '#64748b';
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => {
+                                                handleStatusChange(opt.id);
+                                                setIsOpen(false);
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-2.5 w-full px-2.5 py-2 text-[11px] font-semibold transition-all rounded-md text-left mb-0.5 last:mb-0",
+                                                isSelected
+                                                    ? "bg-blue-50 text-blue-700 shadow-sm"
+                                                    : "hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                                            )}
+                                        >
+                                            <div
+                                                className="w-2 h-2 rounded-full shrink-0 shadow-inner"
+                                                style={{ backgroundColor: optColor }}
+                                            />
+                                            <span className="truncate">{opt.name}</span>
+                                            {isSelected && <div className="ml-auto w-1 h-1 rounded-full bg-blue-500" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }

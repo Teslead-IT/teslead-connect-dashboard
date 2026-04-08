@@ -7,6 +7,10 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Dialog } from '@/components/ui/Dialog';
 import { useLogout } from '@/hooks/use-auth';
+import { useTimerStore } from '@/stores/timerStore';
+import { useAttendanceStore } from '@/stores/attendanceStore';
+import { useStartTimer, useStopTimer } from '@/hooks/use-timers';
+import { useAttendanceCheckOut } from '@/hooks/use-attendance';
 import { useSidebar } from '@/context/SidebarContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -65,21 +69,21 @@ const navItems: NavItem[] = [
         href: '/meetings',
         icon: <Calendar className="w-5 h-5 flex-shrink-0" />,
     },
-    {
-        label: 'Timesheet',
-        href: '/dashboard/timesheet',
-        icon: <Clock className="w-5 h-5 flex-shrink-0" />,
-    },
+    // {
+    //     label: 'Timesheet',
+    //     href: '/dashboard/timesheet',
+    //     icon: <Clock className="w-5 h-5 flex-shrink-0" />,
+    // },
     // {
     //     label: 'Attendance',
     //     href: '/dashboard/attendance',
     //     icon: <ClipboardCheck className="w-5 h-5 flex-shrink-0" />,
     // },
-    {
-        label: 'Documents',
-        href: '/documents',
-        icon: <FileText className="w-5 h-5 flex-shrink-0" />,
-    },
+    // {
+    //     label: 'Documents',
+    //     href: '/documents',
+    //     icon: <FileText className="w-5 h-5 flex-shrink-0" />,
+    // },
     {
         label: 'Team',
         href: '/team',
@@ -125,10 +129,41 @@ export function Sidebar() {
         }
     }, [pathname]);
 
+    const isTimerRunning = useTimerStore((s) => s.isRunning);
+    const attendanceStatus = useAttendanceStore((s) => s.status);
+    const isCheckedIn = attendanceStatus === 'checked_in' || attendanceStatus === 'on_break' || attendanceStatus === 'on_lunch';
+
     const { mutate: logout, isPending: isLoggingOut } = useLogout();
+    const { mutateAsync: stopTimerAsync } = useStopTimer();
+    const { mutateAsync: checkOutAsync } = useAttendanceCheckOut();
+
+    // Keep submenu open when on projects or settings routes
+    React.useEffect(() => {
+        if (pathname.startsWith('/projects')) {
+            setProjectsSubmenuOpen(true);
+        }
+        if (pathname.startsWith('/settings')) {
+            setSettingsSubmenuOpen(true);
+        }
+    }, [pathname]);
 
     const handleLogout = () => {
         setIsLogoutDialogOpen(true);
+    };
+
+    const confirmLogout = async () => {
+        try {
+            if (isTimerRunning) {
+                await stopTimerAsync(undefined);
+            }
+            if (isCheckedIn) {
+                await checkOutAsync();
+            }
+            logout();
+        } catch (error) {
+            console.error('Failed to logout cleanly:', error);
+            logout(); // Fallback to direct logout if cleanup fails
+        }
     };
 
     const SidebarContent = () => (
@@ -355,13 +390,17 @@ export function Sidebar() {
             <Dialog
                 isOpen={isLogoutDialogOpen}
                 onClose={() => setIsLogoutDialogOpen(false)}
-                type="confirmation"
+                type="warning"
                 title="Confirm Logout"
-                message="Are you sure you want to log out of specific session?"
-                confirmText="Logout"
+                message={
+                    isTimerRunning || isCheckedIn 
+                    ? "You have an active session running. Logging out will stop your timer and check you out. Proceed?"
+                    : "Are you sure you want to log out?"
+                }
+                confirmText="Logout & Disconnect"
                 cancelText="Cancel"
                 confirmVariant="destructive"
-                onConfirm={logout}
+                onConfirm={confirmLogout}
                 isLoading={isLoggingOut}
             />
         </>

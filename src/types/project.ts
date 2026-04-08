@@ -12,7 +12,7 @@ export interface Tag {
     updatedAt: string;
 }
 
-export type ProjectStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
+export type ProjectStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED' | 'PLANNING' | 'REVIEW' | 'TESTING' | 'BLOCKED' | 'ARCHIVED';
 
 export interface Project {
     id: string;

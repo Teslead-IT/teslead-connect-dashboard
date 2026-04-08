@@ -1,12 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { teamsApi, TeamMember } from '@/services/teams.service';
 import { usePresenceStore, UserPresence, UserPresenceStatus } from '@/stores/presenceStore';
+import { useTimerStore } from '@/stores/timerStore';
+import { useUser } from '@/hooks/use-auth';
 import { useEffect, useMemo } from 'react';
 
 export function useTeams() {
     const queryClient = useQueryClient();
+    const { data: currentUser } = useUser();
     const setAllPresences = usePresenceStore((s) => s.setAllPresences);
     const presences = usePresenceStore((s) => s.presences);
+    const activeTimer = useTimerStore((s) => s.activeTimer);
 
     const teamsQuery = useQuery({
         queryKey: ['teams'],
@@ -26,17 +30,29 @@ export function useTeams() {
         }
     }, [teamsQuery.data, setAllPresences]);
 
-    // Merge static team data with real-time presence from store
+    // Merge static team data with real-time presence from store and local timer state
     const mergedTeams = useMemo(() => {
         if (!teamsQuery.data) return [];
         return teamsQuery.data.map((member) => {
             const realTimePresence = presences[member.user.id];
+            
+            // Inject local active timer for current user if it exists
+            const memberTimer = (member.user.id === currentUser?.id && activeTimer)
+                ? {
+                    id: activeTimer.id,
+                    startedAt: activeTimer.startedAt,
+                    taskTitle: activeTimer.taskTitle || 'Running Timer',
+                    projectName: activeTimer.projectName || undefined,
+                  }
+                : member.activeTimer;
+
             return {
                 ...member,
                 presence: realTimePresence || member.presence || { status: 'OFFLINE' },
+                activeTimer: memberTimer
             };
         });
-    }, [teamsQuery.data, presences]);
+    }, [teamsQuery.data, presences, currentUser?.id, activeTimer]);
 
     const updatePresenceMutation = useMutation({
         mutationFn: ({ status, message }: { status: UserPresenceStatus; message?: string }) =>
