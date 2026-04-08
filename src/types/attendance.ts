@@ -47,7 +47,7 @@ export interface AttendanceBreakResponse {
 }
 
 /** GET /attendance/me and GET /attendance/users/:userId response */
-export type AttendanceMeStatus = 'checked_in' | 'on_break' | 'checked_out';
+export type AttendanceMeStatus = 'checked_in' | 'on_break' | 'on_lunch' | 'checked_out';
 
 export interface AttendanceMeSession {
     id: string;

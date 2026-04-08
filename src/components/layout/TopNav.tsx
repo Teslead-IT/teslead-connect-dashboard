@@ -3,13 +3,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser, useSwitchOrg } from '@/hooks/use-auth';
 import { useTimerStore } from '@/stores/timerStore';
+import { useAttendanceStore } from '@/stores/attendanceStore';
 import { useOrgSwitchStore } from '@/stores/orgSwitchStore';
 import { useUser as useAuth0User } from '@auth0/nextjs-auth0/client';
 import { useOrgStore } from '@/stores/orgStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { authKeys } from '@/hooks/use-auth';
-import { Search, HelpCircle, Building2, UserPlus, ChevronDown, Check } from 'lucide-react';
+import { Search, HelpCircle, Building2, UserPlus, ChevronDown, Check, Utensils, Coffee, Home, Moon, Clock } from 'lucide-react';
+import { usePresenceStore } from '@/stores/presenceStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSidebar } from '@/context/SidebarContext';
 import { cn } from '@/lib/utils';
@@ -19,6 +21,9 @@ import { AppsMenu } from './AppsMenu';
 import { GlobalTimerNav } from './GlobalTimerNav';
 import { AttendanceStatusMenu } from './AttendanceStatusMenu';
 import { useOrgPermissions, type OrgRole } from '@/lib/permissions';
+import { useStartTimer, useStopTimer } from '@/hooks/use-timers';
+import { useAttendanceCheckOut } from '@/hooks/use-attendance';
+import { Dialog } from '@/components/ui/Dialog';
 
 export function TopNav() {
     const router = useRouter();
@@ -36,7 +41,12 @@ export function TopNav() {
     const { mutate: switchOrg, isPending: isSwitchingOrg } = useSwitchOrg();
     const isTimerRunning = useTimerStore((s) => s.isRunning);
     const activeTimer = useTimerStore((s) => s.activeTimer);
-    const setPendingOrgSwitch = useOrgSwitchStore((s) => s.setPending);
+    
+    const [pendingOrgSwitch, setPendingOrgSwitch] = useState<{ orgId: string; role?: OrgRole } | null>(null);
+
+    const { mutateAsync: stopTimerAsync } = useStopTimer();
+    const { mutateAsync: checkOutAsync } = useAttendanceCheckOut();
+
     const { isCollapsed } = useSidebar();
 
     useEffect(() => {
@@ -70,6 +80,41 @@ export function TopNav() {
 
     // Calculate permissions using centralized system (store role preferred)
     const permissions = useOrgPermissions(backendUser?.id, org, userRole);
+
+    // Get current user presence & attendance
+    const attendanceStatus = useAttendanceStore((s) => s.status);
+    const isCheckedIn = attendanceStatus === 'checked_in' || attendanceStatus === 'on_break' || attendanceStatus === 'on_lunch';
+    const userPresence = usePresenceStore((s) => backendUser?.id ? s.presences[backendUser.id] : null);
+    
+    // Priority: Attendance status (local source of truth) > Presence status (WS source for others)
+    const activeStatus = (attendanceStatus && attendanceStatus !== 'not_checked_in' && attendanceStatus !== 'checked_out')
+        ? attendanceStatus
+        : (userPresence?.status || attendanceStatus || 'OFFLINE');
+
+    const getPresenceConfig = (status: string) => {
+        const s = status?.toString()?.toLowerCase();
+        switch (s) {
+            case 'online':
+            case 'checked_in':
+                return { color: 'bg-green-500', icon: <Check className="w-[7px] h-[7px] text-white" strokeWidth={4} /> };
+            case 'lunch':
+            case 'on_lunch':
+                return { color: 'bg-amber-500', icon: <Utensils className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+            case 'break':
+            case 'on_break':
+                return { color: 'bg-amber-500', icon: <Coffee className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+            case 'wfh':
+                return { color: 'bg-blue-500', icon: <Home className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+            case 'offline':
+            case 'checked_out':
+            case 'not_checked_in':
+                return { color: 'bg-gray-400', icon: <Moon className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+            default:
+                return { color: 'bg-gray-400', icon: null };
+        }
+    };
+
+    const presenceConfig = getPresenceConfig(activeStatus);
 
     return (
         <motion.header
@@ -156,18 +201,14 @@ export function TopNav() {
                                                                 }
                                                                 setOrgDropdownOpen(false);
                                                                 const role = m.role?.toUpperCase?.();
-                                                                const validRole = role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER' ? role : undefined;
-                                                                const timerHasTask = activeTimer?.taskId != null;
-                                                                if (isTimerRunning && !timerHasTask) {
-                                                                    setPendingOrgSwitch(m.orgId, validRole);
+                                                                const validRole = (role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER' ? role : undefined) as OrgRole | undefined;
+                                                                
+                                                                if (isTimerRunning || isCheckedIn) {
+                                                                    setPendingOrgSwitch({ orgId: m.orgId, role: validRole });
                                                                     return;
                                                                 }
-                                                                setOrg(m.orgId, validRole);
-                                                                clearProject();
-                                                                queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
-                                                                setSwitching(true);
-                                                                router.replace('/dashboard');
-                                                                switchOrg(m.orgId);
+                                                                
+                                                                completeOrgSwitch(m.orgId, validRole);
                                                             }}
                                                             className={cn(
                                                                 'w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors',
@@ -253,7 +294,12 @@ export function TopNav() {
                                 </div>
                             )}
                             {/* Online status indicator */}
-                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
+                            <div className={cn(
+                                "absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full shadow-sm flex items-center justify-center transition-colors duration-300",
+                                presenceConfig.color
+                            )}>
+                                {presenceConfig.icon}
+                            </div>
                         </div>
                     </Link>
                 </div>
@@ -266,6 +312,40 @@ export function TopNav() {
                 orgId={activeOrgId || ''}
                 orgName={orgName || 'Organization'}
             />
+
+            <Dialog
+                isOpen={!!pendingOrgSwitch}
+                onClose={() => setPendingOrgSwitch(null)}
+                type="warning"
+                title="Active Session Running"
+                message="You have an active timer or are checked in. Switching organizations will stop your timer and check you out correctly from the current workspace. Proceed?"
+                confirmText="Stop Session & Switch"
+                cancelText="Cancel"
+                confirmVariant="destructive"
+                onConfirm={async () => {
+                    if (pendingOrgSwitch) {
+                        try {
+                            if (isTimerRunning) await stopTimerAsync(undefined);
+                            if (isCheckedIn) await checkOutAsync();
+                            completeOrgSwitch(pendingOrgSwitch.orgId, pendingOrgSwitch.role);
+                        } catch (error) {
+                            console.error('Cleanup before switch failed:', error);
+                            completeOrgSwitch(pendingOrgSwitch.orgId, pendingOrgSwitch.role);
+                        }
+                    }
+                }}
+                isLoading={isSwitchingOrg}
+            />
         </motion.header>
     );
+
+    function completeOrgSwitch(orgId: string, role?: OrgRole) {
+        setOrg(orgId, role);
+        clearProject();
+        queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
+        setSwitching(true);
+        router.replace('/dashboard');
+        switchOrg(orgId);
+        setPendingOrgSwitch(null);
+    }
 }

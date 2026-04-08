@@ -6,6 +6,7 @@ import { useTimerStore } from '@/stores/timerStore';
 import { useStartTimer, useStopTimer } from '@/hooks/use-timers';
 import { useOrgSettings } from '@/hooks/use-org-settings';
 import { useAttendanceStore } from '@/stores/attendanceStore';
+import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 
 interface TaskTimerButtonProps {
@@ -23,6 +24,7 @@ export function TaskTimerButton({ taskId, projectId, phaseId, taskListId, taskNa
     const activeTimer = useTimerStore((s) => s.activeTimer);
     const { data: orgSettings } = useOrgSettings();
     const attendanceStatus = useAttendanceStore((s) => s.status);
+    const toast = useToast();
     const mustBeCheckedIn = (orgSettings?.requireCheckInForTimer || orgSettings?.requireAttendance) && attendanceStatus !== 'checked_in' && attendanceStatus !== 'on_break';
 
     const startTimer = useStartTimer();
@@ -32,18 +34,41 @@ export function TaskTimerButton({ taskId, projectId, phaseId, taskListId, taskNa
 
     const handleStart = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (mustBeCheckedIn) return;
+        if (mustBeCheckedIn) {
+            toast.warning('Check-in required', 'Please check-in to start the timer.');
+            return;
+        }
+
+        const tid = toast.loading('Starting timer...');
         startTimer.mutate({
             projectId,
             taskId,
             ...(phaseId && { phaseId }),
             ...(taskListId && { taskListId }),
+        }, {
+            onSuccess: () => {
+                toast.success('Timer started', undefined, { id: tid });
+            },
+            onError: (error: any) => {
+                const message = error.response?.data?.message || error.message || 'Failed to start timer';
+                toast.error('Start Timer Issue', Array.isArray(message) ? message.join(', ') : message, { id: tid });
+            }
         });
     };
 
     const handleStop = (e: React.MouseEvent) => {
         e.stopPropagation();
-        stopTimer.mutate(undefined, { onSuccess: () => onStopSuccess?.() });
+        const tid = toast.loading('Stopping timer...');
+        stopTimer.mutate(undefined, {
+            onSuccess: () => {
+                onStopSuccess?.();
+                toast.success('Timer stopped', undefined, { id: tid });
+            },
+            onError: (error: any) => {
+                const message = error.response?.data?.message || error.message || 'Failed to stop timer';
+                toast.error('Error stopping timer', Array.isArray(message) ? message.join(', ') : message, { id: tid });
+            }
+        });
     };
 
     if (isThisTaskRunning) {
@@ -65,7 +90,7 @@ export function TaskTimerButton({ taskId, projectId, phaseId, taskListId, taskNa
                 onClick={handleStop}
                 disabled={stopTimer.isPending}
                 title="Stop Timer"
-                className={cn('p-1 text-red-600 hover:bg-red-50 rounded transition-colors', className)}
+                className={cn('p-1 text-red-600 transition-colors', className)}
             >
                 <Square className="w-3.5 h-3.5" fill="currentColor" />
             </button>
@@ -95,7 +120,7 @@ export function TaskTimerButton({ taskId, projectId, phaseId, taskListId, taskNa
             disabled={disabled || startTimer.isPending}
             title={title}
             className={cn(
-                'p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                'p-1 text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                 className
             )}
         >

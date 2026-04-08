@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AgGridReact } from 'ag-grid-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     ColDef,
     ICellRendererParams,
@@ -30,10 +31,20 @@ import {
     FileText,
     Lock,
     Globe,
+    Tag,
+    Copy,
     Check,
     Search,
     X,
     Timer,
+    Stars,
+    Bug,
+    Zap,
+    RefreshCw,
+    FlaskConical,
+    Settings,
+    ClipboardCheck,
+    Flame,
 } from 'lucide-react';
 import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
@@ -58,7 +69,19 @@ import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { Dialog } from '@/components/ui/Dialog';
 import type { PhaseWithTaskLists, TaskListWithTasks, StructuredTask } from '@/types/phase';
-import type { CreateTaskPayload } from '@/types/task';
+import type { CreateTaskPayload, TaskType } from '@/types/task';
+
+const TASK_TYPE_OPTIONS: { value: TaskType; label: string; color: string; bg: string; icon: any }[] = [
+    { value: 'FEAT', label: 'Feature', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200', icon: Stars },
+    { value: 'BUG', label: 'Bug', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: Bug },
+    { value: 'IMPR', label: 'Improvement', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: Zap },
+    { value: 'REF', label: 'Refactor', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: RefreshCw },
+    { value: 'RND', label: 'R&D', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: FlaskConical },
+    { value: 'DOC', label: 'Documentation', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', icon: FileText },
+    { value: 'OPS', label: 'Operations', color: 'text-teal-600', bg: 'bg-teal-50 border-teal-200', icon: Settings },
+    { value: 'TEST', label: 'Testing', color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-200', icon: ClipboardCheck },
+    { value: 'HOT', label: 'Hotfix', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', icon: Flame },
+];
 
 type RowType = 'phase' | 'tasklist' | 'task' | 'subtask';
 
@@ -69,6 +92,7 @@ interface FlatRow {
     phaseId: string;
     taskListId?: string;
     taskId?: string;
+    formattedTaskId?: string;
 
     name: string;
     status?: { id: string; name: string; color: string };
@@ -77,6 +101,7 @@ interface FlatRow {
     startDate?: string | null;
     dueDate?: string | null;
     priority?: number;
+    type?: TaskType;
 
     childCount?: number;
     isExpanded?: boolean;
@@ -273,6 +298,7 @@ export default function PhaseTaskListTab({
                                     phaseId: phase.id,
                                     taskListId: taskList.id,
                                     taskId: task.id,
+                                    formattedTaskId: task.taskId,
                                     name: task.title,
                                     status: task.status,
                                     assignees: task.assignees,
@@ -280,6 +306,7 @@ export default function PhaseTaskListTab({
                                     startDate: null,
                                     dueDate: task.dueDate,
                                     priority: task.priority,
+                                    type: task.type,
                                     childCount: children.length,
                                     isExpanded: isTaskExpanded,
                                     hasChildren: children.length > 0,
@@ -533,6 +560,13 @@ export default function PhaseTaskListTab({
             sortable: false,
             filter: false,
             cellRenderer: ViewButtonCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Type',
+            field: 'type',
+            width: 100,
+            cellRenderer: TypeCell,
             cellClass: '!p-0',
         },
         {
@@ -897,6 +931,7 @@ export default function PhaseTaskListTab({
                     phases={phases}
                     projectName={projectName}
                     projectColor={projectColor}
+                    projectId={projectId}
                 />
             )}
 
@@ -1108,6 +1143,18 @@ function TasksBoardView({
                                                     )}
                                                 </div>
                                             </div>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                {(() => {
+                                                    const typeOpt = TASK_TYPE_OPTIONS.find(o => o.value === task.type) || TASK_TYPE_OPTIONS[0];
+                                                    const Icon = typeOpt.icon;
+                                                    return (
+                                                        <div className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase", typeOpt.bg, typeOpt.color)}>
+                                                            <Icon className="w-2.5 h-2.5" />
+                                                            {typeOpt.value}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
                                             {subtasks.length > 0 && (
                                                 <div className="text-[10px] text-gray-500 mt-1">{subtasks.length} subtask(s)</div>
                                             )}
@@ -1290,8 +1337,38 @@ function TaskNameCell(params: ICellRendererParams) {
 
     // ---- TASK / SUBTASK ROW ----
     const indent = row.level * 24 + 8;
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (row.formattedTaskId) {
+            navigator.clipboard.writeText(row.formattedTaskId);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
     return (
-        <div className="flex items-center h-full w-full pr-3 group/task" style={{ paddingLeft: `${indent}px` }}>
+        <div className="flex items-center h-full w-full pr-3 group/task relative" style={{ paddingLeft: `${indent}px` }}>
+            {row.formattedTaskId && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1 group/copy shrink-0">
+                    <span className="text-[9px] font-bold text-black bg-white border border-gray-100 px-1.5 py-0.5 rounded tracking-tight min-w-[32px] text-center shadow-xs">
+                        {row.formattedTaskId.split('-').pop()}
+                    </span>
+                    <button
+                        onClick={handleCopy}
+                        className="p-1 opacity-0 group-hover/task:opacity-100 text-indigo-500 hover:text-indigo-600 rounded transition-all"
+                        title={`Copy full ID: ${row.formattedTaskId}`}
+                    >
+                        {copied ? (
+                            <Check className="w-2.5 h-2.5 text-emerald-500" />
+                        ) : (
+                            <Copy className="w-2.5 h-2.5" />
+                        )}
+                    </button>
+                </div>
+            )}
+
             {row.hasChildren ? (
                 <button
                     onClick={(e) => { e.stopPropagation(); ctx.toggleTask(row.taskId!); }}
@@ -1307,6 +1384,7 @@ function TaskNameCell(params: ICellRendererParams) {
                     <FileText className="w-3.5 h-3.5 text-gray-300" />
                 </div>
             )}
+
             <span
                 className={cn(
                     "text-[13px] truncate flex-1 min-w-0",
@@ -1406,27 +1484,72 @@ function ViewButtonCell(params: ICellRendererParams) {
     );
 }
 
+function TypeCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
+
+    const typeValue = (row.taskData as any)?.type || 'FEAT';
+    const typeOpt = TASK_TYPE_OPTIONS.find(o => o.value === typeValue) || TASK_TYPE_OPTIONS[0];
+    const Icon = typeOpt.icon;
+
+    return (
+        <div className="flex items-center h-full px-2">
+            <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-sm border text-[10px] font-bold uppercase tracking-tight shadow-[0_1px_2px_rgba(0,0,0,0.02)]", typeOpt.bg, typeOpt.color, "border-transparent")}>
+                <Icon className="w-3 h-3" />
+                {typeOpt.value}
+            </div>
+        </div>
+    );
+}
+
 function StatusCell(params: ICellRendererParams) {
     const row = params.data as FlatRow;
     const ctx = params.context;
 
-    /* Phase row: no status in backend – hide for now */
     if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
-
     if (!row.status) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
 
     const { workflow = [], onUpdateStatus, isEditable } = ctx || {};
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+
     const allStatuses = useMemo(() =>
         workflow.flatMap((s: any) => (s.statuses || []).map((st: any) => ({ ...st, stageName: s.name })))
         , [workflow]);
 
-    // Local state for immediate feedback
     const [localStatusId, setLocalStatusId] = useState(row.status.id);
 
-    // Sync local state with row data when it changes from server
     useEffect(() => {
         setLocalStatusId(row.status?.id || '');
     }, [row.status?.id]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isOpen) {
+            setIsOpen(false);
+        } else {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setDropdownPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: Math.max(rect.width, 180)
+            });
+            setIsOpen(true);
+        }
+    };
 
     const selectedStatus = useMemo(() => {
         if (localStatusId === row.status?.id) return row.status;
@@ -1435,67 +1558,102 @@ function StatusCell(params: ICellRendererParams) {
 
     const handleStatusChange = async (newStatusId: string) => {
         if (newStatusId === localStatusId) return;
-
-        // Optimistically update local state
         setLocalStatusId(newStatusId);
-
         try {
             await onUpdateStatus?.(row.taskId!, newStatusId);
         } catch {
-            // Revert on error
             setLocalStatusId(row.status?.id || '');
         }
     };
 
-    const statusName = (selectedStatus?.name || '').toLowerCase();
-    const isNotStarted = statusName.includes('not started') || statusName.includes('not_started');
     const color = selectedStatus?.color || '#64748b';
-    const chipStyle = isNotStarted
-        ? undefined
-        : { backgroundColor: `${color}18`, color, borderColor: 'transparent' };
-    const chipClass = isNotStarted
-        ? 'bg-slate-200 text-slate-800 border-0'
-        : 'border-0';
+    const statusStyle = {
+        backgroundColor: `${color}15`,
+        color,
+        borderColor: `${color}30`,
+    };
 
-    /* Editable: project-like select with chevron */
-    if (isEditable && row.taskId) {
+    if (!isEditable) {
         return (
-            <div className="status-select-wrapper h-full w-full max-w-[140px] flex items-center px-2" onClick={(e) => e.stopPropagation()}>
-                <select
-                    value={localStatusId}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    className={cn('status-select-base flex items-center justify-center rounded-sm', chipClass)}
-                    style={{
-                        ...chipStyle,
-                        WebkitAppearance: 'none',
-                        MozAppearance: 'none',
-                    }}
+            <div className="h-full w-full flex items-center px-2">
+                <span
+                    className="flex items-center justify-center w-full h-full px-3 text-[10px] font-bold tracking-wide border-0 truncate"
+                    style={statusStyle}
                 >
-                    {allStatuses.length > 0 ? (
-                        allStatuses.map((st: any) => (
-                            <option key={st.id} value={st.id}>{st.name}</option>
-                        ))
-                    ) : (
-                        <option value={row.status.id}>{row.status.name}</option>
-                    )}
-                </select>
-                <ChevronDown className="status-select-icon" style={chipStyle ? { color } : undefined} />
+                    {selectedStatus?.name}
+                </span>
             </div>
         );
     }
 
-    /* Read-only: minimal chip like project (no chevron) */
     return (
-        <div className="flex items-center h-full px-2">
-            <span
+        <div className="relative h-full w-full px-2 py-1" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
+            <button
+                onClick={handleToggle}
                 className={cn(
-                    'flex items-center justify-center px-3 py-1.5 text-[10px] font-bold tracking-wide rounded-sm',
-                    chipClass
+                    "flex items-center justify-between w-full h-full px-3 text-[10px] font-bold tracking-wide transition-all border rounded-sm",
+                    isOpen ? "brightness-90 opacity-100 ring-2 ring-blue-500/20" : "hover:brightness-95 border-transparent"
                 )}
-                style={chipStyle}
+                style={statusStyle}
             >
-                {selectedStatus?.name}
-            </span>
+                <span className="truncate">{selectedStatus?.name}</span>
+                <ChevronDown className={cn(
+                    "w-3.5 h-3.5 ml-1 transition-transform duration-200 opacity-50",
+                    isOpen && "rotate-180 opacity-100"
+                )} />
+            </button>
+
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {isOpen && dropdownPosition && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                            style={{
+                                position: 'absolute',
+                                top: dropdownPosition.top + 4,
+                                left: dropdownPosition.left,
+                                width: dropdownPosition.width,
+                                zIndex: 99999
+                            }}
+                            className="bg-white border border-gray-100 rounded-lg shadow-2xl py-1.5 px-1 overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                {allStatuses.map((opt: any) => {
+                                    const isSelected = opt.id === localStatusId;
+                                    const optColor = opt.color || '#64748b';
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => {
+                                                handleStatusChange(opt.id);
+                                                setIsOpen(false);
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-2.5 w-full px-2.5 py-2 text-[11px] font-semibold transition-all rounded-md text-left mb-0.5 last:mb-0",
+                                                isSelected
+                                                    ? "bg-blue-50 text-blue-700 shadow-sm"
+                                                    : "hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                                            )}
+                                        >
+                                            <div
+                                                className="w-2 h-2 rounded-full shrink-0 shadow-inner"
+                                                style={{ backgroundColor: optColor }}
+                                            />
+                                            <span className="truncate">{opt.name}</span>
+                                            {isSelected && <div className="ml-auto w-1 h-1 rounded-full bg-blue-500" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }

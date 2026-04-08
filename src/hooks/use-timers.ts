@@ -8,6 +8,8 @@ import { useOrgStore } from '@/stores/orgStore';
 import { useTimerStore } from '@/stores/timerStore';
 import { timersApi } from '@/services/timers.service';
 import type { StartTimerPayload, StopTimerPayload } from '@/types/timer';
+import { attendanceKeys } from './use-attendance';
+import { timeEntryKeys } from './use-time-entries';
 
 export const timerKeys = {
     active: (orgId: string | null) => ['timers', 'active', orgId] as const,
@@ -38,10 +40,13 @@ export function useStartTimer() {
     const setTimer = useTimerStore((s) => s.setTimer);
 
     return useMutation({
-        mutationFn: (payload: StartTimerPayload) => timersApi.start(payload),
+        mutationFn: (payload: StartTimerPayload | void) => timersApi.start(payload || {}),
         onSuccess: (data) => {
             setTimer(data);
             queryClient.invalidateQueries({ queryKey: timerKeys.active(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: attendanceKeys.today(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: attendanceKeys.me(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: ['teams'] });
         },
     });
 }
@@ -52,10 +57,14 @@ export function useStopTimer() {
     const clearTimer = useTimerStore((s) => s.clearTimer);
 
     return useMutation({
-        mutationFn: (payload?: StopTimerPayload) => timersApi.stop(payload),
+        mutationFn: (payload: StopTimerPayload | void) => timersApi.stop(payload ?? undefined),
         onSuccess: () => {
             clearTimer();
             queryClient.invalidateQueries({ queryKey: timerKeys.active(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: attendanceKeys.today(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: attendanceKeys.me(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: timeEntryKeys.all });
+            queryClient.invalidateQueries({ queryKey: ['teams'] });
         },
     });
 }

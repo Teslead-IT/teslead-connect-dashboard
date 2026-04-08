@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService, workflowService } from '@/services/tasks.service';
-import type { CreateTaskPayload, UpdateTaskPayload } from '@/types/task';
+import type { CreateTaskPayload, UpdateTaskPayload, CreateStatusDto } from '@/types/task';
 
 export const taskKeys = {
     all: (projectId: string) => ['tasks', projectId] as const,
@@ -30,6 +30,17 @@ export function useProjectWorkflow(projectId: string) {
         queryKey: taskKeys.workflow(projectId),
         queryFn: () => workflowService.getWorkflow(projectId),
         enabled: !!projectId,
+    });
+}
+
+export function useCreateStatus(projectId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: CreateStatusDto) => workflowService.createStatus(projectId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.workflow(projectId) });
+        },
     });
 }
 

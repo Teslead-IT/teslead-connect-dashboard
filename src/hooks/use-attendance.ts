@@ -24,6 +24,8 @@ function meToToday(me: AttendanceMeResponse): AttendanceToday {
         checked_in: 'checked_in',
         on_break: 'on_break',
         on_lunch: 'on_lunch',
+        lunch: 'on_lunch',
+        break: 'on_break',
         checked_out: 'checked_out',
     };
     const status = statusMap[apiStatus] ?? 'not_checked_in';
@@ -63,7 +65,8 @@ export function useAttendanceToday() {
             return data;
         },
         enabled: !!activeOrgId,
-        staleTime: 0,
+        staleTime: 5 * 60 * 1000, // 5 minutes (maintain state across navigations)
+        gcTime: 30 * 60 * 1000, // 30 minutes
         refetchOnWindowFocus: true,
     });
 }
@@ -91,7 +94,8 @@ export function useAttendanceMe() {
             }
         },
         enabled: !!activeOrgId,
-        staleTime: 0,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes
         refetchOnWindowFocus: true,
     });
 }
@@ -126,8 +130,11 @@ export function useAttendanceForUsers(userIds: string[]) {
             const q = queries[i];
             if (q?.data?.status) {
                 const s = (q.data.status as string).toLowerCase();
-                if (s === 'checked_in' || s === 'on_break') map.set(uid, s as 'checked_in' | 'on_break');
-                else map.set(uid, 'checked_out');
+                if (s === 'checked_in' || s === 'on_break' || s === 'on_lunch' || s === 'break' || s === 'lunch') {
+                    map.set(uid, (s === 'lunch' ? 'on_lunch' : s === 'break' ? 'on_break' : s) as any);
+                } else {
+                    map.set(uid, 'checked_out');
+                }
             } else {
                 map.set(uid, 'offline');
             }
