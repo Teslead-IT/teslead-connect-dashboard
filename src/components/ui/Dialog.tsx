@@ -21,7 +21,7 @@ interface DialogProps {
     onCancel?: () => void;
     confirmText?: string;
     cancelText?: string;
-    confirmVariant?: 'default' | 'destructive' | 'secondary';
+    confirmVariant?: 'default' | 'destructive' | 'secondary' | 'primary';
     showCloseButton?: boolean;
     size?: DialogSize;
     position?: DialogPosition;
@@ -42,64 +42,58 @@ interface DialogProps {
 const typeConfig = {
     confirmation: {
         icon: CheckCircle2,
-        color: 'bg-[#091590] dark:bg-[#091590]',
-        borderColor: 'border-[#091590]/20',
-        headerColor: 'text-white',
-        iconBg: 'bg-white/20',
-        iconColor: 'text-white',
+        color: 'text-blue-600 dark:text-blue-400',
+        bg: 'bg-blue-50 dark:bg-blue-500/10',
+        border: 'border-blue-100 dark:border-blue-500/20',
+        accent: 'bg-blue-600',
     },
     info: {
         icon: Info,
-        color: 'bg-blue-600 dark:bg-blue-700',
-        borderColor: 'border-blue-500/20',
-        headerColor: 'text-white',
-        iconBg: 'bg-white/20',
-        iconColor: 'text-white',
+        color: 'text-indigo-600 dark:text-indigo-400',
+        bg: 'bg-indigo-50 dark:bg-indigo-500/10',
+        border: 'border-indigo-100 dark:border-indigo-500/20',
+        accent: 'bg-indigo-600',
     },
     warning: {
         icon: AlertTriangle,
-        color: 'bg-[#3c1e13] dark:bg-[#3c1e13]',
-        borderColor: 'border-[#4c2e23]',
-        headerColor: 'text-amber-500',
-        iconBg: 'bg-amber-500/10',
-        iconColor: 'text-amber-500',
+        color: 'text-amber-600 dark:text-amber-400',
+        bg: 'bg-amber-50 dark:bg-amber-500/10',
+        border: 'border-amber-100 dark:border-amber-500/20',
+        accent: 'bg-amber-600',
     },
     error: {
         icon: AlertCircle,
-        color: 'bg-red-950 dark:bg-red-950',
-        borderColor: 'border-red-900',
-        headerColor: 'text-red-500',
-        iconBg: 'bg-red-500/10',
-        iconColor: 'text-red-500',
+        color: 'text-rose-600 dark:text-rose-400',
+        bg: 'bg-rose-50 dark:bg-rose-500/10',
+        border: 'border-rose-100 dark:border-rose-500/20',
+        accent: 'bg-rose-600',
     },
     success: {
         icon: CheckCircle,
-        color: 'bg-emerald-950 dark:bg-emerald-950',
-        borderColor: 'border-emerald-900',
-        headerColor: 'text-emerald-500',
-        iconBg: 'bg-emerald-500/10',
-        iconColor: 'text-emerald-500',
+        color: 'text-emerald-600 dark:text-emerald-400',
+        bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+        border: 'border-emerald-100 dark:border-emerald-500/20',
+        accent: 'bg-emerald-600',
     },
     help: {
         icon: HelpCircle,
-        color: 'bg-purple-950 dark:bg-purple-950',
-        borderColor: 'border-purple-900',
-        headerColor: 'text-purple-500',
-        iconBg: 'bg-purple-500/10',
-        iconColor: 'text-purple-500',
+        color: 'text-violet-600 dark:text-violet-400',
+        bg: 'bg-violet-50 dark:bg-violet-500/10',
+        border: 'border-violet-100 dark:border-violet-500/20',
+        accent: 'bg-violet-600',
     },
 };
 
 const sizeConfig = {
-    sm: 'max-w-xs',
-    md: 'max-w-sm',
-    lg: 'max-w-md',
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
 };
 
 const positionConfig = {
     center: 'items-center justify-center',
-    top: 'items-start justify-center pt-20',
-    bottom: 'items-end justify-center pb-20',
+    top: 'items-start justify-center pt-24',
+    bottom: 'items-end justify-center pb-24',
 };
 
 export const Dialog: React.FC<DialogProps> = ({
@@ -121,7 +115,7 @@ export const Dialog: React.FC<DialogProps> = ({
     closeOnEscape = true,
     isLoading = false,
     customIcon,
-    isDark = true, // Default to dark for the premium look
+    isDark = false,
     borderColor,
     className,
     headerClassName,
@@ -161,7 +155,6 @@ export const Dialog: React.FC<DialogProps> = ({
         if (onConfirm) {
             try {
                 await onConfirm();
-                onClose();
             } catch (error) {
                 console.error('Error in dialog confirm:', error);
             }
@@ -188,151 +181,110 @@ export const Dialog: React.FC<DialogProps> = ({
             {isOpen && (
                 <div
                     className={cn(
-                        'fixed inset-0 z-[100000] flex',
+                        'fixed inset-0 z-[100000] flex px-4',
                         positionConfig[position]
                     )}
                 >
                     {/* Backdrop */}
                     <motion.div
-                        initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                        animate={{ opacity: 1, backdropFilter: 'blur(4px)' }}
-                        exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                        transition={{ duration: 0.2, ease: 'easeOut' }}
-                        className={cn(
-                            'absolute inset-0',
-                            'bg-slate-900/40 dark:bg-black/60',
-                        )}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] dark:bg-black/60"
                         onClick={handleBackdropClick}
                     />
 
-                    {/* Dialog Content */}
+                    {/* Dialog Card */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.98, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ 
-                            type: 'spring', 
-                            damping: 25, 
-                            stiffness: 300,
-                            duration: 0.2
-                        }}
+                        exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                         className={cn(
-                            'relative w-full mx-4 rounded-xl shadow-2xl overflow-hidden',
-                            'border',
-                            'bg-[#0f172a] dark:bg-[#0f172a]',
+                            'relative w-full bg-white dark:bg-[#0f172a] rounded-2xl shadow-2xl shadow-blue-900/10 overflow-hidden',
+                            'border border-gray-100 dark:border-slate-800',
                             sizeConfig[size],
-                            borderColor || config.borderColor,
                             className
                         )}
                         onClick={(e) => e.stopPropagation()}
                     >
-                {/* Header with Icon */}
-                <div
-                    className={cn(
-                        'relative px-6 py-4 flex items-center gap-4',
-                        config.color,
-                        'border-b',
-                        borderColor || config.borderColor,
-                        headerClassName,
-                    )}
-                >
-                    <div
-                        className={cn(
-                            'p-1.5 rounded-lg flex-shrink-0',
-                            config.iconBg,
+                        {/* Top Accent Bar */}
+                        <div className={cn('h-1.5 w-full', config.accent)} />
+
+                        {/* Close Button */}
+                        {showCloseButton && (
+                            <button
+                                onClick={onClose}
+                                className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors z-10"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
                         )}
-                    >
-                        {customIcon ? (
-                            customIcon
-                        ) : (
-                            <Icon className={cn('w-5 h-5', config.iconColor)} />
-                        )}
-                    </div>
 
-                    <div className="flex-1">
-                        <h2
-                            className={cn(
-                                'text-base font-bold tracking-tight',
-                                config.headerColor,
-                            )}
-                        >
-                            {title}
-                        </h2>
-                    </div>
+                        <div className="px-6 pt-8 pb-6 text-center sm:text-left">
+                            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                                {/* Icon Wrapper */}
+                                <div className={cn(
+                                    'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0',
+                                    config.bg,
+                                    'border',
+                                    config.border
+                                )}>
+                                    {customIcon ? customIcon : <Icon className={cn('w-6 h-6', config.color)} />}
+                                </div>
 
-                    {showCloseButton && (
-                        <button
-                            onClick={onClose}
-                            className={cn(
-                                'p-1 rounded-md transition-all duration-200',
-                                'hover:bg-black/10 dark:hover:bg-white/10 text-white/40 hover:text-white',
-                            )}
-                            aria-label="Close dialog"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
+                                <div className="flex-1 space-y-2">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                                        {title}
+                                    </h3>
+                                    <div className="text-sm font-medium text-gray-600 dark:text-slate-400 leading-relaxed">
+                                        {message}
+                                    </div>
+                                    {description && (
+                                        <p className="text-xs text-gray-500 dark:text-slate-500 mt-2">
+                                            {description}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
 
-                {/* Content */}
-                <div className={cn('px-6 py-8', contentClassName)}>
-                    <p className="text-[13px] text-gray-300 leading-relaxed font-medium">
-                        {message}
-                    </p>
-                    {description && (
-                        <p className="text-xs text-gray-500 mt-2">
-                            {description}
-                        </p>
-                    )}
-                    {children}
-                </div>
+                            {children && (
+                                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-800">
+                                    {children}
+                                </div>
+                            )}
+                        </div>
 
-                {/* Footer */}
-                <div
-                    className={cn(
-                        'flex gap-3 px-6 py-4 bg-slate-900/50',
-                        'border-t',
-                        borderColor || config.borderColor,
-                        'justify-end',
-                        footerClassName,
-                    )}
-                >
-                    {(onCancel !== undefined || type === 'confirmation' || type === 'warning') && (
-                        <button
-                            onClick={handleCancel}
-                            disabled={isLoading}
-                            className={cn(
-                                'px-5 py-2 rounded-lg font-bold transition-all duration-200',
-                                'bg-[#1e293b] text-gray-300 hover:bg-[#334155]',
-                                'disabled:opacity-50 disabled:cursor-not-allowed',
-                                'active:scale-95 text-[11px] uppercase tracking-wider',
-                            )}
-                        >
-                            {cancelText}
-                        </button>
-                    )}
+                        {/* Footer / Actions */}
+                        <div className="px-6 py-4 bg-gray-50/50 dark:bg-slate-900/50 border-t border-gray-100 dark:border-slate-800 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                            <button
+                                onClick={handleCancel}
+                                disabled={isLoading}
+                                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50"
+                            >
+                                {cancelText}
+                            </button>
 
-                    {onConfirm && (
-                        <button
-                            onClick={handleConfirm}
-                            disabled={isLoading}
-                            className={cn(
-                                'px-5 py-2 rounded-lg font-bold transition-all duration-200',
-                                'disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 text-[11px] uppercase tracking-wider',
-                                'flex items-center gap-2 min-w-max shadow-lg',
-                                confirmVariant === 'destructive'
-                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-900/20'
-                                    : 'bg-[#091590] hover:bg-[#071170] text-white shadow-blue-900/20',
+                            {onConfirm && (
+                                <button
+                                    onClick={handleConfirm}
+                                    disabled={isLoading}
+                                    className={cn(
+                                        'px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 min-w-[120px] disabled:opacity-50',
+                                        confirmVariant === 'destructive'
+                                            ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200 dark:shadow-none'
+                                            : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 dark:shadow-none'
+                                    )}
+                                >
+                                    {isLoading ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        confirmText
+                                    )}
+                                </button>
                             )}
-                        >
-                            {isLoading && (
-                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            )}
-                            {confirmText}
-                        </button>
-                    )}
-                </div>
-                </motion.div>
+                        </div>
+                    </motion.div>
                 </div>
             )}
         </AnimatePresence>,

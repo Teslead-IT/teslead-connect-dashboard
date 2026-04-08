@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 
 // Register AG Grid Modules
@@ -80,11 +82,11 @@ const TAB_ITEMS: TabItem[] = [
 ];
 
 const PRIORITY_COLORS = {
-    1: 'bg-gray-100 text-gray-600',
-    2: 'bg-blue-100 text-blue-600',
-    3: 'bg-yellow-100 text-yellow-600',
-    4: 'bg-orange-100 text-orange-600',
-    5: 'bg-red-100 text-red-600',
+    1: 'bg-slate-50 text-slate-500 border border-slate-100',
+    2: 'bg-sky-50 text-sky-600 border border-sky-100',
+    3: 'bg-amber-50 text-amber-600 border border-amber-100',
+    4: 'bg-orange-50 text-orange-600 border border-orange-100',
+    5: 'bg-rose-50 text-rose-600 border border-rose-100',
 };
 
 const PRIORITY_LABELS = {
@@ -96,11 +98,16 @@ const PRIORITY_LABELS = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    NOT_STARTED: 'bg-slate-200 text-slate-800 border-slate-300',
+    NOT_STARTED: 'bg-slate-100 text-slate-700 border-slate-200',
+    PLANNING: 'bg-sky-100 text-sky-700 border-sky-200',
     IN_PROGRESS: 'bg-blue-100 text-blue-700 border-blue-200',
     ON_HOLD: 'bg-amber-100 text-amber-700 border-amber-200',
+    REVIEW: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    TESTING: 'bg-purple-100 text-purple-700 border-purple-200',
     COMPLETED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     CANCELLED: 'bg-rose-100 text-rose-700 border-rose-200',
+    BLOCKED: 'bg-red-100 text-red-700 border-red-200',
+    ARCHIVED: 'bg-slate-200 text-slate-600 border-slate-300',
 };
 
 export default function ProjectDetailPage() {
@@ -694,8 +701,11 @@ const TaskNameRenderer = (props: ICellRendererParams) => {
 const StatusRenderer = (props: ICellRendererParams) => {
     const task: Task = props.data;
     const { isEditable, workflow, onUpdateStatus } = props.context;
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
-    // Flatten workflow statuses for the select options
+    // Flatten workflow statuses for the options
     const allStatuses = useMemo(() => {
         return workflow.flatMap((stage: any) =>
             stage.statuses.map((status: any) => ({ ...status, stageName: stage.name }))
@@ -704,28 +714,46 @@ const StatusRenderer = (props: ICellRendererParams) => {
 
     const currentStatus = allStatuses.find((s: any) => s.id === task.status.id);
     const statusName = currentStatus?.name || task.status.name || 'Unknown';
-    const statusColor = currentStatus?.color || '#64748b'; // Default to slate-500 if no color
+    const statusColor = currentStatus?.color || '#64748b';
 
-    // Generate styles dynamically based on backend color
-    // Assuming backend returns HEX colors, we append alpha for transparency
-    const statusStyle = {
-        backgroundColor: `${statusColor}20`, // ~12% opacity
-        color: statusColor,
-        borderColor: `${statusColor}40`, // ~25% opacity
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isOpen) {
+            setIsOpen(false);
+        } else {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setDropdownPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: Math.max(rect.width, 180)
+            });
+            setIsOpen(true);
+        }
     };
 
-    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newStatusId = e.target.value;
-        if (newStatusId !== task.status.id) {
-            onUpdateStatus(task.id, newStatusId);
-        }
+    const statusStyle = {
+        backgroundColor: `${statusColor}15`,
+        color: statusColor,
+        borderColor: `${statusColor}30`,
     };
 
     if (!isEditable) {
         return (
-            <div className="status-select-wrapper h-full w-full flex items-center">
+            <div className="h-full w-full flex items-center">
                 <span
-                    className="status-select-base flex items-center justify-center cursor-default hover:opacity-100"
+                    className="flex items-center justify-center w-full h-full px-3 text-[10px] font-bold tracking-wide border-0 truncate"
                     style={statusStyle}
                 >
                     {statusName}
@@ -735,24 +763,75 @@ const StatusRenderer = (props: ICellRendererParams) => {
     }
 
     return (
-        <div className="status-select-wrapper h-full w-full" onClick={(e) => e.stopPropagation()}>
-            <select
-                value={task.status.id}
-                onChange={handleStatusChange}
-                className="status-select-base"
-                style={{
-                    ...statusStyle,
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none'
-                }}
+        <div className="relative h-full w-full" ref={dropdownRef}>
+            <button
+                onClick={handleToggle}
+                className={cn(
+                    "flex items-center justify-between w-full h-full px-3 text-[10px] font-bold tracking-wide transition-all border-0",
+                    isOpen ? "brightness-90 opacity-100" : "hover:brightness-95"
+                )}
+                style={statusStyle}
             >
-                {allStatuses.map((status: any) => (
-                    <option key={status.id} value={status.id}>
-                        {status.name}
-                    </option>
-                ))}
-            </select>
-            <ChevronDown className="status-select-icon" style={{ color: statusColor }} />
+                <span className="truncate">{statusName}</span>
+                <ChevronDown className={cn(
+                    "w-3.5 h-3.5 ml-1 transition-transform duration-200 opacity-50",
+                    isOpen && "rotate-180 opacity-100"
+                )} />
+            </button>
+
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {isOpen && dropdownPosition && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                            style={{
+                                position: 'absolute',
+                                top: dropdownPosition.top + 4,
+                                left: dropdownPosition.left,
+                                width: dropdownPosition.width,
+                                zIndex: 99999
+                            }}
+                            className="bg-white border border-gray-100 rounded-lg shadow-2xl py-1.5 px-1 overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                {allStatuses.map((opt: any) => {
+                                    const isSelected = opt.id === task.status.id;
+                                    const optColor = opt.color || '#64748b';
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => {
+                                                if (!isSelected) {
+                                                    onUpdateStatus(task.id, opt.id);
+                                                }
+                                                setIsOpen(false);
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-2.5 w-full px-2.5 py-2 text-[11px] font-semibold transition-all rounded-md text-left mb-0.5 last:mb-0",
+                                                isSelected
+                                                    ? "bg-blue-50 text-blue-700 shadow-sm"
+                                                    : "hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                                            )}
+                                        >
+                                            <div
+                                                className="w-2 h-2 rounded-full shrink-0 shadow-inner"
+                                                style={{ backgroundColor: optColor }}
+                                            />
+                                            <span className="truncate">{opt.name}</span>
+                                            {isSelected && <div className="ml-auto w-1 h-1 rounded-full bg-blue-500" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 };
@@ -760,10 +839,10 @@ const StatusRenderer = (props: ICellRendererParams) => {
 const PriorityRenderer = (props: ICellRendererParams) => {
     const priority: TaskPriority = props.value;
     return (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-center h-full px-2">
             <span
                 className={cn(
-                    'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium',
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-sm',
                     PRIORITY_COLORS[priority]
                 )}
             >
@@ -1012,7 +1091,8 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                     font-weight: 500;
                     overflow: visible !important; /* Critical: Allow dropdowns to overflow limits */
                 }
-                .custom-ag-grid .ag-cell[col-id="status"] {
+                .custom-ag-grid .ag-cell[col-id="status"],
+                .custom-ag-grid .ag-cell[col-id="priority"] {
                     padding: 0 !important;
                 }
                 

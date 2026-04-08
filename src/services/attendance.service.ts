@@ -26,7 +26,7 @@ function sessionToToday(session: Record<string, unknown>): AttendanceToday {
 export const attendanceApi = {
     /** GET /attendance/me – current user's attendance in org */
     async getMe(): Promise<AttendanceMeResponse> {
-        const { data } = await apiClient.get<AttendanceMeResponse>(API_CONFIG.ENDPOINTS.ATTENDANCE.ME);
+        const { data } = await apiClient.get<AttendanceMeResponse>(API_CONFIG.ENDPOINTS.ATTENDANCE.ME, { silent403: true } as any);
         return data;
     },
 
@@ -38,7 +38,10 @@ export const attendanceApi = {
 
     async getToday(): Promise<AttendanceToday> {
         try {
-            const { data } = await apiClient.get<AttendanceToday | AttendanceSessionResponse | Record<string, unknown>>(API_CONFIG.ENDPOINTS.ATTENDANCE.TODAY);
+            const { data } = await apiClient.get<AttendanceToday | AttendanceSessionResponse | Record<string, unknown>>(
+                API_CONFIG.ENDPOINTS.ATTENDANCE.TODAY,
+                { silent403: true } as any
+            );
             if (data && typeof data === 'object') {
                 if ('status' in data && data.status) return data as AttendanceToday;
                 return sessionToToday(data as Record<string, unknown>);

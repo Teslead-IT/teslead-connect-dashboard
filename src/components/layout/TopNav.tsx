@@ -325,7 +325,7 @@ export function TopNav() {
                 onConfirm={async () => {
                     if (pendingOrgSwitch) {
                         try {
-                            if (isTimerRunning) await stopTimerAsync();
+                            if (isTimerRunning) await stopTimerAsync(undefined);
                             if (isCheckedIn) await checkOutAsync();
                             completeOrgSwitch(pendingOrgSwitch.orgId, pendingOrgSwitch.role);
                         } catch (error) {

@@ -40,7 +40,7 @@ export function useStartTimer() {
     const setTimer = useTimerStore((s) => s.setTimer);
 
     return useMutation({
-        mutationFn: (payload: StartTimerPayload) => timersApi.start(payload),
+        mutationFn: (payload: StartTimerPayload | void) => timersApi.start(payload || {}),
         onSuccess: (data) => {
             setTimer(data);
             queryClient.invalidateQueries({ queryKey: timerKeys.active(activeOrgId ?? null) });
@@ -57,7 +57,7 @@ export function useStopTimer() {
     const clearTimer = useTimerStore((s) => s.clearTimer);
 
     return useMutation({
-        mutationFn: (payload?: StopTimerPayload) => timersApi.stop(payload),
+        mutationFn: (payload: StopTimerPayload | void) => timersApi.stop(payload ?? undefined),
         onSuccess: () => {
             clearTimer();
             queryClient.invalidateQueries({ queryKey: timerKeys.active(activeOrgId ?? null) });

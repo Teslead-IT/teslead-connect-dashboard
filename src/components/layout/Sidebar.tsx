@@ -69,21 +69,21 @@ const navItems: NavItem[] = [
         href: '/meetings',
         icon: <Calendar className="w-5 h-5 flex-shrink-0" />,
     },
-    {
-        label: 'Timesheet',
-        href: '/dashboard/timesheet',
-        icon: <Clock className="w-5 h-5 flex-shrink-0" />,
-    },
+    // {
+    //     label: 'Timesheet',
+    //     href: '/dashboard/timesheet',
+    //     icon: <Clock className="w-5 h-5 flex-shrink-0" />,
+    // },
     // {
     //     label: 'Attendance',
     //     href: '/dashboard/attendance',
     //     icon: <ClipboardCheck className="w-5 h-5 flex-shrink-0" />,
     // },
-    {
-        label: 'Documents',
-        href: '/documents',
-        icon: <FileText className="w-5 h-5 flex-shrink-0" />,
-    },
+    // {
+    //     label: 'Documents',
+    //     href: '/documents',
+    //     icon: <FileText className="w-5 h-5 flex-shrink-0" />,
+    // },
     {
         label: 'Team',
         href: '/team',
@@ -154,7 +154,7 @@ export function Sidebar() {
     const confirmLogout = async () => {
         try {
             if (isTimerRunning) {
-                await stopTimerAsync();
+                await stopTimerAsync(undefined);
             }
             if (isCheckedIn) {
                 await checkOutAsync();
