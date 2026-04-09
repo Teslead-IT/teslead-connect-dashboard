@@ -157,10 +157,10 @@ export function useForgotPassword() {
     const router = useRouter();
 
     return useMutation({
-        mutationFn: (email: string) => authApi.forgotPassword(email),
-        onSuccess: (_, email) => {
-            // Navigate to reset password page with email
-            router.push(`/auth/reset-password?email=${email}`);
+        mutationFn: (identifier: string) => authApi.forgotPassword(identifier),
+        onSuccess: (_, identifier) => {
+            // Navigate to reset password page with identifier
+            router.push(`/auth/reset-password?id=${identifier}`);
         },
     });
 }

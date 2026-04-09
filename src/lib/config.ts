@@ -26,7 +26,7 @@ export const API_CONFIG = {
             RESEND_OTP: '/auth/email/send-verification',
             REFRESH_TOKEN: '/auth/refresh',
             LOGOUT: '/auth/logout',
-            FORGOT_PASSWORD: '/auth/password/forgot',
+            RESET_REQUEST: '/auth/password/reset-request',
             RESET_PASSWORD: '/auth/password/reset',
             CHANGE_PASSWORD: '/auth/password/change',
             ME: '/auth/me',
