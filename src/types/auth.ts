@@ -66,7 +66,7 @@ export interface VerifyEmailPayload {
 }
 
 export interface ResetPasswordPayload {
-    email: string;
+    identifier: string;
     otp: string;
     newPassword: string;
 }
