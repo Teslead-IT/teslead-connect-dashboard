@@ -86,7 +86,7 @@ function ForgotPasswordContent() {
                             value={identifier}
                             onChange={(e) => setIdentifier(e.target.value)}
                             className="w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all outline-none text-sm"
-                            placeholder="Your identifier"
+                            placeholder="Enter Your Email, Phone, or Username"
                             required
                             disabled={isLoading}
                         />
