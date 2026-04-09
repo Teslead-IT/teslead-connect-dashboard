@@ -98,10 +98,10 @@ export const authApi = {
     /**
      * Request password reset (sends OTP)
      */
-    async forgotPassword(email: string): Promise<{ message: string }> {
+    async forgotPassword(identifier: string): Promise<{ message: string }> {
         const { data } = await apiClient.post<{ message: string }>(
-            API_CONFIG.ENDPOINTS.AUTH.FORGOT_PASSWORD,
-            { email }
+            API_CONFIG.ENDPOINTS.AUTH.RESET_REQUEST,
+            { identifier }
         );
         return data;
     },
