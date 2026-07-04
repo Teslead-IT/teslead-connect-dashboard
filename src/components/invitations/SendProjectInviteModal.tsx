@@ -36,7 +36,7 @@ export function SendProjectInviteModal({
 
     // User Search
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const { results: userSuggestions, isLoading: isSearching } = useUserSearch(email, projectId);
+    const { results: userSuggestions, isLoading: isSearching } = useUserSearch(email, projectId, orgId);
 
     // Hide suggestions when clicking outside
     useEffect(() => {
