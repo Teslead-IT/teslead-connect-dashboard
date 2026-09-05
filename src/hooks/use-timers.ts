@@ -64,6 +64,8 @@ export function useStopTimer() {
             queryClient.invalidateQueries({ queryKey: attendanceKeys.today(activeOrgId ?? null) });
             queryClient.invalidateQueries({ queryKey: attendanceKeys.me(activeOrgId ?? null) });
             queryClient.invalidateQueries({ queryKey: timeEntryKeys.all });
+            queryClient.invalidateQueries({ queryKey: ['phases'] });
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
             queryClient.invalidateQueries({ queryKey: ['teams'] });
         },
     });
