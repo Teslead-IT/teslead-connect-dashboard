@@ -11,6 +11,9 @@ import { useAttendanceStore } from '@/stores/attendanceStore';
 import { attendanceApi } from '@/services/attendance.service';
 import type { CheckInPayload, StartBreakPayload, AttendanceToday, AttendanceMeResponse } from '@/types/attendance';
 import type { AttendanceSessionResponse, AttendanceBreakResponse } from '@/types/attendance';
+import { timerKeys } from './use-timers';
+import { timeEntryKeys } from './use-time-entries';
+import { useTimerStore } from '@/stores/timerStore';
 
 export const attendanceKeys = {
     today: (orgId: string | null) => ['attendance', 'today', orgId] as const,
@@ -164,13 +167,19 @@ export function useAttendanceCheckOut() {
     const queryClient = useQueryClient();
     const activeOrgId = useOrgStore((s) => s.activeOrgId);
     const setAttendance = useAttendanceStore((s) => s.setAttendance);
+    const clearTimer = useTimerStore((s) => s.clearTimer);
 
     return useMutation({
         mutationFn: () => attendanceApi.checkOut(),
         onSuccess: (data: AttendanceSessionResponse) => {
             setAttendance(sessionToToday(data));
+            clearTimer();
             queryClient.invalidateQueries({ queryKey: attendanceKeys.today(activeOrgId ?? null) });
             queryClient.invalidateQueries({ queryKey: attendanceKeys.me(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: timerKeys.active(activeOrgId ?? null) });
+            queryClient.invalidateQueries({ queryKey: timeEntryKeys.all });
+            queryClient.invalidateQueries({ queryKey: ['phases'] });
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
         },
     });
 }

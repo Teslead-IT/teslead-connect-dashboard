@@ -30,6 +30,7 @@ interface MeetingFormProps {
     onCreated?: (newMeeting: any) => void;
     onDeleted?: () => void;
     onSaved?: () => void;
+    onCancel?: () => void;
     readOnly?: boolean;
 }
 
@@ -50,6 +51,7 @@ export function MeetingForm({
     onCreated,
     onDeleted,
     onSaved,
+    onCancel,
     readOnly = false,
 }: MeetingFormProps) {
     const isNew = !meetingId;
@@ -268,6 +270,16 @@ export function MeetingForm({
                             <Send className="w-3 h-3 mr-1" />
                             {isPublishing ? '...' : 'Publish'}
                         </Button>
+                    )}
+                    {!readOnly && !isNew && onCancel && (
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            disabled={isSaving}
+                            className="inline-flex items-center justify-center gap-1 h-7 px-3 bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-[0.98] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors duration-200 border border-gray-200 disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
                     )}
                     {!readOnly && (
                         <button
