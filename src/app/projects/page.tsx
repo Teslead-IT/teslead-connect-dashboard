@@ -1259,7 +1259,7 @@ export default function ProjectsPage() {
                     endDate: editingProject.endDate || '',
                     access: editingProject.access,
                     status: editingProject.status,
-                    tags: editingProject.tags.map(t => ({ name: t.name, color: t.color })),
+                    tags: editingProject.tags?.map(t => ({ name: t.name, color: t.color })) || [],
                 } : undefined}
             />
 
