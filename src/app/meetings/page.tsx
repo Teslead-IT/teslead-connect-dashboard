@@ -59,6 +59,17 @@ export default function MeetingsPage() {
         setModalOpen(true);
     };
 
+    // Select meeting from table in list view
+    const handleSelectMeetingFromTable = (meeting: any) => {
+        const eventDate = meeting.meetingDate
+            ? new Date(meeting.meetingDate).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0];
+        setModalDate(eventDate);
+        setModalMeetingId(meeting.id);
+        setModalCreateMode(false);
+        setModalOpen(true);
+    };
+
     const handleModalClose = () => {
         setModalOpen(false);
         setModalMeetingId(null);
@@ -115,14 +126,13 @@ export default function MeetingsPage() {
                                 </button>
                                 <button
                                     onClick={() => setView('list')}
-                                    disabled={true} // Temporarily disabled
                                     className={cn(
-                                        'p-1 rounded transition-all opacity-50 cursor-not-allowed', // Added disabled styles
+                                        'p-1 rounded transition-all',
                                         view === 'list'
                                             ? 'bg-white text-[var(--primary)] shadow-sm'
-                                            : 'text-gray-400'
+                                            : 'text-gray-400 hover:text-gray-600'
                                     )}
-                                    title="List View (Coming Soon)"
+                                    title="List View"
                                 >
                                     <ListIcon className="w-4 h-4" />
                                 </button>
@@ -246,8 +256,8 @@ export default function MeetingsPage() {
                         />
                     </div>
                 ) : (
-                    <div className="h-full overflow-y-auto">
-                        <MeetingsTable />
+                    <div className="h-full overflow-y-auto p-4">
+                        <MeetingsTable onSelectMeeting={handleSelectMeetingFromTable} />
                     </div>
                 )}
             </div>

@@ -2,12 +2,16 @@
 
 import React from 'react';
 import { useMeetings } from '@/hooks/use-meetings';
-import { Download, FileSpreadsheet, Calendar, MapPin } from 'lucide-react';
+import { Download, FileSpreadsheet, Calendar, MapPin, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
 import { Loader } from '@/components/ui/Loader';
 
-export function MeetingsTable() {
+interface MeetingsTableProps {
+    onSelectMeeting?: (meeting: any) => void;
+}
+
+export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
     const { data: meetingsData, isLoading } = useMeetings({ limit: 1000 });
     const meetings = meetingsData?.data || [];
 
@@ -147,21 +151,28 @@ export function MeetingsTable() {
                                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
                                     Absentees
                                 </th>
+                                <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {meetings.map((meeting: any, index: number) => (
-                                <tr key={meeting.id} className="hover:bg-gray-50 transition-colors">
+                                <tr
+                                    key={meeting.id}
+                                    onClick={() => onSelectMeeting?.(meeting)}
+                                    className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
+                                >
                                     <td className="px-4 py-3 text-sm font-medium text-gray-900">
                                         {index + 1}
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 bg-[#091590]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <div className="w-8 h-8 bg-[#091590]/10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-[#091590]/20 transition-colors">
                                                 <FileSpreadsheet className="w-4 h-4 text-[#091590]" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900">
+                                                <p className="text-sm font-bold text-gray-900 group-hover:text-[#091590] transition-colors">
                                                     {meeting.title || meeting.project?.name || 'N/A'}
                                                 </p>
                                                 <p className="text-xs text-gray-500">
@@ -205,6 +216,16 @@ export function MeetingsTable() {
                                         <p className="text-xs text-gray-600 line-clamp-2">
                                             {meeting.absentees || '-'}
                                         </p>
+                                    </td>
+                                    <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            onClick={() => onSelectMeeting?.(meeting)}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#091590] bg-blue-50 hover:bg-[#091590] hover:text-white rounded-md transition-colors border border-blue-200 shadow-sm"
+                                            title="View / Edit Meeting"
+                                        >
+                                            <Pencil className="w-3 h-3" />
+                                            Edit
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
