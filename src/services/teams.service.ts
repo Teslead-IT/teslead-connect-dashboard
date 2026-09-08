@@ -25,6 +25,13 @@ export interface TeamMember {
         taskTitle: string;
         projectName?: string;
     };
+    currentTask?: {
+        taskTitle: string;
+        projectName?: string | null;
+        statusName?: string | null;
+        statusColor?: string | null;
+        isTimerRunning: boolean;
+    };
 }
 
 export const teamsApi = {

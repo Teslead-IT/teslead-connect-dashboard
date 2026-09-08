@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTeams } from '@/hooks/use-teams';
 import { useUser } from '@/hooks/use-auth';
 import Image from 'next/image';
@@ -19,7 +20,9 @@ import {
     Mail,
     Briefcase,
     Timer,
-    Play
+    Play,
+    ListTodo,
+    ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { UserPresenceStatus } from '@/stores/presenceStore';
@@ -98,13 +101,15 @@ function LiveTimer({ startedAt }: { startedAt: string }) {
 }
 
 export default function TeamPage() {
+    const router = useRouter();
     const { teams, isLoading, isError } = useTeams();
     const { data: user } = useUser();
     const [expandedTimers, setExpandedTimers] = useState<Record<string, boolean>>({});
 
     console.log('--- TEAMS DATA ---', teams);
 
-    const toggleTimer = (userId: string) => {
+    const toggleTimer = (userId: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         setExpandedTimers(prev => ({
             ...prev,
             [userId]: !prev[userId]
@@ -120,8 +125,6 @@ export default function TeamPage() {
             member.role.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [teams, searchQuery]);
-
-
 
     if (isLoading) {
         return (
@@ -192,133 +195,166 @@ export default function TeamPage() {
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     key={member.user.id}
-                                    className="flex flex-col relative"
+                                    className="flex flex-col relative group/card cursor-pointer"
+                                    onClick={() => router.push(`/team/${member.user.id}`)}
                                 >
                                 <div
                                     className={cn(
-                                        "bg-white border rounded-lg p-3 hover:border-gray-300 transition-all duration-200 group flex items-center gap-3 shadow-sm relative z-10",
+                                        "bg-white border rounded-lg hover:border-blue-300 hover:shadow-md transition-all duration-200 group flex flex-col shadow-sm relative z-10 overflow-hidden",
                                         member.user.id === user?.id
                                             ? "border-blue-100 border-l-4 border-l-blue-600"
                                             : "border-gray-100"
                                     )}
                                 >
-                                    <div className="relative flex-shrink-0">
-                                        <Avatar
-                                            name={member.user.name}
-                                            src={member.user.avatarUrl}
-                                            size="md"
-                                            className="rounded-lg"
-                                        />
-                                        <div className={cn(
-                                            "absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm flex items-center justify-center transition-colors duration-300",
-                                            STATUS_CONFIG[member.presence?.status || 'OFFLINE'].bgColor
-                                        )}>
-                                            {/* Status Dot */}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5 overflow-hidden">
-                                            <p className="font-bold text-gray-900 truncate text-[13px] tracking-tight">
-                                                {member.user.name}
-                                            </p>
-                                            {member.user.id === user?.id && (
-                                                <span className="bg-blue-600 text-white text-[8px] font-black px-1 rounded uppercase tracking-tighter shrink-0">
-                                                    Me
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-[11px] text-gray-400 truncate mt-0.5 lowercase">{member.user.email}</p>
-
-                                        <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                            <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded leading-none border border-gray-200/50">
-                                                {member.role}
-                                            </span>
-                                            <span className={cn(
-                                                "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded leading-none border",
-                                                STATUS_CONFIG[member.presence?.status || 'OFFLINE'].color,
-                                                STATUS_CONFIG[member.presence?.status || 'OFFLINE'].bgColor.replace('bg-', 'bg-') + '/10',
-                                                STATUS_CONFIG[member.presence?.status || 'OFFLINE'].borderColor
+                                    {/* Card Content Top */}
+                                    <div className="p-3 flex items-center gap-3">
+                                        <div className="relative flex-shrink-0">
+                                            <Avatar
+                                                name={member.user.name}
+                                                src={member.user.avatarUrl}
+                                                size="md"
+                                                className="rounded-lg"
+                                            />
+                                            <div className={cn(
+                                                "absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm flex items-center justify-center transition-colors duration-300",
+                                                STATUS_CONFIG[member.presence?.status || 'OFFLINE'].bgColor
                                             )}>
-                                                {STATUS_CONFIG[member.presence?.status || 'OFFLINE'].label}
-                                            </span>
-                                            {member.attendance?.status === 'checked_in' && (
-                                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded leading-none border text-emerald-600 bg-emerald-50 border-emerald-200">
-                                                    Checked In
+                                                {/* Status Dot */}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-1.5 overflow-hidden">
+                                                <p className="font-bold text-gray-900 group-hover/card:text-blue-600 transition-colors truncate text-[13px] tracking-tight">
+                                                    {member.user.name}
+                                                </p>
+                                                {member.user.id === user?.id && (
+                                                    <span className="bg-blue-600 text-white text-[8px] font-black px-1 rounded uppercase tracking-tighter shrink-0">
+                                                        Me
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-gray-400 truncate mt-0.5 lowercase">{member.user.email}</p>
+
+                                            <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                                <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded leading-none border border-gray-200/50">
+                                                    {member.role}
                                                 </span>
-                                            )}
+                                                <span className={cn(
+                                                    "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded leading-none border",
+                                                    STATUS_CONFIG[member.presence?.status || 'OFFLINE'].color,
+                                                    STATUS_CONFIG[member.presence?.status || 'OFFLINE'].bgColor.replace('bg-', 'bg-') + '/10',
+                                                    STATUS_CONFIG[member.presence?.status || 'OFFLINE'].borderColor
+                                                )}>
+                                                    {STATUS_CONFIG[member.presence?.status || 'OFFLINE'].label}
+                                                </span>
+                                                {member.attendance?.status === 'checked_in' && (
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded leading-none border text-emerald-600 bg-emerald-50 border-emerald-200">
+                                                        Checked In
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col items-end gap-2 shrink-0 ml-1">
+                                            <div className="flex items-center gap-1 text-gray-400 group-hover/card:text-blue-600 transition-colors">
+                                                <span className="text-[9px] font-bold uppercase">Tasks</span>
+                                                <ChevronRight className="w-3 h-3" />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-col items-end gap-2 shrink-0 ml-1">
-                                        <p className="text-[9px] text-gray-400 font-medium">
-                                            {formatDistanceToNow(new Date(member.joinedAt), { addSuffix: false })}
-                                        </p>
-                                        
-                                        {member.activeTimer && (
-                                            <button 
-                                                onClick={() => toggleTimer(member.user.id)}
-                                                className={cn(
-                                                    "p-1 transition-all duration-300 relative group/timer flex items-center justify-center",
-                                                    expandedTimers[member.user.id] 
-                                                        ? "text-indigo-600 scale-110" 
-                                                        : "text-indigo-600 hover:scale-110"
-                                                )}
+                                    {/* Dedicated Bottom Row: Working Task & Project */}
+                                    {(() => {
+                                        const isNotWorking = (st?: string | null) => {
+                                            if (!st) return false;
+                                            const lower = st.toLowerCase().trim();
+                                            return lower === 'not started' || lower === 'not_started' || lower === 'completed' || lower === 'done' || lower === 'closed';
+                                        };
+
+                                        const rawTask = member.activeTimer
+                                            ? {
+                                                  taskTitle: member.activeTimer.taskTitle,
+                                                  projectName: member.activeTimer.projectName,
+                                                  statusName: 'Working on it',
+                                                  isTimerRunning: true,
+                                                  startedAt: member.activeTimer.startedAt,
+                                              }
+                                            : member.currentTask && !isNotWorking(member.currentTask.statusName)
+                                            ? {
+                                                  taskTitle: member.currentTask.taskTitle,
+                                                  projectName: member.currentTask.projectName,
+                                                  statusName: member.currentTask.statusName || 'Working on it',
+                                                  isTimerRunning: member.currentTask.isTimerRunning,
+                                                  startedAt: null,
+                                              }
+                                            : null;
+
+                                        const taskInfo = rawTask;
+
+                                        const fullTooltip = taskInfo
+                                            ? `${taskInfo.taskTitle}${taskInfo.projectName ? ` - ${taskInfo.projectName}` : ''} - ${taskInfo.statusName || 'Working on it'}`
+                                            : 'No active task';
+
+                                        return (
+                                            <div
+                                                className="border-t border-gray-100 bg-slate-50/80 px-3 py-2 flex items-center justify-between gap-2 text-[11px] relative"
+                                                title={fullTooltip}
                                             >
-                                                <div className="relative w-6 h-6 z-10 flex items-center justify-center">
-                                                    <Image 
-                                                        src="/icons/timer.gif" 
-                                                        alt="Timer running" 
-                                                        width={24} 
-                                                        height={24}
-                                                        className="object-contain"
-                                                    />
+                                                <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden" title={fullTooltip}>
+                                                    {taskInfo?.isTimerRunning ? (
+                                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" title={fullTooltip} />
+                                                    ) : (
+                                                        <span title={fullTooltip}>
+                                                            <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                        </span>
+                                                    )}
+
+                                                    {taskInfo ? (
+                                                        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden" title={fullTooltip}>
+                                                            {/* 1. Task Title First */}
+                                                            <span
+                                                                className="font-bold text-slate-800 truncate text-[11px]"
+                                                                title={fullTooltip}
+                                                            >
+                                                                {taskInfo.taskTitle}
+                                                            </span>
+
+                                                            {/* 2. Project Name Next */}
+                                                            {taskInfo.projectName && (
+                                                                <span
+                                                                    className="bg-blue-50 text-blue-700 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border border-blue-200/60 shrink-0 truncate max-w-[100px]"
+                                                                    title={fullTooltip}
+                                                                >
+                                                                    {taskInfo.projectName}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-slate-400 italic text-[10px]">No active task</span>
+                                                    )}
                                                 </div>
-                                            </button>
-                                        )}
-                                    </div>
+
+                                                {/* 3. Status / Working Indicator */}
+                                                {taskInfo && (
+                                                    <div className="flex items-center gap-1 shrink-0" title={fullTooltip}>
+                                                        {taskInfo.isTimerRunning && taskInfo.startedAt ? (
+                                                            <div className="flex items-center gap-1 bg-emerald-600 text-white px-2 py-0.5 rounded text-[10px] font-mono font-bold shadow-2xs" title={fullTooltip}>
+                                                                <Timer className="w-3 h-3 text-white" />
+                                                                <LiveTimer startedAt={taskInfo.startedAt} />
+                                                            </div>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/80" title={fullTooltip}>
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                                {taskInfo.statusName || 'Working on it'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
-                                <AnimatePresence>
-                                    {member.activeTimer && expandedTimers[member.user.id] && (
-                                        <motion.div 
-                                            initial={{ height: 0, opacity: 0, marginTop: -12 }}
-                                            animate={{ height: 'auto', opacity: 1, marginTop: -12 }}
-                                            exit={{ height: 0, opacity: 0, marginTop: -12 }}
-                                            className="overflow-hidden z-0"
-                                        >
-                                            <div className="mx-4 mb-2 relative pt-6 pb-2.5 px-3 bg-gradient-to-b from-white to-indigo-50/30 border border-t-0 border-indigo-100 rounded-b-xl flex items-center justify-between pointer-events-none shadow-[0_4px_12px_-4px_rgba(9,21,144,0.08)]">
-                                                <div className="flex items-center gap-2.5 min-w-0">
-                                            <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-                                                <Image 
-                                                    src="/icons/timer.png" 
-                                                    alt="Timer" 
-                                                    width={20} 
-                                                    height={20}
-                                                    className="object-contain"
-                                                />
-                                            </div>
-                                            <div className="flex flex-col gap-0 min-w-0">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-[#091590]">
-                                                    {member.activeTimer.projectName || 'Active Task'}
-                                                </span>
-                                                <p className="text-[11px] font-bold truncate max-w-[140px] text-gray-700 leading-tight mt-0.5">
-                                                    {member.activeTimer.taskTitle}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-center shrink-0 relative overflow-hidden bg-[#091590] px-2 py-1 rounded-md shadow-sm border border-[#091590]/20">
-                                            <div className="absolute inset-0 bg-white/10 animate-pulse" />
-                                            <div className="relative flex items-center gap-1.5">
-                                                <Timer className="w-3 h-3 text-white" />
-                                                <span className="text-[10px] font-black font-mono tracking-widest text-white uppercase">
-                                                    <LiveTimer startedAt={member.activeTimer.startedAt} />
-                                                </span>
-                                            </div>
-                                        </div>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
                                 </motion.div>
                             ))}
                         </AnimatePresence>

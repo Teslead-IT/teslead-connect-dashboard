@@ -39,18 +39,18 @@ const MemberNameRenderer = (props: ICellRendererParams) => {
     const isOnBreak = status === 'on_break';
 
     return (
-        <div className="flex items-center gap-3 h-full">
-            <div className="relative w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs flex-shrink-0 border border-slate-200">
+        <div className="flex items-center gap-2 h-full">
+            <div className="relative w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-[10px] flex-shrink-0 border border-slate-200">
                 {member.user.avatarUrl ? (
                     <img src={member.user.avatarUrl} alt={member.user.name} className="w-full h-full rounded-full object-cover" />
                 ) : (
                     initial
                 )}
                 {isOnline && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" title="Checked in" />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 border border-white rounded-full" title="Checked in" />
                 )}
                 {isOnBreak && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 border-2 border-white rounded-full" title="On break" />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-amber-500 border border-white rounded-full" title="On break" />
                 )}
             </div>
             <div className="flex flex-col justify-center min-w-0">
@@ -203,7 +203,7 @@ export function ProjectMembersTable({ members, isLoading, projectId, currentUser
                     <User className="w-8 h-8 text-gray-300" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-1">No Members</h3>
-                <p className="text-sm">There are no members in this project yet.</p>
+                <p className="text-xs">There are no members in this project yet.</p>
             </div>
         );
     }
@@ -217,8 +217,8 @@ export function ProjectMembersTable({ members, isLoading, projectId, currentUser
                 defaultColDef={DEFAULT_COL_DEF}
                 context={{ attendanceStatusMap }}
                 quickFilterText={searchQuery || undefined}
-                rowHeight={60}
-                headerHeight={48}
+                rowHeight={32}
+                headerHeight={30}
                 pagination={true}
                 paginationPageSize={20}
                 animateRows={true}

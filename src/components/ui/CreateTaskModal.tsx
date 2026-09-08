@@ -293,7 +293,7 @@ export function CreateTaskModal({
                                         disabled={isReadOnly}
                                         onClick={() => setShowPhaseDropdown(!showPhaseDropdown)}
                                         className={cn(
-                                            "w-full px-3 py-2.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
+                                            "w-full px-3 py-2.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
                                             submitted && !formData.phaseId
                                                 ? "border-red-500 ring-red-500/10 focus:ring-red-500/20 focus:border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
                                                 : "border-gray-200 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]",
@@ -342,7 +342,7 @@ export function CreateTaskModal({
                                                                 }}
                                                                 title={phase.name}
                                                                 className={cn(
-                                                                    "w-full px-3 py-2.5 text-left text-sm hover:bg-indigo-50/80 transition-colors flex items-center justify-between gap-2 group",
+                                                                    "w-full px-3 py-2.5 text-left text-xs hover:bg-indigo-50/80 transition-colors flex items-center justify-between gap-2 group",
                                                                     formData.phaseId === phase.id ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700"
                                                                 )}
                                                             >
@@ -380,7 +380,7 @@ export function CreateTaskModal({
                                         disabled={isReadOnly || !formData.phaseId}
                                         onClick={() => setShowTaskListDropdown(!showTaskListDropdown)}
                                         className={cn(
-                                            "w-full px-3 py-2.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
+                                            "w-full px-3 py-2.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
                                             submitted && !formData.taskListId && formData.phaseId
                                                 ? "border-red-500 ring-red-500/10 focus:ring-red-500/20 focus:border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
                                                 : "border-gray-200 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]",
@@ -425,7 +425,7 @@ export function CreateTaskModal({
                                                                 }}
                                                                 title={tl.name}
                                                                 className={cn(
-                                                                    "w-full px-3 py-2.5 text-left text-sm hover:bg-emerald-50/80 transition-colors flex items-center justify-between gap-2 group",
+                                                                    "w-full px-3 py-2.5 text-left text-xs hover:bg-emerald-50/80 transition-colors flex items-center justify-between gap-2 group",
                                                                     formData.taskListId === tl.id ? "bg-emerald-50 text-emerald-700 font-semibold" : "text-gray-700"
                                                                 )}
                                                             >
@@ -473,7 +473,7 @@ export function CreateTaskModal({
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                 className={cn(
-                                    "w-full px-3 py-2.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 transition-all placeholder:text-gray-300",
+                                    "w-full px-3 py-2.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 transition-all placeholder:text-gray-300",
                                     submitted && !formData.title.trim()
                                         ? "border-red-500 ring-red-500/10 focus:ring-red-500/20 focus:border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
                                         : "border-gray-200 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]",
@@ -530,7 +530,7 @@ export function CreateTaskModal({
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 rows={3}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] resize-none disabled:bg-gray-50 disabled:text-gray-500 placeholder:text-gray-300 transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] resize-none disabled:bg-gray-50 disabled:text-gray-500 placeholder:text-gray-300 transition-all"
                                 placeholder="Add more details..."
                                 disabled={isReadOnly}
                             />
@@ -539,7 +539,7 @@ export function CreateTaskModal({
                         {/* Status & Priority Row */}
                         <div className="grid grid-cols-2 gap-3">
                             {/* Status */}
-                                {/* Status */}
+                            {/* Status */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                                     <CheckCircleIcon className="w-3 h-3" /> Status <span className="text-red-400">*</span>
@@ -550,7 +550,7 @@ export function CreateTaskModal({
                                         disabled={isReadOnly}
                                         onClick={() => setShowStatusDropdown(!showStatusDropdown)}
                                         className={cn(
-                                            "w-full px-3 py-2.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
+                                            "w-full px-3 py-2.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
                                             submitted && !formData.statusId
                                                 ? "border-red-500 ring-red-500/10 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
                                                 : "border-gray-200 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]",
@@ -669,7 +669,7 @@ export function CreateTaskModal({
                                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) as TaskPriority })}
                                     disabled={isReadOnly}
                                     className={cn(
-                                        "w-full px-3 py-2.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 appearance-none cursor-pointer transition-all",
+                                        "w-full px-3 py-2.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 appearance-none cursor-pointer transition-all",
                                         currentPriority.bg, currentPriority.color,
                                         isReadOnly && "!bg-gray-50 !text-gray-500"
                                     )}
@@ -693,7 +693,7 @@ export function CreateTaskModal({
                                 value={formData.dueDate}
                                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                                 disabled={isReadOnly}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] disabled:bg-gray-50 disabled:text-gray-500 transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] disabled:bg-gray-50 disabled:text-gray-500 transition-all"
                             />
                         </div>
 
@@ -741,7 +741,7 @@ export function CreateTaskModal({
                                     <button
                                         type="button"
                                         onClick={() => setShowAssigneePicker(!showAssigneePicker)}
-                                        className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-sm text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                        className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
                                     >
                                         <Users className="w-3.5 h-3.5" />
                                         {selectedMembers.length === 0 ? 'Click to assign team members...' : 'Add more...'}
@@ -807,7 +807,7 @@ export function CreateTaskModal({
                         </div>
 
                         {error && (
-                            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-100 font-medium">{error}</p>
+                            <p className="text-xs text-red-600 bg-red-50 p-3 rounded-md border border-red-100 font-medium">{error}</p>
                         )}
                     </form>
                 </div>
@@ -818,7 +818,7 @@ export function CreateTaskModal({
                         type="button"
                         onClick={onClose}
                         disabled={isSubmitting}
-                        className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
+                        className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
                     >
                         {isReadOnly ? 'Close' : 'Cancel'}
                     </button>
@@ -826,7 +826,7 @@ export function CreateTaskModal({
                         <button
                             onClick={handleSubmit}
                             disabled={isSubmitting || !isFormValid}
-                            className="px-5 py-2 text-sm font-semibold text-white bg-[var(--primary)] rounded-md hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center min-w-[110px] cursor-pointer"
+                            className="px-5 py-2 text-xs font-semibold text-white bg-[var(--primary)] rounded-md hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center min-w-[110px] cursor-pointer"
                         >
                             {isSubmitting ? (
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

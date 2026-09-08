@@ -372,7 +372,7 @@ export default function ProjectDetailPage() {
                         {isForbidden ? "Access Restricted" : "Project Not Found"}
                     </h2>
 
-                    <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+                    <p className="text-xs text-gray-500 mb-8 leading-relaxed">
                         {isForbidden
                             ? "You don't have permission to view this project. It might be private or you may need to be invited."
                             : "The project you're looking for doesn't exist or has been deleted. Please check the URL or go back to your dashboard."
@@ -382,7 +382,7 @@ export default function ProjectDetailPage() {
                     <div className="space-y-3 w-full">
                         <button
                             onClick={() => router.push('/projects')}
-                            className="w-full px-4 py-2.5 bg-[#091590] text-white rounded-lg hover:bg-[#071170] font-medium transition-colors shadow-sm text-sm"
+                            className="w-full px-4 py-2.5 bg-[#091590] text-white rounded-lg hover:bg-[#071170] font-medium transition-colors shadow-sm text-xs"
                         >
                             Return to Projects
                         </button>
@@ -421,7 +421,7 @@ export default function ProjectDetailPage() {
 
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                             <div
-                                className="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
+                                className="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-xs shadow-sm flex-shrink-0"
                                 style={{ backgroundColor: project.color || '#3B82F6' }}
                             >
                                 {project.name.charAt(0).toUpperCase()}
@@ -504,7 +504,7 @@ export default function ProjectDetailPage() {
                             <LayoutGrid className="w-8 h-8 text-gray-300" />
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-1">{TAB_ITEMS.find(t => t.id === activeTab)?.label}</h3>
-                        <p className="text-sm">This module is coming soon.</p>
+                        <p className="text-xs">This module is coming soon.</p>
                     </div>
                 )}
             </div>
@@ -662,7 +662,7 @@ const TaskNameRenderer = (props: ICellRendererParams) => {
                 <div className="flex items-center gap-2">
                     <span
                         className={cn(
-                            "font-medium text-sm truncate min-w-0 block",
+                            "font-medium text-xs truncate min-w-0 block",
                             level > 0 ? "text-gray-700" : "text-gray-900"
                         )}
                         title={task.title}
@@ -1055,14 +1055,14 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 .custom-ag-grid .ag-header {
                     background-color: #f1f5f9 !important;
                     border-bottom: 1px solid #cbd5e1 !important;
-                    min-height: 48px !important;
+                    min-height: 30px !important;
                 }
                 .custom-ag-grid .ag-header-row {
-                    height: 48px !important;
+                    height: 30px !important;
                 }
                 .custom-ag-grid .ag-header-cell {
-                    padding-left: 16px;
-                    padding-right: 16px;
+                    padding-left: 4px;
+                    padding-right: 4px;
                 }
                 .custom-ag-grid .ag-header-cell-label {
                     font-weight: 700;
@@ -1082,12 +1082,12 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                     z-index: 50;
                 }
                 .custom-ag-grid .ag-cell {
-                    padding-left: 16px;
-                    padding-right: 16px;
+                    padding-left: 8px;
+                    padding-right: 8px;
                     display: flex;
                     align-items: center;
                     color: #0f172a;
-                    font-size: 13px;
+                    font-size: 12px;
                     font-weight: 500;
                     overflow: visible !important; /* Critical: Allow dropdowns to overflow limits */
                 }
@@ -1105,8 +1105,8 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 rowData={gridDisplayData}
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
-                rowHeight={60}
-                headerHeight={40}
+                rowHeight={32}
+                headerHeight={30}
                 animateRows={true}
                 pagination={true}
                 paginationPageSize={20}
@@ -1222,7 +1222,7 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
                                             )}
                                         >
                                             <div className="flex items-start justify-between gap-2 mb-2">
-                                                <h4 className="text-sm font-medium text-gray-900 flex-1">
+                                                <h4 className="text-xs font-medium text-gray-900 flex-1">
                                                     {task.title}
                                                 </h4>
                                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1334,7 +1334,7 @@ function KanbanView({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask
                                 })}
 
                                 {stageTasks.length === 0 && (
-                                    <div className="text-center py-8 text-gray-400 text-sm">
+                                    <div className="text-center py-8 text-gray-400 text-xs">
                                         No tasks
                                     </div>
                                 )}
@@ -1383,7 +1383,7 @@ function ProjectMOMTab({ projectId }: { projectId: string }) {
                     <Calendar className="w-8 h-8 text-gray-300" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-1">No Minutes of Meeting found</h3>
-                <p className="text-sm">There are no Minutes of Meeting associated with this project yet.</p>
+                <p className="text-xs">There are no Minutes of Meeting associated with this project yet.</p>
             </div>
         );
     }
@@ -1405,7 +1405,7 @@ function ProjectMOMTab({ projectId }: { projectId: string }) {
 
                                 <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="font-bold text-gray-900 group-hover:text-[#091590] transition-colors truncate text-sm mb-0.5">
+                                        <h3 className="font-bold text-gray-900 group-hover:text-[#091590] transition-colors truncate text-xs mb-0.5">
                                             {item.title}
                                         </h3>
                                         <div className="flex items-center gap-2.5">

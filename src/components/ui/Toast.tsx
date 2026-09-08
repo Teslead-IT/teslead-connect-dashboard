@@ -216,7 +216,7 @@ export const Toast: React.FC<ToastProps> = ({
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                    <h3 className={cn('font-semibold text-sm', config.textColor)}>
+                    <h3 className={cn('font-semibold text-xs', config.textColor)}>
                         {title}
                     </h3>
                     {message && (

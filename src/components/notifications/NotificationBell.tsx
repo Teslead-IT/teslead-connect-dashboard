@@ -81,7 +81,7 @@ export function NotificationBell() {
             >
                 {/* Bell Icon */}
                 <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -120,7 +120,7 @@ export function NotificationBell() {
                         <h3 className="font-semibold text-[var(--color-text-primary)]">
                             Notifications
                             {totalUnread > 0 && (
-                                <span className="ml-2 text-sm text-[var(--color-text-tertiary)]">
+                                <span className="ml-2 text-xs text-[var(--color-text-tertiary)]">
                                     ({totalUnread})
                                 </span>
                             )}
@@ -226,7 +226,7 @@ export function NotificationBell() {
                                     />
                                 </svg>
                             </div>
-                            <p className="text-sm text-[var(--color-text-secondary)] font-medium mb-1">
+                            <p className="text-xs text-[var(--color-text-secondary)] font-medium mb-1">
                                 All caught up!
                             </p>
                             <p className="text-xs text-[var(--color-text-tertiary)]">

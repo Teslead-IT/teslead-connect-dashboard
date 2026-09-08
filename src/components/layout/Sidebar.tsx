@@ -53,21 +53,21 @@ const navItems: NavItem[] = [
     {
         label: 'Dashboard',
         href: '/dashboard',
-        icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />,
+        icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" />,
     },
     {
         label: 'Projects',
         href: '/projects',
-        icon: <FolderKanban className="w-5 h-5 flex-shrink-0" />,
+        icon: <FolderKanban className="w-4 h-4 flex-shrink-0" />,
         children: [
-            { label: 'Projects', href: '/projects', icon: <FolderKanban className="w-4 h-4 flex-shrink-0" /> },
-            { label: 'Tasks', href: '/projects/tasks', icon: <ListTodo className="w-4 h-4 flex-shrink-0" /> },
+            { label: 'Projects', href: '/projects', icon: <FolderKanban className="w-3 h-3 flex-shrink-0" /> },
+            { label: 'Tasks', href: '/projects/tasks', icon: <ListTodo className="w-3 h-3 flex-shrink-0" /> },
         ],
     },
     {
         label: 'Meetings',
         href: '/meetings',
-        icon: <Calendar className="w-5 h-5 flex-shrink-0" />,
+        icon: <Calendar className="w-4 h-4 flex-shrink-0" />,
     },
     // {
     //     label: 'Timesheet',
@@ -87,20 +87,20 @@ const navItems: NavItem[] = [
     {
         label: 'Team',
         href: '/team',
-        icon: <Users className="w-5 h-5 flex-shrink-0" />,
+        icon: <Users className="w-4 h-4 flex-shrink-0" />,
     },
     {
         label: 'Notifications',
         href: '/notifications',
-        icon: <Bell className="w-5 h-5 flex-shrink-0" />,
+        icon: <Bell className="w-4 h-4 flex-shrink-0" />,
     },
     {
         label: 'Settings',
         href: '/settings',
-        icon: <Settings className="w-5 h-5 flex-shrink-0" />,
+        icon: <Settings className="w-4 h-4 flex-shrink-0" />,
         children: [
-            { label: 'Account Settings', href: '/settings/account', icon: <Settings className="w-4 h-4 flex-shrink-0" /> },
-            { label: 'Organization Settings', href: '/settings/organization', icon: <Building2 className="w-4 h-4 flex-shrink-0" /> },
+            { label: 'Account Settings', href: '/settings/account', icon: <Settings className="w-3 h-3 flex-shrink-0" /> },
+            { label: 'Organization Settings', href: '/settings/organization', icon: <Building2 className="w-3 h-3 flex-shrink-0" /> },
         ],
     },
 ];
@@ -169,7 +169,7 @@ export function Sidebar() {
     const SidebarContent = () => (
         <div className="flex flex-col h-full bg-white relative">
             {/* Logo Section */}
-            <div className="h-16 flex items-center border-b border-gray-200 px-6 overflow-hidden">
+            <div className="h-12 flex items-center border-b border-gray-200 px-6 overflow-hidden">
                 <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
                     <div className="relative w-8 h-8 flex-shrink-0">
                         <Image
@@ -213,7 +213,7 @@ export function Sidebar() {
                                     if (mobileOpen) setMobileOpen(false);
                                 }}
                                 className={cn(
-                                    'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 font-medium text-sm relative',
+                                    'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 font-medium text-xs relative',
                                     isActive ? 'bg-[#091590] text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900',
                                     isCollapsed ? 'justify-center' : ''
                                 )}
@@ -236,7 +236,7 @@ export function Sidebar() {
                                     transition={{ duration: 0.2 }}
                                     className="whitespace-nowrap overflow-hidden flex-1 text-left"
                                 >
-                                    {item.label}
+                                    {item.label.toUpperCase()}
                                 </motion.span>
 
                                 {!isCollapsed && hasChildrenItem && (
@@ -285,14 +285,14 @@ export function Sidebar() {
                                                                 if (mobileOpen) setMobileOpen(false);
                                                             }}
                                                             className={cn(
-                                                                'flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors duration-200',
+                                                                'flex items-center gap-2 px-2 py-2 rounded-md text-xs transition-colors duration-200',
                                                                 isChildActive
                                                                     ? 'bg-[#091590]/10 text-[#091590] font-semibold'
                                                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                                                             )}
                                                         >
                                                             {child.icon}
-                                                            <span className="truncate">{child.label}</span>
+                                                            <span className="truncate">{child.label.toUpperCase()}</span>
                                                         </Link>
                                                     );
                                                 })}
@@ -312,13 +312,13 @@ export function Sidebar() {
                     onClick={handleLogout}
                     disabled={isLoggingOut}
                     className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
                         isCollapsed ? "justify-center" : ""
                     )}
                     title={isCollapsed ? "Logout" : undefined}
                 >
                     <div className="flex-shrink-0">
-                        <LogOut className="w-5 h-5" />
+                        <LogOut className="w-4 h-4" />
                     </div>
                     <motion.span
                         initial={false}

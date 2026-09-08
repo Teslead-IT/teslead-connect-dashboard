@@ -202,8 +202,8 @@ export function GlobalTimerNav() {
                 <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-[40] overflow-hidden">
                     <div className="p-4 flex flex-col gap-3">
                         <div className="flex items-center gap-2 text-blue-600">
-                            <Clock className="w-5 h-5" />
-                            <span className="text-sm font-semibold">Timer</span>
+                            <Clock className="w-4 h-4" />
+                            <span className="text-xs font-semibold">Timer</span>
                         </div>
                         {isRunning && activeTimer && (
                             <p className="text-xs text-gray-600 truncate">
@@ -244,11 +244,11 @@ export function GlobalTimerNav() {
             {stopConfirmOpen && typeof document !== 'undefined' && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/30" onClick={() => setStopConfirmOpen(false)}>
                     <div className="bg-white rounded-xl shadow-xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-sm font-medium text-gray-900 mb-1">Stop this timer?</p>
+                        <p className="text-xs font-medium text-gray-900 mb-1">Stop this timer?</p>
                         <p className="text-xs text-gray-500 mb-4">Your time will be saved to the current task.</p>
                         <div className="flex gap-2 justify-end">
-                            <button type="button" onClick={() => setStopConfirmOpen(false)} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                            <button type="button" onClick={handleConfirmStop} disabled={isStopping} className="px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50">Stop</button>
+                            <button type="button" onClick={() => setStopConfirmOpen(false)} className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                            <button type="button" onClick={handleConfirmStop} disabled={isStopping} className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50">Stop</button>
                         </div>
                     </div>
                 </div>,
@@ -258,7 +258,7 @@ export function GlobalTimerNav() {
             {assignTaskOpen && typeof document !== 'undefined' && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/30" onClick={handleAssignModalClose}>
                     <div className="bg-white rounded-xl shadow-xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-sm font-medium text-gray-900 mb-1">{pendingOrgSwitch ? 'Assign a task before switching organization' : 'Assign this time to a task'}</p>
+                        <p className="text-xs font-medium text-gray-900 mb-1">{pendingOrgSwitch ? 'Assign a task before switching organization' : 'Assign this time to a task'}</p>
                         <p className="text-xs text-gray-500 mb-3">{pendingOrgSwitch ? 'Your timer is running. Select a project and task to save your time, then we\'ll switch the organization.' : 'Select the project and task you were working on. Your time will be saved as a time entry.'}</p>
                         <div className="space-y-3">
                             <div>
@@ -266,7 +266,7 @@ export function GlobalTimerNav() {
                                 <select
                                     value={assignProjectId}
                                     onChange={(e) => { setAssignProjectId(e.target.value); setAssignTaskId(''); }}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
                                 >
                                     <option value="">Select project</option>
                                     {Array.isArray(projects) && projects.map((p) => (
@@ -279,7 +279,7 @@ export function GlobalTimerNav() {
                                 <select
                                     value={assignTaskId}
                                     onChange={(e) => setAssignTaskId(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
                                     disabled={!assignProjectId}
                                 >
                                     <option value="">Select task</option>
@@ -295,13 +295,13 @@ export function GlobalTimerNav() {
                                     value={assignDescription}
                                     onChange={(e) => setAssignDescription(e.target.value)}
                                     placeholder="Note"
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
                                 />
                             </div>
                         </div>
                         <div className="flex gap-2 justify-end mt-4">
-                            <button type="button" onClick={handleAssignModalClose} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                            <button type="button" onClick={handleAssignTaskSubmit} disabled={isStopping || !assignProjectId || !assignTaskId} className="px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50">{pendingOrgSwitch ? 'Assign & Switch' : 'Stop & save'}</button>
+                            <button type="button" onClick={handleAssignModalClose} className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                            <button type="button" onClick={handleAssignTaskSubmit} disabled={isStopping || !assignProjectId || !assignTaskId} className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50">{pendingOrgSwitch ? 'Assign & Switch' : 'Stop & save'}</button>
                         </div>
                     </div>
                 </div>,

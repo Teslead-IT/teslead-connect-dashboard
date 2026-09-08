@@ -96,19 +96,19 @@ export function TopNav() {
         switch (s) {
             case 'online':
             case 'checked_in':
-                return { color: 'bg-green-500', icon: <Check className="w-[7px] h-[7px] text-white" strokeWidth={4} /> };
+                return { color: 'bg-green-500', icon: <Check className="w-4 h-4 text-white" strokeWidth={3} /> };
             case 'lunch':
             case 'on_lunch':
-                return { color: 'bg-amber-500', icon: <Utensils className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+                return { color: 'bg-amber-500', icon: <Utensils className="w-4 h-4 text-white" strokeWidth={3} /> };
             case 'break':
             case 'on_break':
-                return { color: 'bg-amber-500', icon: <Coffee className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+                return { color: 'bg-amber-500', icon: <Coffee className="w-4 h-4 text-white" strokeWidth={3} /> };
             case 'wfh':
-                return { color: 'bg-blue-500', icon: <Home className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+                return { color: 'bg-blue-500', icon: <Home className="w-4 h-4 text-white" strokeWidth={3} /> };
             case 'offline':
             case 'checked_out':
             case 'not_checked_in':
-                return { color: 'bg-gray-400', icon: <Moon className="w-[7px] h-[7px] text-white" strokeWidth={3} /> };
+                return { color: 'bg-gray-400', icon: <Moon className="w-4 h-4 text-white" strokeWidth={3} /> };
             default:
                 return { color: 'bg-gray-400', icon: null };
         }
@@ -121,7 +121,7 @@ export function TopNav() {
             initial={false}
             animate={{ left: isCollapsed ? 80 : 256 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="fixed top-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 z-30"
+            className="fixed top-0 right-0 h-12 bg-white/80 backdrop-blur-md border-b border-gray-100 z-30"
         >
             <div className="h-full px-6 flex items-center justify-between gap-6">
                 {/* Search Bar & Sticky Title */}
@@ -211,7 +211,7 @@ export function TopNav() {
                                                                 completeOrgSwitch(m.orgId, validRole);
                                                             }}
                                                             className={cn(
-                                                                'w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors',
+                                                                'w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs transition-colors',
                                                                 isActive ? 'bg-blue-50/80 text-[#091590] font-medium' : 'hover:bg-gray-50 text-gray-700'
                                                             )}
                                                         >
@@ -223,7 +223,7 @@ export function TopNav() {
                                                 })}
                                             <Link
                                                 href="/settings/organization"
-                                                className="flex items-center gap-2 px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-50 border-t border-gray-100"
+                                                className="flex items-center gap-2 px-3 py-2.5 text-xs text-gray-500 hover:bg-gray-50 border-t border-gray-100"
                                                 onClick={() => setOrgDropdownOpen(false)}
                                             >
                                                 <Building2 className="w-4 h-4" />
@@ -246,7 +246,7 @@ export function TopNav() {
                                 className="p-2 text-gray-400 hover:text-[#091590] hover:bg-blue-50 rounded-lg transition-all active:scale-95 group"
                                 title="Invite Members"
                             >
-                                <UserPlus className="w-5 h-5 group-hover:scale-110 transition-transform cursor-pointer" />
+                                <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform cursor-pointer" />
                             </button>
                         )}
 
@@ -254,7 +254,7 @@ export function TopNav() {
                             className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all active:scale-95 cursor-pointer"
                             title="Help Center"
                         >
-                            <HelpCircle className="w-5 h-5" />
+                            <HelpCircle className="w-4 h-4" />
                         </button>
 
                         <GlobalTimerNav />

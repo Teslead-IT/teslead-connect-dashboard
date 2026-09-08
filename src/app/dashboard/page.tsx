@@ -239,8 +239,8 @@ export default function DashboardPage() {
                         rowData={MOCK_TASKS}
                         columnDefs={colDefs}
                         defaultColDef={defaultColDef}
-                        rowHeight={40}
-                        headerHeight={34}
+                        rowHeight={32}
+                        headerHeight={30}
                         animateRows={true}
                     />
                 </div>

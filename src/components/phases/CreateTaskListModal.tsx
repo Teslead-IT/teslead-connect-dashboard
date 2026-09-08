@@ -130,7 +130,7 @@ export function CreateTaskListModal({
                                     type="button"
                                     onClick={() => phases.length > 0 && setShowPhaseDropdown(!showPhaseDropdown)}
                                     className={cn(
-                                        "w-full px-4 py-3 bg-white border rounded-md text-sm text-left font-medium text-gray-700 flex items-center justify-between hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all shadow-sm group",
+                                        "w-full px-4 py-3 bg-white border rounded-md text-xs text-left font-medium text-gray-700 flex items-center justify-between hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all shadow-sm group",
                                         submitted && !selectedPhaseId ? "border-red-500" : "border-gray-200"
                                     )}
                                 >
@@ -155,13 +155,13 @@ export function CreateTaskListModal({
                                                         placeholder="Search phases..."
                                                         value={phaseSearch}
                                                         onChange={(e) => setPhaseSearch(e.target.value)}
-                                                        className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                        className="w-full pl-9 pr-4 py-2 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="max-h-60 overflow-y-auto custom-scrollbar">
                                                 {filteredPhases.length === 0 ? (
-                                                    <div className="px-4 py-6 text-center text-sm text-gray-400 italic">No phases found</div>
+                                                    <div className="px-4 py-6 text-center text-xs text-gray-400 italic">No phases found</div>
                                                 ) : (
                                                     filteredPhases.map((phase) => (
                                                         <button
@@ -173,7 +173,7 @@ export function CreateTaskListModal({
                                                                 setPhaseSearch('');
                                                             }}
                                                             className={cn(
-                                                                "w-full px-4 py-3 text-left text-sm hover:bg-indigo-50 transition-colors flex items-center justify-between group",
+                                                                "w-full px-4 py-3 text-left text-xs hover:bg-indigo-50 transition-colors flex items-center justify-between group",
                                                                 selectedPhaseId === phase.id ? "bg-indigo-50/50 text-indigo-700 font-bold" : "text-gray-600"
                                                             )}
                                                         >
@@ -207,7 +207,7 @@ export function CreateTaskListModal({
                                     if (e.key === 'Enter' && name.trim() && selectedPhaseId) handleSubmit();
                                 }}
                                 className={cn(
-                                    "w-full text-sm px-4 py-3 bg-white border rounded-md focus:outline-none focus:ring-4 transition-all shadow-sm placeholder:text-gray-300",
+                                    "w-full text-xs px-4 py-3 bg-white border rounded-md focus:outline-none focus:ring-4 transition-all shadow-sm placeholder:text-gray-300",
                                     submitted && !name.trim()
                                         ? "border-red-500 focus:ring-red-500/10 focus:border-red-500"
                                         : "border-gray-200 focus:ring-emerald-500/10 focus:border-emerald-500/50"
@@ -236,7 +236,7 @@ export function CreateTaskListModal({
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-center justify-between">
-                                            <span className={cn("text-sm font-bold block", access === 'PRIVATE' ? "text-emerald-900" : "text-gray-700")}>Private List</span>
+                                            <span className={cn("text-xs font-bold block", access === 'PRIVATE' ? "text-emerald-900" : "text-gray-700")}>Private List</span>
                                             {access === 'PRIVATE' && <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
                                         </div>
                                         <span className="text-[11px] text-gray-500 font-medium">Only project team members can access this list</span>
@@ -260,7 +260,7 @@ export function CreateTaskListModal({
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-center justify-between">
-                                            <span className={cn("text-sm font-bold block", access === 'PUBLIC' ? "text-emerald-900" : "text-gray-700")}>Public List</span>
+                                            <span className={cn("text-xs font-bold block", access === 'PUBLIC' ? "text-emerald-900" : "text-gray-700")}>Public List</span>
                                             {access === 'PUBLIC' && <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
                                         </div>
                                         <span className="text-[11px] text-gray-500 font-medium">This list will be visible to everyone with project access</span>
@@ -275,14 +275,14 @@ export function CreateTaskListModal({
                 <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100 bg-gray-50/50">
                     <button
                         onClick={onClose}
-                        className="px-5 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-all"
+                        className="px-5 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-all"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={() => handleSubmit()}
                         disabled={createTaskListMutation.isPending || !name.trim() || !selectedPhaseId}
-                        className="px-8 py-2.5 text-sm font-bold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-40 disabled:grayscale transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]"
+                        className="px-8 py-2.5 text-xs font-bold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-40 disabled:grayscale transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]"
                     >
                         {createTaskListMutation.isPending ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

@@ -131,7 +131,7 @@ export function CreatePhaseModal({
                             <select
                                 value={projectId}
                                 onChange={(e) => setProjectId(e.target.value)}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] appearance-none bg-white transition-all cursor-pointer"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] appearance-none bg-white transition-all cursor-pointer"
                                 required
                             >
                                 {projects.map((p) => (
@@ -157,7 +157,7 @@ export function CreatePhaseModal({
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="e.g. Planning, Development, Testing"
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] placeholder:text-gray-300 transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] placeholder:text-gray-300 transition-all"
                                 required
                                 autoFocus
                             />
@@ -171,7 +171,7 @@ export function CreatePhaseModal({
                             <select
                                 value={access}
                                 onChange={(e) => setAccess(e.target.value as 'PUBLIC' | 'PRIVATE')}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] appearance-none bg-white transition-all cursor-pointer"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] appearance-none bg-white transition-all cursor-pointer"
                             >
                                 {ACCESS_OPTIONS.map((opt) => (
                                     <option key={opt.value} value={opt.value}>
@@ -190,7 +190,7 @@ export function CreatePhaseModal({
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-all"
                             />
                         </div>
 
@@ -203,7 +203,7 @@ export function CreatePhaseModal({
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-all"
                             />
                         </div>
                     </form>
@@ -215,7 +215,7 @@ export function CreatePhaseModal({
                         type="button"
                         onClick={onClose}
                         disabled={createPhaseMutation.isPending}
-                        className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
+                        className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
                     >
                         Cancel
                     </button>
@@ -223,7 +223,7 @@ export function CreatePhaseModal({
                         type="submit"
                         form="create-phase-form"
                         disabled={createPhaseMutation.isPending || !name.trim()}
-                        className="px-5 py-2 text-sm font-semibold text-white bg-[var(--primary)] rounded-md hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center min-w-[110px] cursor-pointer"
+                        className="px-5 py-2 text-xs font-semibold text-white bg-[var(--primary)] rounded-md hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center min-w-[110px] cursor-pointer"
                     >
                         {createPhaseMutation.isPending ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

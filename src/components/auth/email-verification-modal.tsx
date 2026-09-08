@@ -111,7 +111,7 @@ export function EmailVerificationModal({ isOpen, onClose, email }: EmailVerifica
                     </div>
 
                     {verifyError && (
-                        <p className="text-sm text-red-600 text-center bg-red-50 p-2 rounded-lg">
+                        <p className="text-xs text-red-600 text-center bg-red-50 p-2 rounded-lg">
                             {(verifyError as any)?.message || 'Verification failed. Please try again.'}
                         </p>
                     )}
@@ -126,7 +126,7 @@ export function EmailVerificationModal({ isOpen, onClose, email }: EmailVerifica
                 </form>
 
                 <div className="text-center mt-6">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs text-gray-600">
                         Didn't receive the code?{' '}
                         <button
                             type="button"

@@ -203,7 +203,7 @@ export function MeetingModal({
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="min-w-0 flex-1">
                                                     <h3 className={cn(
-                                                        "font-bold text-sm truncate",
+                                                        "font-bold text-xs truncate",
                                                         isActive ? "text-white" : "text-gray-900"
                                                     )}>
                                                         {meeting.title || 'Untitled'}

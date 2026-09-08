@@ -98,16 +98,16 @@ export default function MeetingsPage() {
 
                     <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 justify-between sm:justify-end">
                         <div className="flex items-center gap-2">
-                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+                            <div className="h-5 w-px bg-white/20 mx-1 hidden sm:block"></div>
 
-                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
+                            <div className="flex items-center bg-white/10 p-0.5 rounded-lg border border-white/20">
                                 <button
                                     onClick={() => setView('calendar')}
                                     className={cn(
-                                        'p-1 rounded transition-all',
+                                        'p-1.5 rounded-md transition-all',
                                         view === 'calendar'
-                                            ? 'bg-white text-[var(--primary)] shadow-sm'
-                                            : 'text-gray-400 hover:text-gray-600'
+                                            ? 'bg-white text-[#091590] shadow-sm font-bold'
+                                            : 'text-white/70 hover:text-white'
                                     )}
                                     title="Calendar View"
                                 >
@@ -117,10 +117,10 @@ export default function MeetingsPage() {
                                     onClick={() => setView('list')}
                                     disabled={true} // Temporarily disabled
                                     className={cn(
-                                        'p-1 rounded transition-all opacity-50 cursor-not-allowed', // Added disabled styles
+                                        'p-1.5 rounded-md transition-all opacity-50 cursor-not-allowed',
                                         view === 'list'
-                                            ? 'bg-white text-[var(--primary)] shadow-sm'
-                                            : 'text-gray-400'
+                                            ? 'bg-white text-[#091590] shadow-sm'
+                                            : 'text-white/60'
                                     )}
                                     title="List View (Coming Soon)"
                                 >
@@ -130,9 +130,9 @@ export default function MeetingsPage() {
 
                             <button
                                 onClick={handleCreateMeeting}
-                                className="inline-flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[#071170] hover:text-white active:scale-[0.98] font-medium px-4 h-8 text-xs rounded-md ml-1 sm:ml-2 transition-colors duration-200 border border-transparent shadow-sm whitespace-nowrap"
+                                className="inline-flex items-center justify-center bg-white text-[#091590] hover:bg-blue-50 active:scale-[0.98] font-bold px-4 h-8 text-xs rounded-lg ml-1 sm:ml-2 transition-all duration-200 shadow-md whitespace-nowrap"
                             >
-                                <Plus className="w-3.5 h-3.5 sm:mr-1.5" />
+                                <Plus className="w-3.5 h-3.5 sm:mr-1.5 stroke-[2.5]" />
                                 <span className="hidden sm:inline">New Meeting</span>
                                 <span className="sm:hidden">New</span>
                             </button>
@@ -152,58 +152,83 @@ export default function MeetingsPage() {
                         <style jsx global>{`
                             .custom-calendar .fc {
                                 font-family: inherit;
-                                --fc-border-color: #f1f5f9;
-                                --fc-today-bg-color: #f8fafc;
-                                --fc-button-bg-color: transparent;
-                                --fc-button-border-color: #e2e8f0;
-                                --fc-button-hover-bg-color: #f8fafc;
-                                --fc-button-hover-border-color: #cbd5e1;
-                                --fc-button-active-bg-color: #f1f5f9;
-                                --fc-button-active-border-color: #cbd5e1;
-                                --fc-button-text-color: #475569;
+                                --fc-border-color: #cbd5e1;
+                                --fc-today-bg-color: #eff6ff;
                                 --fc-page-bg-color: #ffffff;
                             }
-                            .custom-calendar .fc .fc-button-primary:not(:disabled).fc-button-active,
-                            .custom-calendar .fc .fc-button-primary:not(:disabled):active {
-                                background-color: #091590;
-                                border-color: #091590;
-                                color: white;
+                            .custom-calendar .fc-toolbar {
+                                margin-bottom: 1rem !important;
                             }
                             .custom-calendar .fc-toolbar-title {
-                                font-size: 1.25rem !important;
+                                font-size: 1.35rem !important;
                                 font-weight: 800 !important;
-                                color: #0f172a;
+                                color: #091590 !important;
                                 letter-spacing: -0.025em;
                             }
                             .custom-calendar .fc-button {
                                 font-weight: 700 !important;
-                                font-size: 0.7rem !important;
+                                font-size: 0.75rem !important;
                                 text-transform: uppercase !important;
-                                padding: 0.6rem 1rem !important;
-                                border-radius: 10px !important;
+                                padding: 0.4rem 0.85rem !important;
+                                border-radius: 8px !important;
                                 transition: all 0.2s ease !important;
+                                color: #091590 !important;
+                                background-color: #f1f5f9 !important;
+                                border: 1px solid #cbd5e1 !important;
+                                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
                             }
-                            .custom-calendar .fc-daygrid-day-number {
-                                font-weight: 800;
-                                color: #94a3b8;
-                                font-size: 0.75rem;
-                                padding: 10px !important;
+                            .custom-calendar .fc-button:hover {
+                                background-color: #091590 !important;
+                                color: #ffffff !important;
+                                border-color: #091590 !important;
+                            }
+                            /* Calendar Header Weekdays (SUN, MON, TUE, WED, THU, FRI, SAT) */
+                            .custom-calendar .fc-col-header {
+                                background-color: #091590 !important;
+                            }
+                            .custom-calendar .fc-col-header-cell {
+                                background-color: #091590 !important;
+                                border-color: #071170 !important;
+                                padding: 4px 0 !important;
                             }
                             .custom-calendar .fc-col-header-cell-cushion {
-                                font-weight: 800;
-                                text-transform: uppercase;
-                                font-size: 0.65rem;
-                                letter-spacing: 0.1em;
-                                color: #64748b;
-                                padding: 12px 0 !important;
+                                font-weight: 800 !important;
+                                text-transform: uppercase !important;
+                                font-size: 0.7rem !important;
+                                letter-spacing: 0.08em !important;
+                                color: #ffffff !important;
+                                padding: 6px 0 !important;
                             }
+                            /* Days Grid Numbers */
+                            .custom-calendar .fc-daygrid-day-number {
+                                font-weight: 800;
+                                color: #334155;
+                                font-size: 0.75rem;
+                                padding: 6px 10px !important;
+                            }
+                            /* Weekend Grid Cells */
+                            .custom-calendar td.fc-day-sat,
+                            .custom-calendar td.fc-day-sun {
+                                background-color: #f8fafc !important;
+                            }
+                            /* Today Highlight */
                             .custom-calendar .fc-day-today {
-                                background: #f8fafc !important;
+                                background: #eff6ff !important;
+                                border: 2px solid #091590 !important;
                             }
                             .custom-calendar .fc-day-today .fc-daygrid-day-number {
-                                color: #091590;
-                                background: #eff6ff;
-                                border-radius: 0 0 0 10px;
+                                color: #ffffff !important;
+                                background: #091590 !important;
+                                border-radius: 50% !important;
+                                width: 22px;
+                                height: 22px;
+                                display: inline-flex;
+                                items-center: center;
+                                justify-content: center;
+                                margin: 4px !important;
+                                padding: 0 !important;
+                                font-weight: 800;
+                                box-shadow: 0 2px 4px rgba(9, 21, 144, 0.3);
                             }
                             .custom-calendar .fc-event {
                                 border-radius: 6px !important;
@@ -212,15 +237,20 @@ export default function MeetingsPage() {
                                 margin: 2px !important;
                             }
                             .custom-calendar .fc-daygrid-more-link {
-                                font-size: 0.65rem !important;
+                                font-size: 0.7rem !important;
                                 font-weight: 800 !important;
-                                color: #9d7553ff !important;
+                                color: #091590 !important;
                                 text-transform: uppercase !important;
                                 letter-spacing: 0.05em;
-                                padding: 2px 6px !important;
+                                padding: 2px 8px !important;
                                 border-radius: 6px !important;
-                                background: #eef2ff !important;
+                                background: #e0e7ff !important;
+                                border: 1px solid #c7d2fe !important;
                                 margin: 2px !important;
+                            }
+                            .custom-calendar .fc-daygrid-more-link:hover {
+                                background-color: #091590 !important;
+                                color: #ffffff !important;
                             }
                         `}</style>
                         <FullCalendar

@@ -41,7 +41,7 @@ export function OrgSwitchingOverlay() {
                         </div>
                         <div className="flex flex-col items-center gap-2 text-center">
                             <p className="text-base font-semibold text-gray-900">{useOrgStore.getState().switchingLabel}</p>
-                            <p className="text-sm text-gray-500">Updating context and loading your workspace…</p>
+                            <p className="text-xs text-gray-500">Updating context and loading your workspace…</p>
                         </div>
                         <div className="flex items-center gap-1.5 text-gray-400">
                             <Loader2 className="w-4 h-4 animate-spin" />

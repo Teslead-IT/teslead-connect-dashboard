@@ -132,7 +132,7 @@ export function AssignTasksToMemberModal({ isOpen, onClose, member, projectId }:
                                 placeholder="Search tasks..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                             />
                         </div>
                     </div>
@@ -147,7 +147,7 @@ export function AssignTasksToMemberModal({ isOpen, onClose, member, projectId }:
                         ) : filteredTasks.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-10 text-gray-400">
                                 <ListTodo className="w-10 h-10 mb-2 opacity-20" />
-                                <span className="text-sm">No tasks found</span>
+                                <span className="text-xs">No tasks found</span>
                             </div>
                         ) : (
                             filteredTasks.map(task => {
@@ -174,7 +174,7 @@ export function AssignTasksToMemberModal({ isOpen, onClose, member, projectId }:
                                             But the import removal is enough.
                                          */}
                                         <div className="min-w-0 flex-1">
-                                            <p className={cn("text-sm font-medium truncate", isSelected ? "text-blue-900" : "text-gray-900")}>
+                                            <p className={cn("text-xs font-medium truncate", isSelected ? "text-blue-900" : "text-gray-900")}>
                                                 {task.title}
                                             </p>
                                             <div className="flex items-center gap-2 mt-1">
@@ -207,14 +207,14 @@ export function AssignTasksToMemberModal({ isOpen, onClose, member, projectId }:
                         <button
                             onClick={onClose}
                             disabled={isSaving}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm"
+                            className="px-4 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={isSaving}
-                            className="px-6 py-2 text-sm font-medium text-white bg-[var(--primary)] rounded-md hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center min-w-[100px]"
+                            className="px-6 py-2 text-xs font-medium text-white bg-[var(--primary)] rounded-md hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center min-w-[100px]"
                         >
                             {isSaving ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />

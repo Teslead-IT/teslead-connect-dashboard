@@ -269,7 +269,7 @@ export default function ProjectsPage() {
         return (
             <div className="flex items-center gap-3  group cursor-pointer w-full overflow-hidden" onClick={handleClick}>
                 <div
-                    className="w-8 h-8 rounded-md shadow-sm flex items-center justify-center text-white font-bold text-xs flex-shrink-0 transition-transform group-hover:scale-105"
+                    className="w-6 h-6 rounded-md shadow-sm flex items-center justify-center text-white font-bold text-xs flex-shrink-0 transition-transform group-hover:scale-105"
                     style={{
                         backgroundColor: color || 'var(--primary)',
                         background: color ? `linear-gradient(135deg, ${color}, ${color}dd)` : 'var(--primary)'
@@ -543,14 +543,12 @@ export default function ProjectsPage() {
             headerName: 'ProjectId',
             width: 120,
             cellClass: 'text-gray-400 font-mono text-[10px]',
-            suppressMenu: true,
         },
         {
             field: 'name',
             headerName: 'PROJECT',
             flex: 2,
             minWidth: 260,
-            pinned: 'left',
             cellRenderer: ProjectNameRenderer,
         },
         {
@@ -657,7 +655,7 @@ export default function ProjectsPage() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center justify-between w-full sm:w-auto gap-3 min-w-[140px]">
                         <div className="flex items-center gap-3">
-                            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Projects</h1>
+                            <h1 className="text-lg font-bold text-gray-900 tracking-tight">Projects</h1>
                             <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
                                 {filteredProjects.length}
                             </span>
@@ -736,7 +734,7 @@ export default function ProjectsPage() {
                             <MoreVertical className="w-6 h-6 text-red-500" />
                         </div>
                         <h3 className="text-md font-semibold text-gray-900">Error loading projects</h3>
-                        <p className="text-sm text-gray-500">{(error as Error)?.message || 'Unknown error'}</p>
+                        <p className="xs text-gray-500">{(error as Error)?.message || 'Unknown error'}</p>
                         <Button variant="primary" size="sm" onClick={handleRetry} className="mt-2">
                             Retry
                         </Button>
@@ -754,14 +752,14 @@ export default function ProjectsPage() {
                                 .custom-ag-grid .ag-header {
                                     background-color: #f1f5f9 !important;
                                     border-bottom: 1px solid #cbd5e1 !important;
-                                    min-height: 48px !important;
+                                    min-height: 30px !important;
                                 }
                                 .custom-ag-grid .ag-header-row {
-                                    height: 48px !important;
+                                    height: 30px !important;
                                 }
                                 .custom-ag-grid .ag-header-cell {
-                                    padding-left: 16px;
-                                    padding-right: 16px;
+                                    padding-left: 4px;
+                                    padding-right: 4px;
                                 }
                                 .custom-ag-grid .ag-header-cell-label {
                                     font-weight: 700;
@@ -775,12 +773,12 @@ export default function ProjectsPage() {
                                     background-color: #ffffff;
                                 }
                                 .custom-ag-grid .ag-cell {
-                                    padding-left: 16px;
-                                    padding-right: 16px;
+                                    padding-left: 8px;
+                                    padding-right: 8px;
                                     display: flex;
                                     align-items: center;
                                     color: #0f172a;
-                                    font-size: 13px;
+                                    font-size: 12px;
                                     font-weight: 500;
                                 }
                                 .custom-ag-grid .ag-cell[col-id="status"],
@@ -805,8 +803,8 @@ export default function ProjectsPage() {
                                 columnDefs={columnDefs}
                                 defaultColDef={defaultColDef}
                                 context={{ onUpdateStatus: handleUpdateProjectStatus }}
-                                rowHeight={48}
-                                headerHeight={40}
+                                rowHeight={32}
+                                headerHeight={30}
                                 pagination={true}
                                 paginationPageSize={limit}
                                 suppressPaginationPanel={true}
@@ -818,7 +816,7 @@ export default function ProjectsPage() {
                         </div>
 
                         {/* Custom Pagination Controls */}
-                        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 bg-white shrink-0">
+                        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-1 sm:px-6 bg-white shrink-0">
                             <div className="flex flex-1 justify-between sm:hidden">
                                 <Button
                                     variant="secondary"
@@ -839,13 +837,13 @@ export default function ProjectsPage() {
                             </div>
                             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-700">
+                                    <p className="xs text-gray-700">
                                         Showing <span className="font-medium">{filteredProjects.length > 0 ? (page - 1) * limit + 1 : 0}</span> to <span className="font-medium">{Math.min(page * limit, meta?.total || 0)}</span> of <span className="font-medium">{meta?.total || 0}</span> results
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <select
-                                        className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
+                                        className="xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
                                         value={limit}
                                         onChange={(e) => handleLimitChange(Number(e.target.value))}
                                     >
@@ -871,7 +869,7 @@ export default function ProjectsPage() {
                                             <span aria-hidden="true">&lsaquo;</span>
                                         </button>
                                         <button
-                                            className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                                            className="relative inline-flex items-center px-4 py-2 xs font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                                         >
                                             {page}
                                         </button>
@@ -922,7 +920,7 @@ export default function ProjectsPage() {
                                             <div className="p-4 border-b border-gray-200">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <h3 className="font-semibold text-gray-900 text-sm">{statusOption.label}</h3>
+                                                        <h3 className="font-semibold text-gray-900 xs">{statusOption.label}</h3>
                                                         <span className={cn(
                                                             "text-xs font-medium px-2 py-0.5 rounded-full",
                                                             statusOption.color
@@ -936,7 +934,7 @@ export default function ProjectsPage() {
                                             {/* Drop Zone */}
                                             <div className="p-3 space-y-3 overflow-y-auto flex-1">
                                                 {statusProjects.length === 0 ? (
-                                                    <div className="text-center py-8 text-gray-400 text-sm">
+                                                    <div className="text-center py-8 text-gray-400 xs">
                                                         No projects
                                                     </div>
                                                 ) : (
@@ -984,7 +982,7 @@ export default function ProjectsPage() {
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex items-center justify-between gap-2">
                                                                             <h4
-                                                                                className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600 cursor-pointer transition-colors flex-1"
+                                                                                className="xs font-semibold text-gray-900 truncate group-hover:text-blue-600 cursor-pointer transition-colors flex-1"
                                                                                 onClick={() => router.push(`/projects/${project.id}`)}
                                                                             >
                                                                                 {project.name}
@@ -1142,13 +1140,13 @@ export default function ProjectsPage() {
                             </div>
                             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-700">
+                                    <p className="xs text-gray-700">
                                         Showing <span className="font-medium">{filteredProjects.length > 0 ? (page - 1) * limit + 1 : 0}</span> to <span className="font-medium">{Math.min(page * limit, meta?.total || 0)}</span> of <span className="font-medium">{meta?.total || 0}</span> results
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <select
-                                        className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
+                                        className="xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
                                         value={limit}
                                         onChange={(e) => handleLimitChange(Number(e.target.value))}
                                     >
@@ -1174,7 +1172,7 @@ export default function ProjectsPage() {
                                             <span aria-hidden="true">&lsaquo;</span>
                                         </button>
                                         <button
-                                            className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                                            className="relative inline-flex items-center px-4 py-2 xs font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                                         >
                                             {page}
                                         </button>
