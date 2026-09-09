@@ -78,7 +78,7 @@ export function PendingInvitesList({
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         />
                     </svg>
-                    <span className="text-sm">Loading invitations...</span>
+                    <span className="text-xs">Loading invitations...</span>
                 </div>
             </div>
         );
@@ -88,7 +88,7 @@ export function PendingInvitesList({
     if (isError) {
         return (
             <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-                <p className="text-sm text-red-600 dark:text-red-400">
+                <p className="text-xs text-red-600 dark:text-red-400">
                     Failed to load invitations. Please try again.
                 </p>
             </div>
@@ -114,7 +114,7 @@ export function PendingInvitesList({
                         />
                     </svg>
                 </div>
-                <h3 className="text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                <h3 className="text-xs font-medium text-[var(--color-text-secondary)] mb-1">
                     No pending invitations
                 </h3>
                 <p className="text-xs text-[var(--color-text-tertiary)]">
@@ -143,7 +143,7 @@ export function PendingInvitesList({
                 <div className="pt-2 text-center">
                     <button
                         onClick={() => router.push('/invitations')}
-                        className="text-sm text-[var(--color-brand-primary)] hover:underline"
+                        className="text-xs text-[var(--color-brand-primary)] hover:underline"
                     >
                         View all {invites.length} invitations
                     </button>
@@ -187,7 +187,7 @@ function InviteCard({ invite, compact, onAccept, onReject, isProcessing }: Invit
                         </Badge>
                     </div>
 
-                    <p className="text-sm text-[var(--color-text-tertiary)] mb-2">
+                    <p className="text-xs text-[var(--color-text-tertiary)] mb-2">
                         {invite.email}
                     </p>
 

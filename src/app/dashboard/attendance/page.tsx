@@ -49,7 +49,7 @@ export default function AttendancePage() {
                 <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Attendance</h1>
 
                 <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Today</h2>
+                    <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Today</h2>
 
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">
@@ -74,7 +74,7 @@ export default function AttendancePage() {
                                     {displayStatus === 'checked_out' && 'Checked Out'}
                                     {displayStatus === 'not_checked_in' && 'Not Checked In'}
                                 </p>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-xs text-gray-500">
                                     {displayStatus === 'checked_in' && sessionStart && `Since ${formatTime(sessionStart)}`}
                                     {(displayStatus === 'on_break' || displayStatus === 'on_lunch') && (breakStart || lunchStart) && `Since ${formatTime(breakStart ?? lunchStart ?? undefined)}`}
                                     {displayStatus === 'checked_out' && 'Session ended'}
@@ -84,7 +84,7 @@ export default function AttendancePage() {
                         </div>
 
                         {(displayStatus === 'checked_in' || displayStatus === 'on_break' || displayStatus === 'on_lunch' || displayStatus === 'checked_out') && sessionStart && (
-                            <div className="pt-4 border-t border-gray-100 grid gap-2 text-sm">
+                            <div className="pt-4 border-t border-gray-100 grid gap-2 text-xs">
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">Check-in</span>
                                     <span className="font-medium">{formatTime(sessionStart)}</span>

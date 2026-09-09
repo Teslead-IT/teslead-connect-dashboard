@@ -171,7 +171,7 @@ export function PhaseViewModal({
                                                         : 'bg-white border-gray-100 hover:border-blue-200 text-gray-900'
                                                 )}
                                             >
-                                                <div className="font-bold text-sm truncate">{p.name}</div>
+                                                <div className="font-bold text-xs truncate">{p.name}</div>
                                                 <div className={cn('text-[10px] mt-1 flex items-center gap-1.5', isActive ? 'text-white/70' : 'text-gray-400')}>
                                                     <div className={cn("w-1.5 h-1.5 rounded-full", isActive ? "bg-white/70" : "bg-indigo-400")} />
                                                     {(p.taskLists?.length ?? 0)} task list(s)
@@ -236,11 +236,11 @@ export function PhaseViewModal({
                                                 <input
                                                     value={editName}
                                                     onChange={(e) => setEditName(e.target.value)}
-                                                    className={cn("w-full px-3 py-2 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]", ROUNDED)}
+                                                    className={cn("w-full px-3 py-2 border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]", ROUNDED)}
                                                     placeholder="Phase name"
                                                 />
                                             ) : (
-                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-sm font-medium", ROUNDED)}>{activePhase.name}</div>
+                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-xs font-medium", ROUNDED)}>{activePhase.name}</div>
                                             )}
                                         </div>
 
@@ -251,10 +251,10 @@ export function PhaseViewModal({
                                                     type="date"
                                                     value={editStartDate}
                                                     onChange={(e) => setEditStartDate(e.target.value)}
-                                                    className={cn("w-full px-3 py-2 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]", ROUNDED)}
+                                                    className={cn("w-full px-3 py-2 border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]", ROUNDED)}
                                                 />
                                             ) : (
-                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-sm font-medium", ROUNDED)}>
+                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-xs font-medium", ROUNDED)}>
                                                     {activePhase.startDate ? new Date(activePhase.startDate).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '—'}
                                                 </div>
                                             )}
@@ -267,10 +267,10 @@ export function PhaseViewModal({
                                                     type="date"
                                                     value={editEndDate}
                                                     onChange={(e) => setEditEndDate(e.target.value)}
-                                                    className={cn("w-full px-3 py-2 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]", ROUNDED)}
+                                                    className={cn("w-full px-3 py-2 border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]", ROUNDED)}
                                                 />
                                             ) : (
-                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-sm font-medium", ROUNDED)}>
+                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-xs font-medium", ROUNDED)}>
                                                     {activePhase.endDate ? new Date(activePhase.endDate).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '—'}
                                                 </div>
                                             )}
@@ -282,13 +282,13 @@ export function PhaseViewModal({
                                                 <select
                                                     value={editAccess}
                                                     onChange={(e) => setEditAccess(e.target.value as 'PUBLIC' | 'PRIVATE')}
-                                                    className={cn("w-full px-3 py-2 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] cursor-pointer", ROUNDED)}
+                                                    className={cn("w-full px-3 py-2 border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] cursor-pointer", ROUNDED)}
                                                 >
                                                     <option value="PRIVATE">Private</option>
                                                     <option value="PUBLIC">Public</option>
                                                 </select>
                                             ) : (
-                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-sm font-medium", ROUNDED)}>{activePhase.access || 'PRIVATE'}</div>
+                                                <div className={cn("px-3 py-2 border border-gray-200 bg-gray-50/50 text-gray-900 text-xs font-medium", ROUNDED)}>{activePhase.access || 'PRIVATE'}</div>
                                             )}
                                         </div>
 
@@ -310,7 +310,7 @@ export function PhaseViewModal({
                                                                     <ListTodo className="w-3.5 h-3.5 text-emerald-600" />
                                                                 </div>
                                                                 <div className="overflow-hidden">
-                                                                    <div className="text-sm font-bold text-gray-700 truncate group-hover:text-emerald-700 transition-colors">{tl.name}</div>
+                                                                    <div className="text-xs font-bold text-gray-700 truncate group-hover:text-emerald-700 transition-colors">{tl.name}</div>
                                                                     <div className="text-[10px] text-gray-400 font-medium">{tl.tasks?.length || 0} task(s)</div>
                                                                 </div>
                                                             </div>
@@ -323,7 +323,7 @@ export function PhaseViewModal({
                                 ) : (
                                     <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                                         <Layers className="w-12 h-12 mb-3" />
-                                        <p className="text-sm font-medium">Select a phase</p>
+                                        <p className="text-xs font-medium">Select a phase</p>
                                     </div>
                                 )}
                             </div>

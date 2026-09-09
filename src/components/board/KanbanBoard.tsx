@@ -147,7 +147,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                 <h2 className="text-lg font-semibold text-gray-900">Board View</h2>
                 <button
                     onClick={loadData}
-                    className="text-sm text-gray-600 hover:text-gray-900"
+                    className="text-xs text-gray-600 hover:text-gray-900"
                 >
                     Refresh
                 </button>
@@ -196,7 +196,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                                     ))}
 
                                     {stageTasks.filter(t => !t.parentId).length === 0 && (
-                                        <div className="text-center py-8 text-gray-400 text-sm">
+                                        <div className="text-center py-8 text-gray-400 text-xs">
                                             No tasks
                                         </div>
                                     )}
@@ -228,7 +228,7 @@ function TaskCard({ task, subtasks, onDragStart }: TaskCardProps) {
         >
             {/* Task Header */}
             <div className="flex items-start justify-between gap-2 mb-2">
-                <h4 className="text-sm font-medium text-gray-900 flex-1">{task.title}</h4>
+                <h4 className="text-xs font-medium text-gray-900 flex-1">{task.title}</h4>
                 <button className="text-gray-400 hover:text-gray-600 flex-shrink-0">
                     <MoreVertical className="w-4 h-4" />
                 </button>

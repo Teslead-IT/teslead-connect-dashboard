@@ -98,7 +98,7 @@ export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
         return (
             <div className="flex flex-col items-center justify-center py-16">
                 <Calendar className="w-16 h-16 text-gray-300 mb-4" />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">
+                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">
                     No Meetings Found
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
@@ -127,28 +127,28 @@ export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
                     <table className="w-full">
                         <thead className="bg-[#091590] text-white">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                <th className="px-2 py-1 text-left text-[11px] font-bold uppercase tracking-wider">
                                     S.No
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                <th className="px-2 py-1 text-left text-[11px] font-bold uppercase tracking-wider">
                                     Project Name
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                <th className="px-2 py-1 text-left text-[11px] font-bold uppercase tracking-wider">
                                     Meeting Date
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                <th className="px-2 py-1 text-left text-[11px] font-bold uppercase tracking-wider">
                                     Location
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                <th className="px-2 py-1 text-left text-[11px] font-bold uppercase tracking-wider">
                                     Purpose
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                <th className="px-2 py-1 text-left text-[11px] font-bold uppercase tracking-wider">
                                     No. of People
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                <th className="px-2 py-1 text-left text-[11px] font-bold uppercase tracking-wider">
                                     Attended By
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                <th className="px-2 py-1 text-left text-[11px] font-bold uppercase tracking-wider">
                                     Absentees
                                 </th>
                                 <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
@@ -166,7 +166,7 @@ export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
                                     <td className="px-4 py-3 text-sm font-medium text-gray-900">
                                         {index + 1}
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-2 py-1">
                                         <div className="flex items-center gap-2">
                                             <div className="w-8 h-8 bg-[#091590]/10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-[#091590]/20 transition-colors">
                                                 <FileSpreadsheet className="w-4 h-4 text-[#091590]" />
@@ -175,45 +175,45 @@ export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
                                                 <p className="text-sm font-bold text-gray-900 group-hover:text-[#091590] transition-colors">
                                                     {meeting.title || meeting.project?.name || 'N/A'}
                                                 </p>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-[10px] text-gray-500">
                                                     ID: {meeting.projectId}
                                                 </p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-gray-400" />
-                                            <span className="text-sm text-gray-900 font-medium">
+                                    <td className="px-2 py-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                                            <span className="text-xs text-gray-900 font-medium">
                                                 {format(new Date(meeting.meetingDate), 'dd MMM yyyy')}
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
-                                            <MapPin className="w-4 h-4 text-gray-400" />
-                                            <span className="text-sm text-gray-700">
+                                    <td className="px-2 py-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                                            <span className="text-xs text-gray-700">
                                                 {meeting.location}
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <p className="text-sm text-gray-700 line-clamp-2">
+                                    <td className="px-2 py-1">
+                                        <p className="text-xs text-gray-700 line-clamp-1">
                                             {meeting.purpose || '-'}
                                         </p>
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-700 font-bold text-xs rounded-full">
+                                    <td className="px-2 py-1 text-center">
+                                        <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 font-bold text-xs rounded-full">
                                             {meeting.numberOfPeople || meeting.noOfPeople || 0}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <p className="text-xs text-gray-600 line-clamp-2">
+                                    <td className="px-2 py-1">
+                                        <p className="text-xs text-gray-600 line-clamp-1">
                                             {meeting.attendedBy || '-'}
                                         </p>
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <p className="text-xs text-gray-600 line-clamp-2">
+                                    <td className="px-2 py-1">
+                                        <p className="text-xs text-gray-600 line-clamp-1">
                                             {meeting.absentees || '-'}
                                         </p>
                                     </td>

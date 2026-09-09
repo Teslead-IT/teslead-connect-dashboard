@@ -89,8 +89,8 @@ function LoginPageContent() {
         gsap.to(formRef.current, {
             x: "-100%", duration: 0.8, ease: "power3.inOut", onComplete: () => {
                 sessionStorage.setItem('authTransition', 'true');
-                const targetUrl = returnToUrl !== '/dashboard' 
-                    ? `/auth/register?returnTo=${encodeURIComponent(returnToUrl)}` 
+                const targetUrl = returnToUrl !== '/dashboard'
+                    ? `/auth/register?returnTo=${encodeURIComponent(returnToUrl)}`
                     : "/auth/register";
                 router.push(targetUrl);
             }
@@ -148,21 +148,21 @@ function LoginPageContent() {
                     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
                         <div className="space-y-3.5">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">
                                     Email, Phone, or Username
                                 </label>
                                 <input
                                     type="text"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                                    className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-xs"
                                     placeholder="Your Name"
                                     required
                                     disabled={isLoading}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">
                                     Password
                                 </label>
                                 <div className="relative">
@@ -170,7 +170,7 @@ function LoginPageContent() {
                                         type={showPassword ? "text" : "password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm pr-12"
+                                        className="w-full px-4 py-2.5 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-xs pr-12"
                                         placeholder="••••••••"
                                         required
                                         disabled={isLoading}
@@ -189,14 +189,14 @@ function LoginPageContent() {
                         <div className="flex items-center justify-end">
                             <Link
                                 href="/auth/forgot-password"
-                                className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                                className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
                             >
                                 Forgot password?
                             </Link>
                         </div>
 
                         {errorMessage && (
-                            <div className="p-4 rounded-none bg-red-50 text-red-600 text-sm font-medium border border-red-100 flex items-center gap-3">
+                            <div className="p-4 rounded-none bg-red-50 text-red-600 text-xs font-medium border border-red-100 flex items-center gap-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 flex-shrink-0">
                                     <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clipRule="evenodd" />
                                 </svg>
@@ -217,7 +217,7 @@ function LoginPageContent() {
                                 <div className="absolute inset-0 flex items-center">
                                     <div className="w-full border-t border-gray-100"></div>
                                 </div>
-                                <div className="relative flex justify-center text-sm">
+                                <div className="relative flex justify-center text-xs">
                                     <span className="px-4 bg-white text-gray-400 font-medium uppercase tracking-wider text-[10px]">Or continue with</span>
                                 </div>
                             </div>

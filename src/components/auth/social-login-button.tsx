@@ -38,7 +38,7 @@ export function SocialLoginButton({ provider, disabled }: SocialLoginButtonProps
                         height={18}
                         className="w-4.5 h-4.5"
                     />
-                    <span className="font-medium text-gray-700 text-sm">
+                    <span className="font-medium text-gray-700 text-xs">
                         {provider === 'google' ? 'Google' : 'GitHub'}
                     </span>
                 </div>

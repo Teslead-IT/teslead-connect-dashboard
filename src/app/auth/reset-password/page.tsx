@@ -15,15 +15,15 @@ function ResetPasswordContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const toast = useToast();
-    
+
     const [identifier, setIdentifier] = useState(searchParams.get("id") || "");
     const [otp, setOtp] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    
+
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    
+
     // Cooldown state for resend functionality
     const COOLDOWN_SECONDS = 60;
     const [cooldown, setCooldown] = useState(0);
@@ -72,7 +72,7 @@ function ResetPasswordContent() {
 
     const handleResendOTP = (e: React.MouseEvent) => {
         e.preventDefault();
-        
+
         if (!identifier.trim()) {
             toast.error("Account identifier is missing.");
             return;
@@ -98,7 +98,7 @@ function ResetPasswordContent() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!identifier.trim()) {
             toast.error("Account identifier is missing.");
             return;
@@ -144,12 +144,12 @@ function ResetPasswordContent() {
         <div ref={containerRef} className="min-h-screen w-full flex items-center justify-center bg-[#f8fafc] font-sans p-4 relative overflow-hidden">
             <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[100px] opacity-70"></div>
             <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[100px] opacity-70"></div>
-            
+
             <div ref={formRef} className="w-full max-w-md bg-white p-8 sm:p-10 shadow-2xl relative z-10">
                 <Link href="/auth/login" className="absolute top-6 left-6 text-gray-400 hover:text-blue-600 transition-colors">
                     <ArrowLeft className="w-6 h-6" />
                 </Link>
-                
+
                 <div className="text-center space-y-2 mt-8 mb-8">
                     <div className="flex justify-center mb-6">
                         <Image src="/logo/single-logo.png" alt="Logo" width={48} height={48} className="object-contain" />
@@ -157,7 +157,7 @@ function ResetPasswordContent() {
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-blue-600">
                         Create New Password
                     </h1>
-                    <p className="text-gray-500 text-sm px-2 mt-2 leading-relaxed">
+                    <p className="text-gray-500 text-xs px-2 mt-2 leading-relaxed">
                         Enter the 6-digit code we sent you along with your new password.
                     </p>
                 </div>
@@ -165,7 +165,7 @@ function ResetPasswordContent() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
                         <div className="flex items-center justify-between mb-1.5 ml-1">
-                            <label className="block text-sm font-semibold text-gray-700">
+                            <label className="block text-xs font-semibold text-gray-700">
                                 Reset Code (OTP)
                             </label>
                             <button
@@ -182,7 +182,7 @@ function ResetPasswordContent() {
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
                             maxLength={6}
-                            className="w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all outline-none text-sm tracking-[0.5em] text-center font-mono font-bold"
+                            className="w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all outline-none text-xs tracking-[0.5em] text-center font-mono font-bold"
                             placeholder="------"
                             required
                             disabled={isResetting}
@@ -190,7 +190,7 @@ function ResetPasswordContent() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5 ml-1">
                             New Password
                         </label>
                         <div className="relative">
@@ -198,7 +198,7 @@ function ResetPasswordContent() {
                                 type={showPassword ? "text" : "password"}
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                className="w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all outline-none text-sm pr-12"
+                                className="w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all outline-none text-xs pr-12"
                                 placeholder="••••••••"
                                 required
                                 disabled={isResetting}
@@ -214,7 +214,7 @@ function ResetPasswordContent() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5 ml-1">
                             Confirm Password
                         </label>
                         <div className="relative">
@@ -222,11 +222,10 @@ function ResetPasswordContent() {
                                 type={showConfirmPassword ? "text" : "password"}
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className={`w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border ${
-                                    confirmPassword && newPassword !== confirmPassword 
-                                    ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" 
-                                    : "border-gray-200 focus:border-blue-600 focus:ring-blue-600/5"
-                                } focus:bg-white focus:ring-4 transition-all outline-none text-sm pr-12`}
+                                className={`w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border ${confirmPassword && newPassword !== confirmPassword
+                                        ? "border-red-300 focus:border-red-500 focus:ring-red-500/10"
+                                        : "border-gray-200 focus:border-blue-600 focus:ring-blue-600/5"
+                                    } focus:bg-white focus:ring-4 transition-all outline-none text-xs pr-12`}
                                 placeholder="••••••••"
                                 required
                                 disabled={isResetting}

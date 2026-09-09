@@ -76,7 +76,7 @@ export function AssigneeCellRenderer(props: any) {
     return (
         <div className="h-full flex items-center gap-2">
             <Avatar name={assignee.name} size="xs" />
-            <span className="text-sm text-[var(--color-text-primary)]">{assignee.name}</span>
+            <span className="text-xs text-[var(--color-text-primary)]">{assignee.name}</span>
         </div>
     );
 }
@@ -128,7 +128,7 @@ export function ProgressCellRenderer(props: any) {
                     style={{ width: `${progress}%` }}
                 />
             </div>
-            <span className="text-sm text-[var(--color-text-secondary)] min-w-[3ch] text-right">
+            <span className="text-xs text-[var(--color-text-secondary)] min-w-[3ch] text-right">
                 {progress}%
             </span>
         </div>

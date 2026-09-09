@@ -87,7 +87,7 @@ export default function NotificationsPage() {
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-24 space-y-4">
                             <Loader2 className="w-10 h-10 animate-spin text-[#091590]" />
-                            <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Loading Activity...</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Activity...</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-50">
@@ -104,7 +104,7 @@ export default function NotificationsPage() {
                                         <Loader2 className="w-8 h-8 text-gray-300" />
                                     </div>
                                     <h3 className="text-gray-900 font-bold">No notifications found</h3>
-                                    <p className="text-sm text-gray-400 mt-1 max-w-[200px]">We'll let you know when something happens in your workspace</p>
+                                    <p className="text-xs text-gray-400 mt-1 max-w-[200px]">We'll let you know when something happens in your workspace</p>
                                 </div>
                             )}
                         </div>

@@ -58,12 +58,12 @@ function ForgotPasswordContent() {
             {/* Background elements to match overall theme */}
             <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[100px] opacity-70"></div>
             <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[100px] opacity-70"></div>
-            
+
             <div ref={formRef} className="w-full max-w-md bg-white p-8 sm:p-10 shadow-2xl relative z-10">
                 <Link href="/auth/login" className="absolute top-6 left-6 text-gray-400 hover:text-blue-600 transition-colors">
                     <ArrowLeft className="w-6 h-6" />
                 </Link>
-                
+
                 <div className="text-center space-y-2 mt-8 mb-8">
                     <div className="flex justify-center mb-6">
                         <Image src="/logo/single-logo.png" alt="Logo" width={48} height={48} className="object-contain" />
@@ -71,21 +71,21 @@ function ForgotPasswordContent() {
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-blue-600">
                         Forgot Password?
                     </h1>
-                    <p className="text-gray-500 text-sm px-2 mt-2 leading-relaxed">
+                    <p className="text-gray-500 text-xs px-2 mt-2 leading-relaxed">
                         Enter your email, phone, or username. We'll send you a recovery code to reset your password.
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5 ml-1">
                             Email, Phone, or Username
                         </label>
                         <input
                             type="text"
                             value={identifier}
                             onChange={(e) => setIdentifier(e.target.value)}
-                            className="w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all outline-none text-sm"
+                            className="w-full px-4 py-3 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all outline-none text-xs"
                             placeholder="Enter Your Email, Phone, or Username"
                             required
                             disabled={isLoading}

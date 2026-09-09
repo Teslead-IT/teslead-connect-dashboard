@@ -237,7 +237,7 @@ export const Dialog: React.FC<DialogProps> = ({
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
                                         {title}
                                     </h3>
-                                    <div className="text-sm font-medium text-gray-600 dark:text-slate-400 leading-relaxed">
+                                    <div className="text-xs font-medium text-gray-600 dark:text-slate-400 leading-relaxed">
                                         {message}
                                     </div>
                                     {description && (
