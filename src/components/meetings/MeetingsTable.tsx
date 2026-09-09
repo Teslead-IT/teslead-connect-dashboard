@@ -1,15 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useMeetings } from '@/hooks/use-meetings';
-import { Download, FileSpreadsheet, Calendar, MapPin } from 'lucide-react';
+import { Download, FileSpreadsheet, Calendar, MapPin, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
 import { Loader } from '@/components/ui/Loader';
+import { cn } from '@/lib/utils';
+import { MomPrintModal } from '@/components/meetings/MomPrintModal';
 
-export function MeetingsTable() {
+interface MeetingsTableProps {
+    onSelectMeeting?: (meetingId: string, meetingDate: string) => void;
+}
+
+export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
     const { data: meetingsData, isLoading } = useMeetings({ limit: 1000 });
     const meetings = meetingsData?.data || [];
+    const [printModalMeeting, setPrintModalMeeting] = useState<any>(null);
 
     const exportToExcel = async () => {
         if (!meetings || meetings.length === 0) {
@@ -147,16 +154,28 @@ export function MeetingsTable() {
                                 <th className="px-2 py-1 text-left text-[11px] font-bold uppercase tracking-wider">
                                     Absentees
                                 </th>
+                                <th className="px-2 py-1 text-center text-[11px] font-bold uppercase tracking-wider">
+                                    MOM Print
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {meetings.map((meeting: any, index: number) => (
-                                <tr key={meeting.id} className="hover:bg-gray-50 transition-colors">
+                            {meetings.map((meeting: any, index: number) => {
+                                const eventDate = meeting.meetingDate?.split('T')[0] || new Date().toISOString().split('T')[0];
+                                return (
+                                    <tr
+                                        key={meeting.id}
+                                        onClick={() => onSelectMeeting?.(meeting.id, eventDate)}
+                                        className={cn(
+                                            "hover:bg-blue-50/50 transition-colors",
+                                            onSelectMeeting && "cursor-pointer"
+                                        )}
+                                    >
                                     <td className="px-2 py-1 text-xs font-medium text-gray-900">
                                         {index + 1}
                                     </td>
                                     <td className="px-2 py-1">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2" title={meeting.title || meeting.project?.name || 'N/A'}>
                                             <div className="w-5 h-5 bg-[#091590]/10 rounded-md flex items-center justify-center flex-shrink-0">
                                                 <FileSpreadsheet className="w-3 h-3 text-[#091590]" />
                                             </div>
@@ -179,7 +198,7 @@ export function MeetingsTable() {
                                         </div>
                                     </td>
                                     <td className="px-2 py-1">
-                                        <div className="flex items-center gap-1.5">
+                                        <div className="flex items-center gap-1.5" title={meeting.location}>
                                             <MapPin className="w-3.5 h-3.5 text-gray-400" />
                                             <span className="text-xs text-gray-700">
                                                 {meeting.location}
@@ -187,27 +206,41 @@ export function MeetingsTable() {
                                         </div>
                                     </td>
                                     <td className="px-2 py-1">
-                                        <p className="text-xs text-gray-700 line-clamp-1">
+                                        <p className="text-xs text-gray-700 line-clamp-1" title={meeting.purpose || '-'}>
                                             {meeting.purpose || '-'}
                                         </p>
                                     </td>
                                     <td className="px-2 py-1 text-center">
-                                        <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 font-bold text-xs rounded-full">
+                                        <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 font-bold text-xs rounded-full" title={`${meeting.numberOfPeople || meeting.noOfPeople || 0} People`}>
                                             {meeting.numberOfPeople || meeting.noOfPeople || 0}
                                         </span>
                                     </td>
                                     <td className="px-2 py-1">
-                                        <p className="text-xs text-gray-600 line-clamp-1">
+                                        <p className="text-xs text-gray-600 line-clamp-1" title={meeting.attendedBy || '-'}>
                                             {meeting.attendedBy || '-'}
                                         </p>
                                     </td>
                                     <td className="px-2 py-1">
-                                        <p className="text-xs text-gray-600 line-clamp-1">
+                                        <p className="text-xs text-gray-600 line-clamp-1" title={meeting.absentees || '-'}>
                                             {meeting.absentees || '-'}
                                         </p>
                                     </td>
-                                </tr>
-                            ))}
+                                    <td className="px-2 py-1 text-center">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPrintModalMeeting(meeting);
+                                            }}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#091590] text-white hover:bg-[#071170] font-bold text-[10px] uppercase rounded-md shadow-2xs transition-colors"
+                                            title="Print MOM document"
+                                        >
+                                            <Printer className="w-3 h-3" />
+                                            Print
+                                        </button>
+                                    </td>
+                                 </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -226,6 +259,14 @@ export function MeetingsTable() {
                     Download Excel
                 </button>
             </div>
+
+            {/* MOM Print Preview Modal */}
+            <MomPrintModal
+                isOpen={!!printModalMeeting}
+                onClose={() => setPrintModalMeeting(null)}
+                meeting={printModalMeeting}
+            />
         </div>
     );
 }
+

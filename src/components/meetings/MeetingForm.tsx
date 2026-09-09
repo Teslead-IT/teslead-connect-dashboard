@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useMeeting, useUpdateMeeting, useDeleteMeeting, usePublishMeeting, useCreateMeeting } from '@/hooks/use-meetings';
-import { RichTextEditor } from '@/components/meetings/RichTextEditor';
+import { DiscussionAreaTable } from '@/components/meetings/DiscussionAreaTable';
 import Dialog from '@/components/ui/Dialog';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -19,7 +19,9 @@ import {
     Send,
     MessageSquare,
     X,
+    Printer,
 } from 'lucide-react';
+import { MomPrintModal } from '@/components/meetings/MomPrintModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 
@@ -92,6 +94,7 @@ export function MeetingForm({
     const [absenteesShowAll, setAbsenteesShowAll] = useState(false);
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showMomPrintModal, setShowMomPrintModal] = useState(false);
     const isInitializedRef = useRef(false);
     const lastMeetingIdRef = useRef(meetingId);
 
@@ -257,6 +260,15 @@ export function MeetingForm({
                     />
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => setShowMomPrintModal(true)}
+                        className="inline-flex items-center justify-center gap-1.5 h-7 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer"
+                        title="Preview & Print MOM Document"
+                    >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Print MOM</span>
+                    </button>
                     {!readOnly && isDraft && (
                         <Button
                             variant="ghost"
@@ -600,17 +612,20 @@ export function MeetingForm({
 
                     </div>
 
-                    {/* Rich Text Editor */}
+                    {/* Discussion Area Table */}
                     <div className="pt-1 space-y-1">
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
-                            <MessageSquare className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
-                            Discussion Area <span className="text-red-500">*</span>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1 flex items-center justify-between">
+                            <span>
+                                <MessageSquare className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
+                                Discussion Area <span className="text-red-500">*</span>
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-medium normal-case">
+                                Type @ or # to search & mention users/projects
+                            </span>
                         </label>
-                        <RichTextEditor
+                        <DiscussionAreaTable
                             content={formData.content}
-                            onChange={(json) => setFormData({ ...formData, content: json })}
-                            placeholder={readOnly ? "" : "Document action items, decisions, and key insights... Use @ to mention users and # to mention projects"}
-                            highlightId={highlightProjectId}
+                            onChange={(jsonPayload) => setFormData({ ...formData, content: jsonPayload })}
                             readOnly={readOnly}
                         />
                     </div>
@@ -631,6 +646,21 @@ export function MeetingForm({
             />
 
 
+            {/* MOM Print Preview Modal */}
+            <MomPrintModal
+                isOpen={showMomPrintModal}
+                onClose={() => setShowMomPrintModal(false)}
+                meeting={{
+                    title: formData.title,
+                    location: formData.location,
+                    purpose: formData.purpose,
+                    numberOfPeople: formData.numberOfPeople,
+                    attendedBy: formData.attendedBy,
+                    absentees: formData.absentees,
+                    meetingDate: formData.meetingDate,
+                    content: formData.content,
+                }}
+            />
         </div>
     );
 }
