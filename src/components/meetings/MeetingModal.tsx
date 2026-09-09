@@ -8,6 +8,8 @@ import { MeetingForm } from './MeetingForm';
 import Dialog from '@/components/ui/Dialog';
 import { useToast } from '@/components/ui/Toast';
 import { Loader } from '@/components/ui/Loader';
+import { useOrgStore } from '@/stores/orgStore';
+import { useUser } from '@/hooks/use-auth';
 
 interface MeetingModalProps {
     isOpen: boolean;
@@ -30,6 +32,9 @@ export function MeetingModal({
     createMode = false,
     highlightProjectId,
 }: MeetingModalProps) {
+    const activeOrgRole = useOrgStore((s) => s.activeOrgRole);
+    const { data: currentUser } = useUser();
+
     const [activeMeetingId, setActiveMeetingId] = useState<string | null>(selectedMeetingId);
     const [isCreateMode, setIsCreateMode] = useState(createMode);
     const [isEditing, setIsEditing] = useState(false);
@@ -260,8 +265,8 @@ export function MeetingModal({
                                                     )}
                                                 </div>
 
-                                                {/* Delete button when viewing (not in create mode); form stays read-only */}
-                                                {!isCreateMode && (
+                                                {/* Delete button when viewing (not in create mode); restricted to OWNER or creator */}
+                                                {!isCreateMode && activeOrgRole === 'OWNER' && (
                                                     <button
                                                         onClick={(e) => {
                                                              e.stopPropagation();
@@ -306,6 +311,7 @@ export function MeetingModal({
                                 onDeleted={handleDeleted}
                                 onSaved={handleSaved}
                                 readOnly={false}
+                                isEditing={false}
                             />
                         ) : activeMeetingId ? (
                             <MeetingForm
@@ -318,6 +324,7 @@ export function MeetingModal({
                                 onSaved={handleSaved}
                                 onCancel={handleCancelEdit}
                                 readOnly={!isEditing}
+                                isEditing={isEditing}
                             />
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-400">
