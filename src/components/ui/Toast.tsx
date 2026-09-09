@@ -62,7 +62,7 @@ const typeConfig = {
         color: 'from-emerald-600 to-green-600',
         textColor: 'text-white',
         iconColor: 'text-emerald-100',
-        bgColor: 'bg-emerald-950 shadow-2xl',
+        bgColor: 'bg-emerald-950',
         borderColor: 'border-emerald-900',
         progressColor: 'bg-emerald-400',
     },
@@ -71,7 +71,7 @@ const typeConfig = {
         color: 'from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20',
         textColor: 'text-red-800 dark:text-red-200',
         iconColor: 'text-red-600 dark:text-red-400',
-        bgColor: 'bg-white dark:bg-slate-900 shadow-md',
+        bgColor: 'bg-white dark:bg-slate-900',
         borderColor: 'border-red-200 dark:border-red-800',
         progressColor: 'bg-gradient-to-r from-red-500 to-rose-600',
     },
@@ -80,7 +80,7 @@ const typeConfig = {
         color: 'from-amber-500/20 to-orange-500/20 dark:from-amber-500/10 dark:to-orange-500/10',
         textColor: 'text-amber-700 dark:text-amber-300',
         iconColor: 'text-amber-600 dark:text-amber-400',
-        bgColor: 'bg-white dark:bg-slate-900 shadow-md',
+        bgColor: 'bg-white dark:bg-slate-900',
         borderColor: 'border-amber-200 dark:border-amber-800',
         progressColor: 'bg-gradient-to-r from-amber-500 to-orange-500',
     },
@@ -89,7 +89,7 @@ const typeConfig = {
         color: 'from-[#091590]/10 to-blue-500/10 dark:from-blue-500/10 dark:to-cyan-500/10',
         textColor: 'text-[#091590] dark:text-blue-300',
         iconColor: 'text-[#091590] dark:text-blue-400',
-        bgColor: 'bg-white dark:bg-slate-900 shadow-md',
+        bgColor: 'bg-white dark:bg-slate-900',
         borderColor: 'border-[#091590]/10 dark:border-blue-800',
         progressColor: 'bg-gradient-to-r from-[#091590] to-blue-600',
     },
@@ -98,7 +98,7 @@ const typeConfig = {
         color: 'from-[#091590]/10 to-indigo-500/10 dark:from-purple-500/10 dark:to-indigo-500/10',
         textColor: 'text-[#091590] dark:text-purple-300',
         iconColor: 'text-[#091590] dark:text-purple-400',
-        bgColor: 'bg-white dark:bg-slate-900 shadow-md',
+        bgColor: 'bg-white dark:bg-slate-900',
         borderColor: 'border-[#091590]/10 dark:border-purple-800',
         progressColor: 'bg-gradient-to-r from-[#091590] to-indigo-600',
     },
@@ -107,7 +107,7 @@ const typeConfig = {
         color: 'from-slate-500/20 to-gray-500/20 dark:from-slate-500/10 dark:to-gray-500/10',
         textColor: 'text-slate-700 dark:text-slate-300',
         iconColor: 'text-slate-600 dark:text-slate-400',
-        bgColor: 'bg-white dark:bg-slate-900 shadow-md',
+        bgColor: 'bg-white dark:bg-slate-900',
         borderColor: 'border-slate-200 dark:border-slate-800',
         progressColor: 'bg-gradient-to-r from-slate-500 to-gray-500',
     },
@@ -177,7 +177,7 @@ export const Toast: React.FC<ToastProps> = ({
 
     const variantStyles = {
         default: `${config.bgColor} border ${config.borderColor}`,
-        minimal: 'bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-md',
+        minimal: 'bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800',
         outline: `bg-transparent border-2 ${config.borderColor}`,
         gradient: `bg-gradient-to-r ${config.color} border ${config.borderColor}`,
     };
@@ -197,7 +197,7 @@ export const Toast: React.FC<ToastProps> = ({
         >
             <div
                 className={cn(
-                    'flex items-start gap-3 px-4 py-3.5 rounded-lg shadow-lg',
+                    'flex items-start gap-3 px-4 py-3.5 rounded-lg',
                     'min-w-72 max-w-sm overflow-hidden',
                     variantStyles[variant],
                     className,

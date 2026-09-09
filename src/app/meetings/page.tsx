@@ -59,6 +59,17 @@ export default function MeetingsPage() {
         setModalOpen(true);
     };
 
+    // Select meeting from table in list view
+    const handleSelectMeetingFromTable = (meeting: any) => {
+        const eventDate = meeting.meetingDate
+            ? new Date(meeting.meetingDate).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0];
+        setModalDate(eventDate);
+        setModalMeetingId(meeting.id);
+        setModalCreateMode(false);
+        setModalOpen(true);
+    };
+
     const handleModalClose = () => {
         setModalOpen(false);
         setModalMeetingId(null);
