@@ -11,6 +11,8 @@ import {
 } from '@/hooks/use-attendance';
 import type { WorkMode, BreakType } from '@/types/attendance';
 import { cn } from '@/lib/utils';
+import { useTimerStore } from '@/stores/timerStore';
+import { Dialog } from '@/components/ui/Dialog';
 
 const statusConfig: Record<string, { label: string; color: string }> = {
     not_checked_in: { label: 'Not checked in', color: 'bg-gray-400' },
@@ -29,8 +31,10 @@ const WORK_MODE_OPTIONS: { value: WorkMode; label: string; icon: React.ReactNode
 export function AttendanceStatusMenu() {
     const [isOpen, setIsOpen] = useState(false);
     const [checkInSubmenu, setCheckInSubmenu] = useState(false);
+    const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const status = useAttendanceStore((s) => s.status);
+    const isTimerRunning = useTimerStore((s) => s.isRunning);
     const config = statusConfig[status] || statusConfig.not_checked_in;
 
     const checkIn = useAttendanceCheckIn();
@@ -61,6 +65,20 @@ export function AttendanceStatusMenu() {
     const handleStartBreak = (type: BreakType) => {
         startBreak.mutate({ type });
         setIsOpen(false);
+    };
+
+    const handleCheckOutClick = () => {
+        if (isTimerRunning) {
+            setShowCheckoutConfirm(true);
+        } else {
+            checkOut.mutate();
+        }
+        setIsOpen(false);
+    };
+
+    const confirmCheckOut = async () => {
+        await checkOut.mutateAsync();
+        setShowCheckoutConfirm(false);
     };
 
     return (
@@ -158,7 +176,7 @@ export function AttendanceStatusMenu() {
                     {(status === 'checked_in' || status === 'on_break' || status === 'on_lunch') && (
                         <button
                             type="button"
-                            onClick={() => { checkOut.mutate(); setIsOpen(false); }}
+                            onClick={handleCheckOutClick}
                             disabled={checkOut.isPending}
                             className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-red-50 transition-colors disabled:opacity-50 border-t border-gray-100"
                         >
@@ -168,6 +186,19 @@ export function AttendanceStatusMenu() {
                     )}
                 </div>
             </div>
+
+            <Dialog
+                isOpen={showCheckoutConfirm}
+                onClose={() => setShowCheckoutConfirm(false)}
+                type="warning"
+                title="Active Timer Running"
+                message="You have an active timer running. Checking out will automatically stop the timer and save your progress. Proceed?"
+                confirmText="Stop Timer & Check Out"
+                cancelText="Cancel"
+                confirmVariant="destructive"
+                onConfirm={confirmCheckOut}
+                isLoading={checkOut.isPending}
+            />
         </div>
     );
 }
