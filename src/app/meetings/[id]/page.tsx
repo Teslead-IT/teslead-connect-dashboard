@@ -220,7 +220,7 @@ export default function MeetingDetailPage() {
             <div className="flex items-center justify-center h-screen bg-gray-50">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-12 h-12 border-4 border-[#091590] border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm font-bold text-gray-600 uppercase tracking-wide">Loading meeting...</p>
+                    <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Loading meeting...</p>
                 </div>
             </div>
         );
@@ -235,7 +235,7 @@ export default function MeetingDetailPage() {
                     <p className="text-gray-600 mb-4">This meeting doesn&apos;t exist or you don&apos;t have access to it.</p>
                     <button
                         onClick={() => router.push('/meetings')}
-                        className="px-4 py-2 bg-[#091590] text-white rounded-lg hover:bg-[#071170] font-bold text-sm"
+                        className="px-4 py-2 bg-[#091590] text-white rounded-lg hover:bg-[#071170] font-bold text-xs"
                     >
                         Back to Meetings
                     </button>
@@ -262,7 +262,7 @@ export default function MeetingDetailPage() {
 
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                             <div
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0 bg-[#091590]"
+                                className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-sm flex-shrink-0 bg-[#091590]"
                             >
                                 M
                             </div>
@@ -274,7 +274,7 @@ export default function MeetingDetailPage() {
                                         value={formData.title}
                                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                         placeholder="Meeting Title"
-                                        className="text-sm font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]"
+                                        className="text-xs font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]"
                                     />
                                     <div className="flex items-center gap-1.5 flex-shrink-0">
                                         {isDraft && (
@@ -349,7 +349,7 @@ export default function MeetingDetailPage() {
                                     value={formData.location}
                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                                     placeholder="Physical or Digital Link"
-                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 shadow-sm"
+                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400 shadow-sm"
                                 />
                             </div>
 
@@ -365,7 +365,7 @@ export default function MeetingDetailPage() {
                                     onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
                                     placeholder="0"
                                     min="0"
-                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 shadow-sm"
+                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 shadow-sm"
                                 />
                             </div>
 
@@ -379,7 +379,7 @@ export default function MeetingDetailPage() {
                                     type="time"
                                     value={formData.time || new Date().toISOString().split('T')[1]}
                                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 shadow-sm"
+                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 shadow-sm"
                                 />
                             </div>
                         </div>
@@ -397,7 +397,7 @@ export default function MeetingDetailPage() {
                                     onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
                                     placeholder="Objective of the session..."
                                     rows={3}
-                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 shadow-sm resize-none"
+                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400 shadow-sm resize-none"
                                 />
                             </div>
 
@@ -412,7 +412,7 @@ export default function MeetingDetailPage() {
                                     onChange={(e) => setFormData({ ...formData, attendedBy: e.target.value })}
                                     placeholder="John, Sarah..."
                                     rows={3}
-                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 shadow-sm resize-none"
+                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400 shadow-sm resize-none"
                                 />
                             </div>
 
@@ -427,7 +427,7 @@ export default function MeetingDetailPage() {
                                     onChange={(e) => setFormData({ ...formData, absentees: e.target.value })}
                                     placeholder="None"
                                     rows={3}
-                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 shadow-sm resize-none"
+                                    className="w-full bg-white px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400 shadow-sm resize-none"
                                 />
                             </div>
                         </div>

@@ -153,7 +153,7 @@ export function SendProjectInviteModal({
                     <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <label className="block text-xs font-medium text-gray-700 mb-2">Email Address</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Mail className="h-4 w-4 text-gray-400" />
@@ -167,7 +167,7 @@ export function SendProjectInviteModal({
                                         setShowSuggestions(true);
                                     }}
                                     onFocus={() => setShowSuggestions(true)}
-                                    className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all text-sm shadow-sm"
+                                    className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all text-xs shadow-sm"
                                     placeholder="colleague@example.com"
                                     disabled={isPending}
                                     autoFocus
@@ -178,7 +178,7 @@ export function SendProjectInviteModal({
                                 {showSuggestions && email.length > 1 && (
                                     <div className="suggestions-container absolute z-20 w-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-60 overflow-y-auto overflow-x-hidden">
                                         {isSearching ? (
-                                            <div className="p-4 text-center text-sm text-gray-500 animate-pulse">
+                                            <div className="p-4 text-center text-xs text-gray-500 animate-pulse">
                                                 Searching users...
                                             </div>
                                         ) : userSuggestions.length > 0 ? (
@@ -200,7 +200,7 @@ export function SendProjectInviteModal({
                                                             )}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                                                            <p className="text-xs font-medium text-gray-900 truncate">{user.name}</p>
                                                             <p className="text-xs text-gray-500 truncate">{user.email}</p>
                                                         </div>
                                                         <div className="text-xs text-gray-400">Select</div>
@@ -215,7 +215,7 @@ export function SendProjectInviteModal({
 
                         {/* Role Selection */}
                         <div className="space-y-3">
-                            <label className="block text-sm font-medium text-gray-700">Project Role</label>
+                            <label className="block text-xs font-medium text-gray-700">Project Role</label>
                             <div className="grid gap-3">
                                 {roles.map((r) => {
                                     const Icon = r.icon;
@@ -236,7 +236,7 @@ export function SendProjectInviteModal({
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between">
-                                                    <p className={cn("text-sm font-semibold", isSelected ? "text-[#091590]" : "text-gray-900")}>
+                                                    <p className={cn("text-xs font-semibold", isSelected ? "text-[#091590]" : "text-gray-900")}>
                                                         {r.label}
                                                     </p>
                                                     {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#091590]" />}
@@ -258,7 +258,7 @@ export function SendProjectInviteModal({
                                     </svg>
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-medium text-green-800">Invitation Sent!</h4>
+                                    <h4 className="text-xs font-medium text-green-800">Invitation Sent!</h4>
                                     <p className="text-xs text-green-600 mt-0.5">The user has been invited successfully.</p>
                                 </div>
                             </div>
@@ -271,7 +271,7 @@ export function SendProjectInviteModal({
                                     <X className="w-3 h-3 text-red-600" />
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-medium text-red-800">Failed to send</h4>
+                                    <h4 className="text-xs font-medium text-red-800">Failed to send</h4>
                                     <p className="text-xs text-red-600 mt-0.5">
                                         {(error as any)?.response?.data?.message || (error as Error)?.message || 'Something went wrong.'}
                                     </p>
@@ -287,14 +287,14 @@ export function SendProjectInviteModal({
                         type="button"
                         onClick={onClose}
                         disabled={isPending}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                        className="px-4 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={isPending || !email}
-                        className="px-6 py-2 text-sm font-medium text-white bg-[#091590] rounded-lg hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2"
+                        className="px-6 py-2 text-xs font-medium text-white bg-[#091590] rounded-lg hover:bg-[#071170] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2"
                     >
                         {isPending ? (
                             <>

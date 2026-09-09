@@ -231,7 +231,7 @@ export function MeetingForm({
     if (!meeting && !isNew) {
         return (
             <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-gray-400">Meeting not found</p>
+                <p className="text-xs text-gray-400">Meeting not found</p>
             </div>
         );
     }
@@ -243,7 +243,7 @@ export function MeetingForm({
             {/* Header Bar */}
             <div className="bg-white border-b border-gray-100 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm bg-[#091590] flex-shrink-0">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs bg-[#091590] flex-shrink-0">
                         M
                     </div>
                     <input
@@ -322,7 +322,7 @@ export function MeetingForm({
                                     placeholder={readOnly ? "No location set" : "Physical or Digital Link"}
                                     readOnly={readOnly}
                                     className={cn(
-                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400",
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400",
                                         readOnly && "bg-gray-50/50 cursor-default"
                                     )}
                                 />
@@ -344,7 +344,7 @@ export function MeetingForm({
                                     }}
                                     readOnly={readOnly}
                                     className={cn(
-                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900",
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900",
                                         readOnly && "bg-gray-50/50 cursor-default"
                                     )}
                                 />
@@ -361,7 +361,7 @@ export function MeetingForm({
                                     min="0"
                                     readOnly={readOnly}
                                     className={cn(
-                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900",
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900",
                                         readOnly && "bg-gray-50/50 cursor-default"
                                     )}
                                 />
@@ -382,7 +382,7 @@ export function MeetingForm({
                                     rows={2}
                                     readOnly={readOnly}
                                     className={cn(
-                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-sm font-medium text-gray-900 placeholder:text-gray-400 resize-none",
+                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400 resize-none",
                                         readOnly && "bg-gray-50/50 cursor-default"
                                     )}
                                 />
@@ -452,7 +452,7 @@ export function MeetingForm({
                                         }}
                                         readOnly={readOnly}
                                         className={cn(
-                                            "flex-1 min-w-[100px] bg-transparent outline-none text-sm font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
+                                            "flex-1 min-w-[100px] bg-transparent outline-none text-xs font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
                                             readOnly && "hidden"
                                         )}
                                     />
@@ -472,7 +472,7 @@ export function MeetingForm({
                                             <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                                 <ol className="list-decimal pl-5 space-y-1.5">
                                                     {formData.attendedBy.split(',').filter(name => name.trim()).map((name, idx) => (
-                                                        <li key={idx} className="text-sm font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                                        <li key={idx} className="text-xs font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                             <span className="flex-1 truncate">{name.trim()}</span>
                                                             {!readOnly && (
                                                                 <button
@@ -562,7 +562,7 @@ export function MeetingForm({
                                         }}
                                         readOnly={readOnly}
                                         className={cn(
-                                            "flex-1 min-w-[100px] bg-transparent outline-none text-sm font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
+                                            "flex-1 min-w-[100px] bg-transparent outline-none text-xs font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
                                             readOnly && "hidden"
                                         )}
                                     />
@@ -582,7 +582,7 @@ export function MeetingForm({
                                             <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                                 <ol className="list-decimal pl-5 space-y-1.5">
                                                     {formData.absentees.split(',').filter(name => name.trim()).map((name, idx) => (
-                                                        <li key={idx} className="text-sm font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                                        <li key={idx} className="text-xs font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                             <span className="flex-1 truncate">{name.trim()}</span>
                                                             {!readOnly && (
                                                                 <button

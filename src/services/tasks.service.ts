@@ -119,12 +119,28 @@ export const taskService = {
 
     /**
      * Get my tasks (paginated)
-     * @param params - page and limit
+     * @param params - page, limit, search, statusId, projectId
      * @returns Paginated list of tasks assigned to current user
      */
-    async getMyTasks(params?: { page?: number; limit?: number }): Promise<MyTasksResponse> {
+    async getMyTasks(params?: { page?: number; limit?: number; search?: string; statusId?: string; projectId?: string }): Promise<MyTasksResponse> {
         const { data } = await apiClient.get<MyTasksResponse>('/tasks/my-tasks', {
-            params: { page: params?.page ?? 1, limit: params?.limit ?? 20 },
+            params,
+        });
+        return data;
+    },
+
+    /**
+     * Get tasks for a specific user (paginated)
+     * @param userId - Target user ID
+     * @param params - page, limit, search, statusId, projectId
+     * @returns Paginated list of tasks assigned to target user
+     */
+    async getUserTasks(
+        userId: string,
+        params?: { page?: number; limit?: number; search?: string; statusId?: string; projectId?: string }
+    ): Promise<MyTasksResponse> {
+        const { data } = await apiClient.get<MyTasksResponse>(`/tasks/user/${userId}`, {
+            params,
         });
         return data;
     },

@@ -111,8 +111,8 @@ function RegisterPageContent() {
     gsap.to(imageRef.current, {
       x: "-100%", duration: 0.8, ease: "power3.inOut", onComplete: () => {
         sessionStorage.setItem('authTransition', 'true');
-        const targetUrl = returnTo !== '/dashboard' 
-          ? `/auth/login?returnTo=${encodeURIComponent(returnTo)}` 
+        const targetUrl = returnTo !== '/dashboard'
+          ? `/auth/login?returnTo=${encodeURIComponent(returnTo)}`
           : "/auth/login";
         router.push(targetUrl);
       }
@@ -143,7 +143,7 @@ function RegisterPageContent() {
               <button
                 type="button"
                 onClick={() => setPhoneStep('REQUEST')}
-                className="flex items-center gap-2 py-2 px-0 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                className="flex items-center gap-2 py-2 px-0 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -171,7 +171,7 @@ function RegisterPageContent() {
                 Create your account
               </h1>
             </div>
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-500 text-xs">
               Sign up with {signupMethod === 'email' ? 'email' : 'phone'} to get started
             </p>
           </div>
@@ -181,7 +181,7 @@ function RegisterPageContent() {
             <button
               type="button"
               onClick={() => setSignupMethod('email')}
-              className={`flex-1 py-2 text-sm font-bold rounded-none transition-all duration-300 ${signupMethod === 'email' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+              className={`flex-1 py-2 text-xs font-bold rounded-none transition-all duration-300 ${signupMethod === 'email' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
                 }`}
             >
               Email
@@ -189,7 +189,7 @@ function RegisterPageContent() {
             <button
               type="button"
               onClick={() => { setSignupMethod('phone'); setPhoneStep('REQUEST'); }}
-              className={`flex-1 py-2 text-sm font-bold rounded-none transition-all duration-300 ${signupMethod === 'phone' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+              className={`flex-1 py-2 text-xs font-bold rounded-none transition-all duration-300 ${signupMethod === 'phone' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
                 }`}
             >
               Phone
@@ -201,14 +201,14 @@ function RegisterPageContent() {
               {/* Common Name Field (Except Phone Step 2) */}
               {(signupMethod === 'email' || (signupMethod === 'phone' && phoneStep === 'REQUEST')) && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">
                     Full Name
                   </label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-xs"
                     placeholder="Your Name"
                     required
                     disabled={isLoading}
@@ -219,14 +219,14 @@ function RegisterPageContent() {
               {/* Email Input */}
               {signupMethod === 'email' && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">
                     Email Address
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-xs"
                     placeholder="john@example.com"
                     required
                     disabled={isLoading}
@@ -237,14 +237,14 @@ function RegisterPageContent() {
               {/* Phone Input */}
               {signupMethod === 'phone' && phoneStep === 'REQUEST' && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">
                     Phone Number
                   </label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-xs"
                     placeholder="+919876543210"
                     pattern="^\+[1-9]\d{1,14}$"
                     required
@@ -256,14 +256,14 @@ function RegisterPageContent() {
               {/* OTP Input for Phone */}
               {signupMethod === 'phone' && phoneStep === 'VERIFY' && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">
                     Verification Code (OTP)
                   </label>
                   <input
                     type="text"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm"
+                    className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-xs"
                     placeholder="Enter 6-digit OTP"
                     required
                     disabled={isLoading}
@@ -274,7 +274,7 @@ function RegisterPageContent() {
               {/* Password Input (Email OR Phone Step 2) */}
               {(signupMethod === 'email' || (signupMethod === 'phone' && phoneStep === 'VERIFY')) && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5 ml-1">
                     Password
                   </label>
                   <div className="relative">
@@ -282,7 +282,7 @@ function RegisterPageContent() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-sm pr-14"
+                      className="w-full px-4 py-2 rounded-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all duration-300 outline-none text-xs pr-14"
                       placeholder="Create a strong password"
                       required
                       disabled={isLoading}
@@ -309,7 +309,7 @@ function RegisterPageContent() {
                   className="w-5 h-5 rounded-none border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors cursor-pointer"
                 />
               </div>
-              <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed pt-0.5">
+              <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed pt-0.5">
                 By signing up, you agree to our
                 <Link href="/terms" className="font-bold text-blue-600 hover:text-blue-800 hover:underline mx-1">Terms</Link>
                 &
@@ -318,7 +318,7 @@ function RegisterPageContent() {
             </div>
 
             {errorMessage && (
-              <div className="p-4 rounded-none bg-red-50 text-red-600 text-sm font-medium border border-red-100 flex items-center gap-3">
+              <div className="p-4 rounded-none bg-red-50 text-red-600 text-xs font-medium border border-red-100 flex items-center gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 flex-shrink-0">
                   <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clipRule="evenodd" />
                 </svg>
@@ -340,7 +340,7 @@ function RegisterPageContent() {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-100"></div>
               </div>
-              <div className="relative flex justify-center text-sm">
+              <div className="relative flex justify-center text-xs">
                 <span className="px-4 bg-white text-gray-400 font-medium uppercase tracking-wider text-[10px]">Or continue with</span>
               </div>
             </div>

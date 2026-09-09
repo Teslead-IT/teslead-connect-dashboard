@@ -133,6 +133,8 @@ export interface MyTaskStatus {
 
 export interface MyTask {
     id: string;
+    taskId?: string | null;
+    type?: TaskType | null;
     title: string;
     description?: string;
     priority: number;
@@ -142,6 +144,10 @@ export interface MyTask {
     projectId: string;
     projectName: string;
     projectColor: string | null;
+    phaseId?: string | null;
+    phaseName?: string | null;
+    taskListId?: string | null;
+    taskListName?: string | null;
     status: MyTaskStatus;
     assignees: MyTaskAssignee[];
     tags: MyTaskTag[];

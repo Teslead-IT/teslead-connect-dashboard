@@ -50,7 +50,7 @@ export default function InvitationsPage() {
                             <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
                                 Team Management
                             </h1>
-                            <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
+                            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
                                 Manage invitations and team members for {currentOrg.name}
                             </p>
                         </div>
@@ -131,7 +131,7 @@ export default function InvitationsPage() {
                             <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
                                 Pending Invitations
                             </h2>
-                            <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
+                            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
                                 Invitations sent to your email that need your action
                             </p>
                         </div>
@@ -175,7 +175,7 @@ export default function InvitationsPage() {
                         🚀 How to Use the Invitation System
                     </h2>
 
-                    <div className="space-y-4 text-sm text-[var(--color-text-secondary)]">
+                    <div className="space-y-4 text-xs text-[var(--color-text-secondary)]">
                         <div className="flex gap-3">
                             <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold">
                                 1
@@ -304,7 +304,7 @@ function StatsCard({ title, value, icon, variant }: StatsCardProps) {
                 </div>
             </div>
             <h3 className="text-3xl font-bold text-[var(--color-text-primary)] mb-1">{value}</h3>
-            <p className="text-sm text-[var(--color-text-tertiary)]">{title}</p>
+            <p className="text-xs text-[var(--color-text-tertiary)]">{title}</p>
         </div>
     );
 }

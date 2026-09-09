@@ -96,7 +96,7 @@ export function ProjectSearchBox({ value, onChange, placeholder = 'Search...' }:
                                     onFocus={() => setIsFocused(true)}
                                     onBlur={handleBlur}
                                     placeholder={placeholder}
-                                    className="flex-1 min-w-0 h-full text-sm text-gray-900 placeholder:text-gray-400 bg-transparent border-none outline-none focus:ring-0 p-0"
+                                    className="flex-1 min-w-0 h-full text-xs text-gray-900 placeholder:text-gray-400 bg-transparent border-none outline-none focus:ring-0 p-0"
                                 />
                                 {searchQuery && (
                                     <button

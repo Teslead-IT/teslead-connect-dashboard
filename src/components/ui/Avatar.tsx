@@ -11,7 +11,7 @@ export interface AvatarProps {
 export function Avatar({ name, src, size = 'md', className }: AvatarProps) {
     const sizeStyles = {
         xs: 'w-6 h-6 text-xs',
-        sm: 'w-8 h-8 text-sm',
+        sm: 'w-8 h-8 text-xs',
         md: 'w-10 h-10 text-base',
         lg: 'w-12 h-12 text-lg',
         xl: 'w-16 h-16 text-xl',
