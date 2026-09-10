@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, Plus, Trash2, Calendar, Clock } from 'lucide-react';
+import { X, Plus, Trash2, Calendar, Clock, Pencil, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMeetings, useDeleteMeeting } from '@/hooks/use-meetings';
 import { MeetingForm } from './MeetingForm';
 import Dialog from '@/components/ui/Dialog';
 import { useToast } from '@/components/ui/Toast';
 import { Loader } from '@/components/ui/Loader';
+import { useOrgStore } from '@/stores/orgStore';
+import { useUser } from '@/hooks/use-auth';
 
 interface MeetingModalProps {
     isOpen: boolean;
@@ -30,8 +32,12 @@ export function MeetingModal({
     createMode = false,
     highlightProjectId,
 }: MeetingModalProps) {
+    const activeOrgRole = useOrgStore((s) => s.activeOrgRole);
+    const { data: currentUser } = useUser();
+
     const [activeMeetingId, setActiveMeetingId] = useState<string | null>(selectedMeetingId);
     const [isCreateMode, setIsCreateMode] = useState(createMode);
+    const [isEditing, setIsEditing] = useState(false);
     const [createKey, setCreateKey] = useState(0);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -52,6 +58,7 @@ export function MeetingModal({
         if (isOpen) {
             setActiveMeetingId(selectedMeetingId);
             setIsCreateMode(createMode);
+            setIsEditing(false);
         }
     }, [isOpen, selectedMeetingId, createMode]);
 
@@ -59,6 +66,7 @@ export function MeetingModal({
     useEffect(() => {
         if (!isCreateMode && !activeMeetingId && meetings.length > 0 && !isLoading) {
             setActiveMeetingId(meetings[0].id);
+            setIsEditing(false);
         }
     }, [meetings, isCreateMode, activeMeetingId, isLoading]);
 
@@ -67,12 +75,14 @@ export function MeetingModal({
     const handleCardClick = (meetingId: string) => {
         setIsCreateMode(false);
         setActiveMeetingId(meetingId);
+        setIsEditing(false);
     };
 
     const handleCreateNew = () => {
         setCreateKey(prev => prev + 1);
         setIsCreateMode(true);
         setActiveMeetingId(null);
+        setIsEditing(false);
     };
 
     const handleCreated = (newMeeting: any) => {
@@ -80,18 +90,25 @@ export function MeetingModal({
         setCreateKey(prev => prev + 1);
         setIsCreateMode(true);
         setActiveMeetingId(null);
+        setIsEditing(false);
     };
 
     const handleDeleted = () => {
         refetch();
         setActiveMeetingId(null);
+        setIsEditing(false);
         if (meetings.length <= 1) {
             setIsCreateMode(true);
         }
     };
 
     const handleSaved = () => {
+        setIsEditing(false);
         refetch();
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
     };
 
     const confirmDeleteCard = async () => {
@@ -146,12 +163,33 @@ export function MeetingModal({
                             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{getHeaderTitle()}</h2>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {/* {!isCreateMode && activeMeetingId && (
+                            isEditing ? (
+                                <button
+                                    onClick={handleCancelEdit}
+                                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all border border-gray-200"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    Cancel
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold uppercase tracking-wider text-white bg-[#091590] hover:bg-[#071170] active:scale-[0.98] transition-all shadow-sm"
+                                >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    Edit
+                                </button>
+                            )
+                        )} */}
+                        <button
+                            onClick={onClose}
+                            className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Body: Left Cards + Right Form */}
@@ -203,7 +241,7 @@ export function MeetingModal({
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="min-w-0 flex-1">
                                                     <h3 className={cn(
-                                                        "font-bold text-sm truncate",
+                                                        "font-bold text-xs truncate",
                                                         isActive ? "text-white" : "text-gray-900"
                                                     )}>
                                                         {meeting.title || 'Untitled'}
@@ -214,7 +252,7 @@ export function MeetingModal({
                                                     )}>
                                                         <Clock className="w-3 h-3" />
                                                         <span className="text-[10px] font-bold uppercase tracking-wider">
-                                                            {meeting.time || 'No time set'}
+                                                             {meeting.time || 'No time set'}
                                                         </span>
                                                     </div>
                                                     {meeting.location && (
@@ -227,12 +265,12 @@ export function MeetingModal({
                                                     )}
                                                 </div>
 
-                                                {/* Delete button when viewing (not in create mode); form stays read-only */}
-                                                {!isCreateMode && (
+                                                {/* Delete button when viewing (not in create mode); restricted to OWNER or creator */}
+                                                {!isCreateMode && activeOrgRole === 'OWNER' && (
                                                     <button
                                                         onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setDeleteConfirmId(meeting.id);
+                                                             e.stopPropagation();
+                                                             setDeleteConfirmId(meeting.id);
                                                         }}
                                                         className={cn(
                                                             "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all",
@@ -273,17 +311,20 @@ export function MeetingModal({
                                 onDeleted={handleDeleted}
                                 onSaved={handleSaved}
                                 readOnly={false}
+                                isEditing={false}
                             />
                         ) : activeMeetingId ? (
                             <MeetingForm
-                                key={activeMeetingId}
+                                key={`${activeMeetingId}-${isEditing}`}
                                 meetingId={activeMeetingId}
                                 defaultDate={selectedDate}
                                 highlightProjectId={highlightProjectId}
                                 onCreated={handleCreated}
                                 onDeleted={handleDeleted}
                                 onSaved={handleSaved}
-                                readOnly={true}
+                                onCancel={handleCancelEdit}
+                                readOnly={!isEditing}
+                                isEditing={isEditing}
                             />
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-400">

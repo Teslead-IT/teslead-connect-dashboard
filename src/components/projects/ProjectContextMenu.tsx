@@ -40,7 +40,7 @@ export function ProjectContextMenu({
             >
                 {onViewDetails && (
                     <button
-                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
+                        className="w-full px-4 py-2.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
                         onClick={() => {
                             onViewDetails();
                             onClose();
@@ -52,7 +52,7 @@ export function ProjectContextMenu({
                 )}
                 {onInvite && (
                     <button
-                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
+                        className="w-full px-4 py-2.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
                         onClick={() => {
                             onInvite();
                             onClose();
@@ -65,7 +65,7 @@ export function ProjectContextMenu({
 
                 {onEdit && (
                     <button
-                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
+                        className="w-full px-4 py-2.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
                         onClick={() => {
                             onEdit();
                             onClose();
@@ -81,7 +81,7 @@ export function ProjectContextMenu({
                         <div className="h-px bg-gray-100 my-1"></div>
 
                         <button
-                            className="w-full px-4 py-2.5 text-left text-sm hover:bg-red-50 flex items-center gap-2.5 text-red-600 transition-colors"
+                            className="w-full px-4 py-2.5 text-left text-xs hover:bg-red-50 flex items-center gap-2.5 text-red-600 transition-colors"
                             onClick={() => {
                                 onDelete();
                                 onClose();

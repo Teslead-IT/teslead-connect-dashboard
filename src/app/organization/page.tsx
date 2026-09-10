@@ -169,7 +169,7 @@ function OrganizationsPageContent() {
 
                     {/* Dashboard Feature Cards */}
                     <div className="space-y-4 max-w-lg flex-grow">
-                        <div className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-6">
+                        <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-6">
                             Explore Features
                         </div>
 
@@ -180,7 +180,7 @@ function OrganizationsPageContent() {
                                 </div>
                                 <div>
                                     <h3 className="text-base font-semibold text-gray-900 mb-1">Manage Your Projects</h3>
-                                    <p className="text-sm text-gray-500 leading-relaxed">
+                                    <p className="text-xs text-gray-500 leading-relaxed">
                                         Organize tasks, track progress across phases, and collaborate seamlessly with your team.
                                     </p>
                                 </div>
@@ -194,7 +194,7 @@ function OrganizationsPageContent() {
                                 </div>
                                 <div>
                                     <h3 className="text-base font-semibold text-gray-900 mb-1">Streamline Meetings</h3>
-                                    <p className="text-sm text-gray-500 leading-relaxed">
+                                    <p className="text-xs text-gray-500 leading-relaxed">
                                         Capture Minutes of Meeting (MOM), tag relevant projects, and notify team members instantly.
                                     </p>
                                 </div>
@@ -208,7 +208,7 @@ function OrganizationsPageContent() {
                                 </div>
                                 <div>
                                     <h3 className="text-base font-semibold text-gray-900 mb-1">Document Hub</h3>
-                                    <p className="text-sm text-gray-500 leading-relaxed">
+                                    <p className="text-xs text-gray-500 leading-relaxed">
                                         Centralize all your project-related documents and assets in one secure place.
                                     </p>
                                 </div>
@@ -217,7 +217,7 @@ function OrganizationsPageContent() {
                     </div>
 
                     {/* Footer Left */}
-                    <div className="mt-8 pt-8 flex items-center justify-between text-sm text-gray-500 border-t border-gray-200 shrink-0">
+                    <div className="mt-8 pt-8 flex items-center justify-between text-xs text-gray-500 border-t border-gray-200 shrink-0">
                     </div>
                 </div>
 
@@ -228,7 +228,7 @@ function OrganizationsPageContent() {
                     <div className="max-w-xl w-full mx-auto lg:mt-24">
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-lg font-medium text-gray-900">Your Organizations</h2>
-                            <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+                            <span className="text-xs text-gray-600 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
                                 {memberships.length} {memberships.length === 1 ? 'Organization' : 'Organizations'}
                             </span>
                         </div>
@@ -237,7 +237,7 @@ function OrganizationsPageContent() {
                             <div className="text-center py-16 px-6 bg-gray-50 rounded-2xl border border-gray-200 border-dashed">
                                 <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">No organizations found</h3>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-xs text-gray-500">
                                     You don't belong to any organizations yet. Please contact your administrator.
                                 </p>
                             </div>

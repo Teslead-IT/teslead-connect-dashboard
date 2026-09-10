@@ -60,7 +60,7 @@ export function RevokeAssigneeModal({ isOpen, onClose, taskId, projectId }: Revo
             <div className="fixed inset-0 z-50 flex justify-center items-center p-4">
                 <div
                     className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
-                    // onClick={onClose}
+                // onClick={onClose}
                 />
 
                 <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -94,7 +94,7 @@ export function RevokeAssigneeModal({ isOpen, onClose, taskId, projectId }: Revo
                             {tasksLoading ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                                     <Loader2 className="w-8 h-8 animate-spin mb-2 text-[#091590]" />
-                                    <span className="text-sm font-medium tracking-tight">Syncing members...</span>
+                                    <span className="text-xs font-medium tracking-tight">Syncing members...</span>
                                 </div>
                             ) : currentAssignees.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-gray-400 text-center">
@@ -102,7 +102,7 @@ export function RevokeAssigneeModal({ isOpen, onClose, taskId, projectId }: Revo
                                         <UserMinus className="w-8 h-8 opacity-20" />
                                     </div>
                                     <h3 className="text-gray-900 font-bold">No active assignments</h3>
-                                    <p className="text-sm text-gray-500 mt-1 px-10">There are no users currently assigned to this task.</p>
+                                    <p className="text-xs text-gray-500 mt-1 px-10">There are no users currently assigned to this task.</p>
                                 </div>
                             ) : (
                                 currentAssignees.map((assignee, index) => {
@@ -116,7 +116,7 @@ export function RevokeAssigneeModal({ isOpen, onClose, taskId, projectId }: Revo
                                             key={userId}
                                             className="group flex items-center gap-3 p-3 rounded-lg border border-transparent hover:border-gray-100 hover:bg-gray-50/50 transition-all"
                                         >
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-sm flex-shrink-0 border border-slate-200 shadow-sm overflow-hidden">
+                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs flex-shrink-0 border border-slate-200 shadow-sm overflow-hidden">
                                                 {assignee.user?.avatarUrl ? (
                                                     <img src={assignee.user.avatarUrl} alt={userName} className="w-full h-full object-cover" />
                                                 ) : (
@@ -125,7 +125,7 @@ export function RevokeAssigneeModal({ isOpen, onClose, taskId, projectId }: Revo
                                             </div>
 
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-bold text-gray-900 truncate">
+                                                <p className="text-xs font-bold text-gray-900 truncate">
                                                     {userName}
                                                 </p>
                                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight truncate">{userEmail}</p>
@@ -149,7 +149,7 @@ export function RevokeAssigneeModal({ isOpen, onClose, taskId, projectId }: Revo
                     <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
                         <button
                             onClick={onClose}
-                            className="px-6 py-2 text-sm font-bold text-gray-700 bg-white cursor-pointer border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm active:scale-95"
+                            className="px-6 py-2 text-xs font-bold text-gray-700 bg-white cursor-pointer border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm active:scale-95"
                         >
                             Close
                         </button>

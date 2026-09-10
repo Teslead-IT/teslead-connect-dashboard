@@ -142,7 +142,7 @@ export default function OrganizationSettingsPage() {
                         <input
                             type="text"
                             placeholder="Search members..."
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all shadow-sm"
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all shadow-sm"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -155,7 +155,7 @@ export default function OrganizationSettingsPage() {
                     <div className="flex-1 flex flex-col min-h-0 space-y-4">
                         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-y-auto p-6">
                             <h2 className="text-lg font-semibold text-gray-900 mb-1">Productivity & Tracking</h2>
-                            <p className="text-sm text-gray-500 mb-6">Configure time, attendance, and timesheet behavior for this organization.</p>
+                            <p className="text-xs text-gray-500 mb-6">Configure time, attendance, and timesheet behavior for this organization.</p>
                             {orgSettingsLoading ? (
                                 <div className="space-y-4 animate-pulse">
                                     {[1, 2, 3, 4, 5].map((i) => (
@@ -176,7 +176,7 @@ export default function OrganizationSettingsPage() {
                                         { key: 'autoSubmitTimesheet' as const, label: 'Auto Submit Timesheet' },
                                     ].map(({ key, label }) => (
                                         <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                                            <span className="text-sm font-medium text-gray-700">{label}</span>
+                                            <span className="text-xs font-medium text-gray-700">{label}</span>
                                             {isOwner ? (
                                                 <button
                                                     role="switch"
@@ -196,7 +196,7 @@ export default function OrganizationSettingsPage() {
                                                     <span className={cn('pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition', orgSettings[key] ? 'translate-x-5' : 'translate-x-1')} />
                                                 </button>
                                             ) : (
-                                                <span className={cn('text-sm font-medium', orgSettings[key] ? 'text-green-600' : 'text-gray-400')}>
+                                                <span className={cn('text-xs font-medium', orgSettings[key] ? 'text-green-600' : 'text-gray-400')}>
                                                     {orgSettings[key] ? 'On' : 'Off'}
                                                 </span>
                                             )}
@@ -204,7 +204,7 @@ export default function OrganizationSettingsPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-sm text-gray-500">Failed to load settings.</p>
+                                <p className="text-xs text-gray-500">Failed to load settings.</p>
                             )}
                         </div>
                     </div>
@@ -216,11 +216,11 @@ export default function OrganizationSettingsPage() {
                                 <table className="w-full text-left border-collapse min-w-[800px]">
                                     <thead className="sticky top-0 z-10 bg-white">
                                         <tr className="bg-gray-50/50 border-b border-gray-100">
-                                            <th className="px-8 py-5 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Member</th>
-                                            <th className="px-8 py-5 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Role</th>
-                                            <th className="px-8 py-5 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-2 py-1 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Member</th>
+                                            <th className="px-2 py-1 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Role</th>
+                                            <th className="px-2 py-1 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
                                             {permissions.canUpdateMemberRole && (
-                                                <th className="px-8 py-5 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                                                <th className="px-2 py-1 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                                             )}
                                         </tr>
                                     </thead>
@@ -228,11 +228,11 @@ export default function OrganizationSettingsPage() {
                                         {isLoading ? (
                                             Array.from({ length: 5 }).map((_, i) => (
                                                 <tr key={i} className="animate-pulse">
-                                                    <td className="px-8 py-5"><div className="h-10 w-48 bg-gray-100 rounded-lg"></div></td>
-                                                    <td className="px-8 py-5"><div className="h-6 w-20 bg-gray-100 rounded-full"></div></td>
-                                                    <td className="px-8 py-5"><div className="h-6 w-16 bg-gray-100 rounded-full"></div></td>
+                                                    <td className="px-2 py-1"><div className="h-5 w-48 bg-gray-100 rounded-lg"></div></td>
+                                                    <td className="px-2 py-1"><div className="h-5 w-20 bg-gray-100 rounded-full"></div></td>
+                                                    <td className="px-2 py-1"><div className="h-5 w-16 bg-gray-100 rounded-full"></div></td>
                                                     {permissions.canUpdateMemberRole && (
-                                                        <td className="px-8 py-5"><div className="h-8 w-8 bg-gray-100 rounded-lg float-right"></div></td>
+                                                        <td className="px-2 py-1"><div className="h-5 w-5 bg-gray-100 rounded-lg float-right"></div></td>
                                                     )}
                                                 </tr>
                                             ))
@@ -244,7 +244,7 @@ export default function OrganizationSettingsPage() {
                                                             <Users className="w-8 h-8 text-gray-400" />
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <p className="text-sm font-semibold text-gray-900">No members found</p>
+                                                            <p className="text-xs font-semibold text-gray-900">No members found</p>
                                                             <p className="text-xs text-gray-500">Try adjusting your search filters</p>
                                                         </div>
                                                     </div>
@@ -253,7 +253,7 @@ export default function OrganizationSettingsPage() {
                                         ) : (
                                             members.map((member: any) => (
                                                 <tr key={member.id} className="group hover:bg-gray-50/50 transition-colors">
-                                                    <td className="px-8 py-5">
+                                                    <td className="px-2 py-1">
                                                         <div className="flex items-center gap-3">
                                                             <Avatar
                                                                 src={member.avatarUrl}
@@ -262,7 +262,7 @@ export default function OrganizationSettingsPage() {
                                                                 className="ring-2 ring-white shadow-sm"
                                                             />
                                                             <div className="flex flex-col min-w-0">
-                                                                <span className="text-sm font-semibold text-gray-900 truncate group-hover:text-[#091590] transition-colors">
+                                                                <span className="text-xs font-semibold text-gray-900 truncate group-hover:text-[#091590] transition-colors">
                                                                     {member.name || 'User'}
                                                                 </span>
                                                                 <span className="text-xs text-gray-500 truncate">
@@ -271,7 +271,7 @@ export default function OrganizationSettingsPage() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-8 py-5">
+                                                    <td className="px-2 py-1">
                                                         <Badge
                                                             variant="info"
                                                             size="sm"
@@ -285,7 +285,7 @@ export default function OrganizationSettingsPage() {
                                                             {member.role}
                                                         </Badge>
                                                     </td>
-                                                    <td className="px-8 py-5">
+                                                    <td className="px-2 py-1">
                                                         <div className="flex items-center gap-2">
                                                             <div className="relative flex h-2 w-2">
                                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -295,7 +295,7 @@ export default function OrganizationSettingsPage() {
                                                         </div>
                                                     </td>
                                                     {permissions.canUpdateMemberRole && (
-                                                        <td className="px-8 py-5 text-right relative">
+                                                        <td className="px-2 py-1 text-right relative">
                                                             <Dropdown
                                                                 className="w-48"
                                                                 placeholder=""
@@ -340,7 +340,7 @@ export default function OrganizationSettingsPage() {
                             <h3 className="text-lg font-semibold text-gray-900">
                                 {TABS.find(t => t.id === activeTab)?.label} Settings
                             </h3>
-                            <p className="text-sm text-gray-500 max-w-sm mx-auto mt-1">
+                            <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
                                 This section is currently under development.
                             </p>
                         </div>
@@ -366,7 +366,7 @@ export default function OrganizationSettingsPage() {
                                 className="ring-2 ring-white shadow-sm"
                             />
                             <div className="min-w-0">
-                                <p className="text-sm font-semibold text-gray-900 truncate">{selectedMember.name || 'User'}</p>
+                                <p className="text-xs font-semibold text-gray-900 truncate">{selectedMember.name || 'User'}</p>
                                 <p className="text-xs text-gray-500 truncate">{selectedMember.email}</p>
                             </div>
                         </div>
@@ -387,13 +387,13 @@ export default function OrganizationSettingsPage() {
                                 <div className="flex items-center gap-2 pt-2">
                                     <button
                                         onClick={() => setIsRoleModalOpen(false)}
-                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={() => setModalStep('confirm')}
-                                        className="flex-[2] px-4 py-2 rounded-lg bg-[#091590] text-sm font-semibold text-white hover:bg-[#071170] shadow-sm transition-colors"
+                                        className="flex-[2] px-4 py-2 rounded-lg bg-[#091590] text-xs font-semibold text-white hover:bg-[#071170] shadow-sm transition-colors"
                                     >
                                         Continue
                                     </button>
@@ -419,14 +419,14 @@ export default function OrganizationSettingsPage() {
                                         value={confirmationText}
                                         onChange={(e) => setConfirmationText(e.target.value)}
                                         placeholder="Type email to confirm..."
-                                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all"
+                                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all"
                                     />
                                 </div>
 
                                 <div className="flex items-center gap-2 pt-2">
                                     <button
                                         onClick={() => setModalStep('select')}
-                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                                     >
                                         Back
                                     </button>
@@ -434,7 +434,7 @@ export default function OrganizationSettingsPage() {
                                         onClick={handleConfirmRoleChange}
                                         disabled={confirmationText !== selectedMember.email || isUpdating}
                                         className={cn(
-                                            "flex-[2] px-4 py-2 rounded-lg text-sm font-semibold text-white transition-colors shadow-sm flex items-center justify-center gap-2",
+                                            "flex-[2] px-4 py-2 rounded-lg text-xs font-semibold text-white transition-colors shadow-sm flex items-center justify-center gap-2",
                                             confirmationText === selectedMember.email
                                                 ? "bg-[#091590] hover:bg-[#071170]"
                                                 : "bg-gray-300 cursor-not-allowed"

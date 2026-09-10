@@ -179,14 +179,14 @@ export default function TimesheetPage() {
                 .custom-ag-grid .ag-header {
                     background-color: #f1f5f9 !important;
                     border-bottom: 1px solid #cbd5e1 !important;
-                    min-height: 48px !important;
+                    min-height: 30px !important;
                 }
                 .custom-ag-grid .ag-header-row {
-                    height: 48px !important;
+                    height: 30px !important;
                 }
                 .custom-ag-grid .ag-header-cell {
-                    padding-left: 16px;
-                    padding-right: 16px;
+                    padding-left: 4px;
+                    padding-right: 4px;
                 }
                 .custom-ag-grid .ag-header-cell-label {
                     font-weight: 700;
@@ -200,12 +200,12 @@ export default function TimesheetPage() {
                     background-color: #ffffff;
                 }
                 .custom-ag-grid .ag-cell {
-                    padding-left: 16px;
-                    padding-right: 16px;
+                    padding-left: 8px;
+                    padding-right: 8px;
                     display: flex;
                     align-items: center;
                     color: #0f172a;
-                    font-size: 13px;
+                    font-size: 12px;
                     font-weight: 500;
                 }
                 .custom-ag-grid .ag-cell[col-id="timesheetStatus"] {
@@ -237,7 +237,7 @@ export default function TimesheetPage() {
 
                             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                                 <div
-                                    className="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0 bg-[#091590]"
+                                    className="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-xs shadow-sm flex-shrink-0 bg-[#091590]"
                                 >
                                     <Clock className="w-4 h-4" />
                                 </div>
@@ -297,8 +297,8 @@ export default function TimesheetPage() {
                             rowData={allRowData}
                             columnDefs={columnDefs}
                             defaultColDef={defaultColDef}
-                            rowHeight={48}
-                            headerHeight={40}
+                            rowHeight={32}
+                            headerHeight={30}
                             pagination={true}
                             paginationPageSize={limit}
                             suppressPaginationPanel={true}
@@ -327,7 +327,7 @@ export default function TimesheetPage() {
                         </div>
                         <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                             <div>
-                                <p className="text-sm text-gray-700">
+                                <p className="text-xs text-gray-700">
                                     Showing{' '}
                                     <span className="font-medium">
                                         {allRowData.length > 0 ? (page - 1) * limit + 1 : 0}
@@ -341,7 +341,7 @@ export default function TimesheetPage() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <select
-                                    className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4 py-1"
+                                    className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4 py-1"
                                     value={limit}
                                     onChange={(e) => {
                                         setLimit(Number(e.target.value));
@@ -369,7 +369,7 @@ export default function TimesheetPage() {
                                         <span className="sr-only">Previous</span>
                                         <span aria-hidden="true">&lsaquo;</span>
                                     </button>
-                                    <button className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                                    <button className="relative inline-flex items-center px-4 py-2 text-xs font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
                                         {page}
                                     </button>
                                     <button

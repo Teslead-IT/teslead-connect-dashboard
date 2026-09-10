@@ -87,7 +87,7 @@ export function PresenceAvatar() {
             {isOpen && (
                 <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-100 py-2 z-50">
                     <div className="px-4 py-2 border-b border-gray-50 mb-2">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
+                        <p className="text-xs font-semibold text-gray-900 truncate">{displayName}</p>
                         <p className="text-xs text-gray-500 truncate">{user.email}</p>
                     </div>
 
@@ -103,7 +103,7 @@ export function PresenceAvatar() {
                                     }}
                                     disabled={isPending}
                                     className={clsx(
-                                        "w-full flex items-center justify-between px-2 py-1.5 text-sm rounded-lg transition-colors disabled:opacity-50",
+                                        "w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50",
                                         currentStatus === option.value
                                             ? "bg-blue-50/50 text-[#091590] font-medium"
                                             : "text-gray-700 hover:bg-gray-50"
@@ -127,7 +127,7 @@ export function PresenceAvatar() {
                         <Link
                             href="/settings/account"
                             onClick={() => setIsOpen(false)}
-                            className="w-full flex items-center justify-between px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                            className="w-full flex items-center justify-between px-2 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                         >
                             <div className="flex items-center gap-2">
                                 <Settings className="w-4 h-4 text-gray-400" />
@@ -138,7 +138,7 @@ export function PresenceAvatar() {
 
                         <button
                             onClick={() => logout.mutate()}
-                            className="w-full flex items-center justify-between px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-0.5"
+                            className="w-full flex items-center justify-between px-2 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-0.5"
                         >
                             <div className="flex items-center gap-2">
                                 <LogOut className="w-4 h-4 text-red-400" />

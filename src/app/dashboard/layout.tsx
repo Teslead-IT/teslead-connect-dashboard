@@ -28,7 +28,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 initial={false}
                 animate={{ marginLeft: isCollapsed ? 80 : 256 }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="pt-16"
+                className="pt-10"
             >
                 <div className="p-4 lg:p-6">
                     {children}

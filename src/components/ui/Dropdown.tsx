@@ -56,7 +56,7 @@ export function Dropdown({
 
     const sizeClasses = {
         sm: 'px-2 py-1.5 text-xs',
-        md: 'px-3 py-2 text-sm',
+        md: 'px-3 py-2 text-xs',
         lg: 'px-4 py-2.5 text-base',
     };
 
@@ -138,7 +138,7 @@ export function Dropdown({
                                             setIsOpen(false);
                                         }}
                                         className={cn(
-                                            'w-full flex items-center justify-between gap-3 px-3 py-2 text-sm text-left rounded-lg',
+                                            'w-full flex items-center justify-between gap-3 px-3 py-2 text-xs text-left rounded-lg',
                                             'transition-all duration-150',
                                             isSelected
                                                 ? 'bg-blue-50 text-[#091590] font-semibold'

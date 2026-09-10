@@ -59,7 +59,7 @@ export const MentionList = forwardRef<any, MentionListProps>(
                             {typeLabel}
                         </span>
                     </div>
-                    <p className="text-sm text-gray-500 text-center py-2">No results found</p>
+                    <p className="text-xs text-gray-500 text-center py-2">No results found</p>
                     <p className="text-[11px] text-gray-400 text-center">Try a different search</p>
                 </div>
             );
@@ -112,7 +112,7 @@ export const MentionList = forwardRef<any, MentionListProps>(
                                             )}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-semibold truncate text-gray-900">
+                                            <p className="text-xs font-semibold truncate text-gray-900">
                                                 {item.name}
                                             </p>
                                             {item.email && (
@@ -129,7 +129,7 @@ export const MentionList = forwardRef<any, MentionListProps>(
                                             style={{ backgroundColor: item.color || '#091590' }}
                                         />
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-semibold truncate text-gray-900">
+                                            <p className="text-xs font-semibold truncate text-gray-900">
                                                 {item.name}
                                             </p>
                                             {item.projectId && (

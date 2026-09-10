@@ -5,16 +5,17 @@ import { invitationsApi } from '@/services/invitations.service';
 import { useDebounce } from './use-debounce';
 
 
-export function useUserSearch(query: string, projectId?: string) {
+export function useUserSearch(query: string, projectId?: string, orgId?: string) {
     const debouncedQuery = useDebounce(query, 300);
 
     const { data, isLoading, isError } = useQuery({
-        queryKey: ['user-search', debouncedQuery, projectId],
+        queryKey: ['user-search', debouncedQuery, projectId, orgId],
         queryFn: () => invitationsApi.searchUsers({
             query: debouncedQuery,
             limit: 4,
             page: 1,
-            projectId: projectId
+            projectId: projectId,
+            orgId: orgId
         }),
         enabled: debouncedQuery.length > 0,
     });

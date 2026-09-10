@@ -26,6 +26,7 @@ import { ColorPicker } from 'primereact/colorpicker';
 import { Dropdown } from '@/components/ui/Dropdown';
 
 export interface TagData {
+    id?: string;
     name: string;
     color: string;
 }
@@ -150,21 +151,21 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
     };
 
     const handleAddTag = () => {
-        if (tagInput.trim() && !formData.tags?.some(t => t.name === tagInput.trim())) {
-            setFormData({
-                ...formData,
-                tags: [...(formData.tags || []), { name: tagInput.trim(), color: tagColor }],
-            });
+        const trimmed = tagInput.trim();
+        if (trimmed && !formData.tags?.some(t => t.name.toLowerCase() === trimmed.toLowerCase())) {
+            setFormData(prev => ({
+                ...prev,
+                tags: [...(prev.tags || []), { name: trimmed, color: tagColor }],
+            }));
             setTagInput('');
-            // Optional: Randomize next tag color or keep same
         }
     };
 
     const handleRemoveTag = (tagToRemove: string) => {
-        setFormData({
-            ...formData,
-            tags: formData.tags?.filter(tag => tag.name !== tagToRemove) || [],
-        });
+        setFormData(prev => ({
+            ...prev,
+            tags: prev.tags?.filter(tag => tag.name.toLowerCase() !== tagToRemove.toLowerCase()) || [],
+        }));
     };
 
     if (!isOpen) return null;
@@ -205,7 +206,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Project Title & Color */}
                         <div>
-                            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                            <label className="flex items-center text-xs font-medium text-gray-700 mb-2">
                                 Project Title
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
@@ -226,7 +227,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                             if (errors.name) setErrors({ ...errors, name: '' });
                                         }}
                                         className={cn(
-                                            "w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm",
+                                            "w-full px-3 py-2 border rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm",
                                             errors.name ? "border-red-300 focus:border-red-500 focus:ring-red-200" : "border-gray-300"
                                         )}
                                         placeholder="Enter project title"
@@ -240,19 +241,19 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                         {/* Dates */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                                <label className="block text-xs font-medium text-gray-700 mb-2">Start Date</label>
                                 <div className="relative">
                                     <input
                                         type="date"
                                         value={formData.startDate}
                                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
                                     />
                                     {/* <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" /> */}
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                                <label className="block text-xs font-medium text-gray-700 mb-2">End Date</label>
                                 <div className="relative">
                                     <input
                                         type="date"
@@ -263,7 +264,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                         }}
                                         min={formData.startDate}
                                         className={cn(
-                                            "w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm",
+                                            "w-full px-3 py-2 border rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm",
                                             errors.endDate ? "border-red-300" : "border-gray-300"
                                         )}
                                     />
@@ -275,7 +276,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Status */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <label className="block text-xs font-medium text-gray-700 mb-2">Status</label>
                             <Dropdown
                                 value={formData.status}
                                 onChange={(value) => setFormData({ ...formData, status: value as ProjectStatus })}
@@ -290,7 +291,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Description with Rich Text Editor */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <label className="block text-xs font-medium text-gray-700 mb-2">Description</label>
                             <div className="border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
                                 {/* Toolbar */}
                                 <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-50 border-b border-gray-200 flex-wrap">
@@ -336,7 +337,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                     rows={4}
-                                    className="w-full px-3 py-2 text-sm focus:outline-none resize-none bg-white"
+                                    className="w-full px-3 py-2 text-xs focus:outline-none resize-none bg-white"
                                     placeholder="Enter project description..."
                                 />
                             </div>
@@ -344,7 +345,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Tags */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                            <label className="block text-xs font-medium text-gray-700 mb-2">Tags</label>
                             <div className="space-y-3">
                                 <div className="flex gap-2">
                                     <div className="custom-primereact-colorpicker">
@@ -357,14 +358,20 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                         type="text"
                                         value={tagInput}
                                         onChange={(e) => setTagInput(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleAddTag();
+                                            }
+                                        }}
                                         placeholder="Add a tag..."
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
                                     />
                                     <button
                                         type="button"
                                         onClick={handleAddTag}
-                                        className="px-4 py-2 bg-gray-50 text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-100 transition-colors shadow-sm"
+                                        className="px-4 py-2 bg-gray-50 text-gray-700 text-xs font-medium rounded-md border border-gray-300 hover:bg-gray-100 transition-colors shadow-sm"
                                     >
                                         Add
                                     </button>
@@ -380,7 +387,11 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                                 {tag.name}
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleRemoveTag(tag.name)}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleRemoveTag(tag.name);
+                                                    }}
                                                     className="hover:bg-black/20 rounded-full p-0.5 transition-colors"
                                                 >
                                                     <X className="w-3 h-3" />
@@ -394,7 +405,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Project Access */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3">Project Access</label>
+                            <label className="block text-xs font-medium text-gray-700 mb-3">Project Access</label>
                             <div className="space-y-2">
                                 <label className={cn(
                                     "flex items-center gap-3 p-3 rounded-md border-2 cursor-pointer transition-all hover:shadow-sm",
@@ -412,7 +423,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                         <Lock className={cn("w-4 h-4", formData.access === 'PRIVATE' ? "text-blue-600" : "text-gray-500")} />
                                     </div>
                                     <div>
-                                        <span className="text-sm font-semibold text-gray-900 block">Private</span>
+                                        <span className="text-xs font-semibold text-gray-900 block">Private</span>
                                         <span className="text-xs text-gray-500 block">Only project members can access</span>
                                     </div>
                                 </label>
@@ -432,7 +443,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                         <Globe className={cn("w-4 h-4", formData.access === 'PUBLIC' ? "text-blue-600" : "text-gray-500")} />
                                     </div>
                                     <div>
-                                        <span className="text-sm font-semibold text-gray-900 block">Public</span>
+                                        <span className="text-xs font-semibold text-gray-900 block">Public</span>
                                         <span className="text-xs text-gray-500 block">Visible to everyone in the organization</span>
                                     </div>
                                 </label>
@@ -448,14 +459,14 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                         type="button"
                         onClick={onClose}
                         disabled={isSubmitting}
-                        className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm"
+                        className="px-5 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting || !formData.name.trim()}
-                        className="px-6 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2"
+                        className="px-6 py-2 text-xs font-medium text-white bg-primary rounded-md hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2"
                     >
                         {isSubmitting ? (
                             <>

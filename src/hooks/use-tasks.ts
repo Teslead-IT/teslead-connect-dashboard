@@ -9,10 +9,22 @@ export const taskKeys = {
     myTasks: (page?: number, limit?: number) => ['tasks', 'my-tasks', page, limit] as const,
 };
 
-export function useMyTasks(params?: { page?: number; limit?: number }) {
+export function useMyTasks(params?: { page?: number; limit?: number; search?: string; statusId?: string; projectId?: string }) {
     return useQuery({
-        queryKey: taskKeys.myTasks(params?.page, params?.limit),
+        queryKey: ['tasks', 'my-tasks', params?.page, params?.limit, params?.search, params?.statusId, params?.projectId],
         queryFn: () => taskService.getMyTasks(params),
+        placeholderData: (previousData) => previousData,
+    });
+}
+
+export function useUserTasks(
+    userId: string,
+    params?: { page?: number; limit?: number; search?: string; statusId?: string; projectId?: string }
+) {
+    return useQuery({
+        queryKey: ['tasks', 'user-tasks', userId, params?.page, params?.limit, params?.search, params?.statusId, params?.projectId],
+        queryFn: () => taskService.getUserTasks(userId, params),
+        enabled: !!userId,
         placeholderData: (previousData) => previousData,
     });
 }
