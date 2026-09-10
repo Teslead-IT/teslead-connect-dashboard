@@ -25,7 +25,7 @@ export interface Project {
     access: 'PRIVATE' | 'PUBLIC';
     status: ProjectStatus;
     ownerId: string | null;
-    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER' | null;
     joinedAt?: string;
     createdAt: string;
     updatedAt?: string;
