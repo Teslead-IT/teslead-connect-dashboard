@@ -413,7 +413,7 @@ export function DiscussionAreaTable({
             {/* Table Container */}
             <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col">
                 <div
-                    className="overflow-x-auto overflow-y-auto max-h-[460px] min-h-[400px] relative scrollbar-thin"
+                    className="overflow-x-auto overflow-y-auto max-h-[400px] min-h-[400px] relative scrollbar-thin"
                     onScroll={() => {
                         if (popupPos) {
                             setActiveUserSearchRowId(null);
