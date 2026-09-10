@@ -185,13 +185,22 @@ export default function ProjectsPage() {
         }
     };
 
+    const isCurrentOrgAdminOrOwner = activeOrgRole === 'OWNER' || activeOrgRole === 'ADMIN';
+
     const filteredProjects = useMemo(() => {
         // Client-side filtering of current page
-        return projects.filter(project =>
-            project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-    }, [projects, searchQuery]);
+        return projects.filter(project => {
+            // Defense-in-depth: If not Org Owner/Admin, hide projects where user has no role
+            if (!isCurrentOrgAdminOrOwner && !project.role) {
+                return false;
+            }
+
+            return (
+                project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            );
+        });
+    }, [projects, searchQuery, isCurrentOrgAdminOrOwner]);
 
     const handleUpdateProjectStatus = useCallback(async (projectId: string, newStatus: string) => {
         try {
@@ -223,14 +232,14 @@ export default function ProjectsPage() {
             projectOrgId === activeOrgId && (activeOrgRole === 'OWNER' || activeOrgRole === 'ADMIN' || activeOrgRole === 'MEMBER')
                 ? activeOrgRole
                 : (memberships.find(m => m.orgId === projectOrgId)?.role as OrgRole) || 'MEMBER';
-        const projectRole = (project.role as ProjectRole) || 'VIEWER';
         const isOrgOwnerOrAdmin = orgRole === 'OWNER' || orgRole === 'ADMIN';
+        const projectRole = (project.role as ProjectRole) || (isOrgOwnerOrAdmin ? 'ADMIN' : 'VIEWER');
 
         return {
             orgRole,
             projectRole,
             isOrgOwnerOrAdmin,
-            displayRole: isOrgOwnerOrAdmin ? orgRole : projectRole
+            displayRole: isOrgOwnerOrAdmin ? orgRole : (project.role || 'MEMBER')
         };
     }, [activeOrgId, activeOrgRole, memberships]);
 
@@ -1257,7 +1266,7 @@ export default function ProjectsPage() {
                     endDate: editingProject.endDate || '',
                     access: editingProject.access,
                     status: editingProject.status,
-                    tags: editingProject.tags?.map(t => ({ name: t.name, color: t.color })) || [],
+                    tags: editingProject.tags?.map(t => ({ id: t.id, name: t.name, color: t.color })) || [],
                 } : undefined}
             />
 

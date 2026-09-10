@@ -26,6 +26,7 @@ import { ColorPicker } from 'primereact/colorpicker';
 import { Dropdown } from '@/components/ui/Dropdown';
 
 export interface TagData {
+    id?: string;
     name: string;
     color: string;
 }
@@ -150,21 +151,21 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
     };
 
     const handleAddTag = () => {
-        if (tagInput.trim() && !formData.tags?.some(t => t.name === tagInput.trim())) {
-            setFormData({
-                ...formData,
-                tags: [...(formData.tags || []), { name: tagInput.trim(), color: tagColor }],
-            });
+        const trimmed = tagInput.trim();
+        if (trimmed && !formData.tags?.some(t => t.name.toLowerCase() === trimmed.toLowerCase())) {
+            setFormData(prev => ({
+                ...prev,
+                tags: [...(prev.tags || []), { name: trimmed, color: tagColor }],
+            }));
             setTagInput('');
-            // Optional: Randomize next tag color or keep same
         }
     };
 
     const handleRemoveTag = (tagToRemove: string) => {
-        setFormData({
-            ...formData,
-            tags: formData.tags?.filter(tag => tag.name !== tagToRemove) || [],
-        });
+        setFormData(prev => ({
+            ...prev,
+            tags: prev.tags?.filter(tag => tag.name.toLowerCase() !== tagToRemove.toLowerCase()) || [],
+        }));
     };
 
     if (!isOpen) return null;
@@ -357,7 +358,13 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                         type="text"
                                         value={tagInput}
                                         onChange={(e) => setTagInput(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleAddTag();
+                                            }
+                                        }}
                                         placeholder="Add a tag..."
                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
                                     />
@@ -380,7 +387,11 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                                 {tag.name}
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleRemoveTag(tag.name)}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleRemoveTag(tag.name);
+                                                    }}
                                                     className="hover:bg-black/20 rounded-full p-0.5 transition-colors"
                                                 >
                                                     <X className="w-3 h-3" />
