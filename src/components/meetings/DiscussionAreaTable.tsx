@@ -167,17 +167,24 @@ export function DiscussionAreaTable({
     const [typedProjectQuery, setTypedProjectQuery] = useState<Record<string, string>>({});
 
     // Position state to render popups fixed above overflow-hidden containers
-    const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number; openAbove?: boolean } | null>(null);
 
     const isInternalUpdate = useRef(false);
 
     // Calculate fixed popup position from element bounds
     const calculatePopupPosition = (element: HTMLElement) => {
         const rect = element.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        
+        // Open above if space below is limited or space above is sufficient
+        const openAbove = spaceBelow < 260 || spaceAbove >= 220;
+
         setPopupPos({
-            top: rect.bottom + 4,
+            top: openAbove ? rect.top - 6 : rect.bottom + 6,
             left: rect.left,
             width: Math.max(rect.width, 280),
+            openAbove,
         });
     };
 
@@ -404,21 +411,30 @@ export function DiscussionAreaTable({
     return (
         <div className="w-full space-y-3">
             {/* Table Container */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col">
+                <div
+                    className="overflow-x-auto overflow-y-auto max-h-[460px] min-h-[400px] relative scrollbar-thin"
+                    onScroll={() => {
+                        if (popupPos) {
+                            setActiveUserSearchRowId(null);
+                            setActiveProjectSearchRowId(null);
+                            setPopupPos(null);
+                        }
+                    }}
+                >
+                    <table className="w-full text-left border-collapse min-w-[750px]">
                         {/* Table Header */}
-                        <thead>
+                        <thead className="sticky top-0 z-20 bg-[#091590] shadow-2xs">
                             <tr className="bg-[#091590] text-white text-[11px] font-bold uppercase tracking-wider">
-                                <th className="py-2.5 px-3 w-12 text-center border-r border-blue-900/40">S.No</th>
-                                <th className="py-2.5 px-3 w-48 border-r border-blue-900/40">User</th>
-                                <th className="py-2.5 px-3 w-48 border-r border-blue-900/40">Project</th>
-                                <th className="py-2.5 px-3 min-w-[280px] border-r border-blue-900/40">
+                                <th className="py-2.5 px-3 w-12 text-center border-r border-blue-900/40 sticky top-0 bg-[#091590]">S.No</th>
+                                <th className="py-2.5 px-3 w-48 border-r border-blue-900/40 sticky top-0 bg-[#091590]">User</th>
+                                <th className="py-2.5 px-3 w-48 border-r border-blue-900/40 sticky top-0 bg-[#091590]">Project</th>
+                                <th className="py-2.5 px-3 min-w-[280px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">
                                     Inspection & Discussion Points
                                 </th>
-                                <th className="py-2.5 px-3 w-36 border-r border-blue-900/40">Status</th>
-                                <th className="py-2.5 px-3 w-44 border-r border-blue-900/40">Remarks</th>
-                                {!readOnly && <th className="py-2.5 px-2 w-10 text-center">Action</th>}
+                                <th className="py-2.5 px-3 w-36 border-r border-blue-900/40 sticky top-0 bg-[#091590]">Status</th>
+                                <th className="py-2.5 px-3 w-44 border-r border-blue-900/40 sticky top-0 bg-[#091590]">Remarks</th>
+                                {!readOnly && <th className="py-2.5 px-2 w-10 text-center sticky top-0 bg-[#091590]">Action</th>}
                             </tr>
                         </thead>
 
@@ -548,6 +564,7 @@ export function DiscussionAreaTable({
                                                                     left: popupPos.left,
                                                                     width: popupPos.width,
                                                                     minWidth: '280px',
+                                                                    transform: popupPos.openAbove ? 'translateY(-100%)' : 'none',
                                                                 }}
                                                             >
                                                                 <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
@@ -675,6 +692,7 @@ export function DiscussionAreaTable({
                                                                     left: popupPos.left,
                                                                     width: popupPos.width,
                                                                     minWidth: '280px',
+                                                                    transform: popupPos.openAbove ? 'translateY(-100%)' : 'none',
                                                                 }}
                                                             >
                                                                 <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
@@ -807,13 +825,13 @@ export function DiscussionAreaTable({
                     </table>
                 </div>
 
-                {/* Bottom Add Row Button */}
+                {/* Bottom Add Row Button (Fixed Footer) */}
                 {!readOnly && (
-                    <div className="p-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                    <div className="p-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-shrink-0 z-10">
                        {isOwner && ( <button
                             type="button"
                             onClick={handleAddRow}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#091590] border border-blue-200 hover:border-[#091590] font-bold text-xs rounded-lg transition-all shadow-2xs"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#091590] border border-blue-200 hover:border-[#091590] font-bold text-xs rounded-lg transition-all shadow-2xs cursor-pointer"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Add Discussion Point Row</span>
