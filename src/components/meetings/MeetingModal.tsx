@@ -164,7 +164,7 @@ export function MeetingModal({
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        {/* {!isCreateMode && activeMeetingId && (
+                        {!isCreateMode && activeMeetingId && (
                             isEditing ? (
                                 <button
                                     onClick={handleCancelEdit}
@@ -182,7 +182,7 @@ export function MeetingModal({
                                     Edit
                                 </button>
                             )
-                        )} */}
+                        )}
                         <button
                             onClick={onClose}
                             className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"

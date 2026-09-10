@@ -290,7 +290,7 @@ export function MeetingForm({
                     />
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* {!isEditing && (<button
+                    {!isEditing && (<button
                         type="button"
                         onClick={() => setShowMomPrintModal(true)}
                         className="inline-flex items-center justify-center gap-1.5 h-7 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer"
@@ -298,7 +298,7 @@ export function MeetingForm({
                     >
                         <Printer className="w-3.5 h-3.5" />
                         <span>Print MOM</span>
-                    </button> ) } */}
+                    </button> ) }
                     {!readOnly && !isNew && isOwner && (
                         <button
                             type="button"
