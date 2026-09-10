@@ -115,10 +115,10 @@ export default function MeetingsPage() {
                                 <button
                                     onClick={() => setView('calendar')}
                                     className={cn(
-                                        'p-1.5 rounded-md transition-all',
+                                        'p-1.5 rounded-md transition-all cursor-pointer',
                                         view === 'calendar'
-                                            ? 'bg-white text-[#091590] shadow-sm font-bold'
-                                            : 'text-white/70 hover:text-white'
+                                            ? 'bg-white text-[#091590] shadow-sm font-bold' 
+                                            : 'text-gray-400 hover:text-gray-600'
                                     )}
                                     title="Calendar View"
                                 >
@@ -127,10 +127,10 @@ export default function MeetingsPage() {
                                 <button
                                     onClick={() => setView('list')}
                                     className={cn(
-                                        'p-1.5 rounded-md transition-all opacity-50 cursor-not-allowed',
+                                        'p-1.5 rounded-md transition-all cursor-pointer',
                                         view === 'list'
-                                            ? 'bg-white text-[#091590] shadow-sm'
-                                            : 'text-white/60'
+                                            ? 'bg-white text-[#091590] shadow-sm font-bold'
+                                            : 'text-gray-400 hover:text-gray-600'
                                     )}
                                     title="List View"
                                 >
@@ -287,7 +287,14 @@ export default function MeetingsPage() {
                     </div>
                 ) : (
                     <div className="h-full overflow-y-auto p-4">
-                        <MeetingsTable onSelectMeeting={handleSelectMeetingFromTable} />
+                        <MeetingsTable
+                            onSelectMeeting={(meetingId, meetingDate) => {
+                                setModalDate(meetingDate);
+                                setModalMeetingId(meetingId);
+                                setModalCreateMode(false);
+                                setModalOpen(true);
+                            }}
+                        />
                     </div>
                 )}
             </div>

@@ -43,6 +43,7 @@ export interface MeetingResponse {
     projectId?: string;
     project?: { id: string; name: string };
     createdBy?: { id: string; name: string };
+    createdById?: string;
     createdAt: string;
     updatedAt: string;
 }
