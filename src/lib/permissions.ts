@@ -83,8 +83,8 @@ export function getOrgPermissions(
         canUpdateOrgSettings: isOwner,
         canDeleteOrg: isCreator, // Only creator can delete org
 
-        // Project-specific: owner can delete/edit their own projects, OWNER role can edit any
-        canDeleteProject: (project) => project.ownerId === userId,
+        // Project-specific: owner can delete/edit their own projects, OWNER role can delete/edit any
+        canDeleteProject: (project) => project.ownerId === userId || isOwner,
         canEditProject: (project) => project.ownerId === userId || isOwner,
 
         // All org members can work on tasks (if they have project access)
