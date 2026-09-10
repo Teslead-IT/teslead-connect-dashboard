@@ -810,14 +810,14 @@ export function DiscussionAreaTable({
                 {/* Bottom Add Row Button */}
                 {!readOnly && (
                     <div className="p-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                        <button
+                       {isOwner && ( <button
                             type="button"
                             onClick={handleAddRow}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#091590] border border-blue-200 hover:border-[#091590] font-bold text-xs rounded-lg transition-all shadow-2xs"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Add Discussion Point Row</span>
-                        </button>
+                        </button> )}
                         <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
                             Total Items: {rows.length}
                         </span>
