@@ -8,6 +8,7 @@ import ExcelJS from 'exceljs';
 import { Loader } from '@/components/ui/Loader';
 import { cn } from '@/lib/utils';
 import { MomPrintModal } from '@/components/meetings/MomPrintModal';
+import { getNumberOfPeople } from '@/utils/mom-excel-export';
 
 interface MeetingsTableProps {
     onSelectMeeting?: (meetingId: string, meetingDate: string) => void;
@@ -58,7 +59,7 @@ export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
                 meetingDate: format(new Date(meeting.meetingDate), 'dd-MM-yyyy'),
                 location: meeting.location,
                 purpose: meeting.purpose || '',
-                noOfPeople: (meeting as any).numberOfPeople || (meeting as any).noOfPeople,
+                noOfPeople: getNumberOfPeople(meeting),
                 attendedBy: meeting.attendedBy || '',
                 absentees: meeting.absentees || '',
             });
@@ -189,8 +190,8 @@ export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
                                             </p>
                                         </td>
                                         <td className="px-3 py-2.5 text-center">
-                                            <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 font-bold text-xs rounded-full" title={`${meeting.numberOfPeople || meeting.noOfPeople || 0} People`}>
-                                                {meeting.numberOfPeople || meeting.noOfPeople || 0}
+                                            <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 font-bold text-xs rounded-full" title={`${getNumberOfPeople(meeting)} People`}>
+                                                {getNumberOfPeople(meeting)}
                                             </span>
                                         </td>
                                         <td className="px-3 py-2.5">

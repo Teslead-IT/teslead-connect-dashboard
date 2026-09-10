@@ -3,7 +3,7 @@
 import React from 'react';
 import { Printer, Download, X } from 'lucide-react';
 import { format } from 'date-fns';
-import { exportMomToExcel } from '@/utils/mom-excel-export';
+import { exportMomToExcel, getNumberOfPeople } from '@/utils/mom-excel-export';
 
 interface MomPrintModalProps {
     isOpen: boolean;
@@ -116,7 +116,7 @@ export function MomPrintModal({ isOpen, onClose, meeting }: MomPrintModalProps) 
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td className="border border-gray-800 py-2 px-3">{meeting.numberOfPeople || meeting.noOfPeople || 0}</td>
+                                    <td className="border border-gray-800 py-2 px-3">{getNumberOfPeople(meeting)}</td>
                                     <td className="border border-gray-800 py-2 px-3">{meeting.location || 'TESLEAD EQUIPMENTS PVT LTD ,COIMBATORE'}</td>
                                     <td className="border border-gray-800 py-2 px-3">{formattedDate}</td>
                                 </tr>
