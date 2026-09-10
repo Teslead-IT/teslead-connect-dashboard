@@ -1,6 +1,31 @@
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 
+export function getNumberOfPeople(meeting: any): number {
+    if (!meeting) return 0;
+
+    const rawNum = meeting.numberOfPeople || meeting.noOfPeople;
+    const num = Number(rawNum);
+    if (!isNaN(num) && num > 0) {
+        return num;
+    }
+
+    if (meeting.attendedBy) {
+        if (typeof meeting.attendedBy === 'string') {
+            const count = meeting.attendedBy
+                .split(/[,\n;]+/)
+                .map((s: string) => s.trim())
+                .filter(Boolean).length;
+            if (count > 0) return count;
+        } else if (Array.isArray(meeting.attendedBy)) {
+            const count = meeting.attendedBy.filter((s: any) => Boolean(String(s).trim())).length;
+            if (count > 0) return count;
+        }
+    }
+
+    return !isNaN(num) && num >= 0 ? num : 0;
+}
+
 export async function exportMomToExcel(meeting: any) {
     if (!meeting) return;
 
@@ -72,7 +97,7 @@ export async function exportMomToExcel(meeting: any) {
         ? format(new Date(meeting.meetingDate), 'dd/MM/yy')
         : format(new Date(), 'dd/MM/yy');
 
-    worksheet.getCell('A3').value = meeting.numberOfPeople || meeting.noOfPeople || 0;
+    worksheet.getCell('A3').value = getNumberOfPeople(meeting);
     worksheet.getCell('B3').value = (meeting.location || 'N/A').toUpperCase();
     worksheet.getCell('E3').value = formattedDate;
 
