@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useMeeting, useUpdateMeeting, useDeleteMeeting, usePublishMeeting, useCreateMeeting } from '@/hooks/use-meetings';
-import { RichTextEditor } from '@/components/meetings/RichTextEditor';
+import { DiscussionAreaTable } from '@/components/meetings/DiscussionAreaTable';
 import Dialog from '@/components/ui/Dialog';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -19,9 +19,13 @@ import {
     Send,
     MessageSquare,
     X,
+    Printer,
 } from 'lucide-react';
+import { MomPrintModal } from '@/components/meetings/MomPrintModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
+import { useOrgStore } from '@/stores/orgStore';
+import { useUser } from '@/hooks/use-auth';
 
 interface MeetingFormProps {
     meetingId: string | null; // null = create mode
@@ -32,6 +36,7 @@ interface MeetingFormProps {
     onSaved?: () => void;
     onCancel?: () => void;
     readOnly?: boolean;
+    isEditing?: boolean;
 }
 
 /**
@@ -44,6 +49,11 @@ function getCurrentTime(): string {
     return `${hours}:${minutes}`;
 }
 
+function getAttendedPeopleCount(attendedByStr: string): number {
+    if (!attendedByStr) return 0;
+    return attendedByStr.split(',').map((s) => s.trim()).filter(Boolean).length;
+}
+
 export function MeetingForm({
     meetingId,
     defaultDate,
@@ -53,10 +63,17 @@ export function MeetingForm({
     onSaved,
     onCancel,
     readOnly = false,
+    isEditing = false,
 }: MeetingFormProps) {
     const isNew = !meetingId;
 
+    const activeOrgRole = useOrgStore((s) => s.activeOrgRole);
+    const { data: currentUser } = useUser();
+
     const { data: meeting, isLoading } = useMeeting(meetingId || '');
+
+    const isOwner = activeOrgRole === 'OWNER' 
+    const isMetadataReadOnly = readOnly || (!isNew && !isOwner);
 
     const { mutateAsync: createMeeting, isPending: isCreating } = useCreateMeeting();
     const { mutateAsync: updateMeeting, isPending: isUpdating } = useUpdateMeeting();
@@ -94,8 +111,19 @@ export function MeetingForm({
     const [absenteesShowAll, setAbsenteesShowAll] = useState(false);
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showMomPrintModal, setShowMomPrintModal] = useState(false);
     const isInitializedRef = useRef(false);
     const lastMeetingIdRef = useRef(meetingId);
+
+    // Helper to update attendedBy and sync numberOfPeople count automatically
+    const updateAttendedBy = (newAttendedBy: string) => {
+        const count = getAttendedPeopleCount(newAttendedBy);
+        setFormData((prev) => ({
+            ...prev,
+            attendedBy: newAttendedBy,
+            numberOfPeople: count > 0 ? count : prev.numberOfPeople,
+        }));
+    };
 
     useEffect(() => {
         if (meetingId !== lastMeetingIdRef.current) {
@@ -124,11 +152,12 @@ export function MeetingForm({
         }
 
         if (!isNew && meeting && !isInitializedRef.current) {
+            const countFromAttended = getAttendedPeopleCount(meeting.attendedBy || '');
             setFormData({
                 title: meeting.title || '',
                 location: meeting.location || '',
                 purpose: meeting.purpose || '',
-                numberOfPeople: meeting.numberOfPeople || 0,
+                numberOfPeople: meeting.numberOfPeople || countFromAttended,
                 attendedBy: meeting.attendedBy || '',
                 absentees: meeting.absentees || '',
                 content: meeting.content || null,
@@ -159,6 +188,8 @@ export function MeetingForm({
             return;
         }
 
+        const computedPeopleCount = getAttendedPeopleCount(formData.attendedBy) || formData.numberOfPeople || undefined;
+
         try {
             if (isNew) {
                 const newMeeting = await createMeeting({
@@ -167,7 +198,7 @@ export function MeetingForm({
                     content: formData.content,
                     location: formData.location || undefined,
                     purpose: formData.purpose || undefined,
-                    numberOfPeople: formData.numberOfPeople || undefined,
+                    numberOfPeople: computedPeopleCount,
                     attendedBy: formData.attendedBy || undefined,
                     absentees: formData.absentees || undefined,
                     time: formData.time || undefined,
@@ -179,11 +210,11 @@ export function MeetingForm({
                     id: meetingId!,
                     title: formData.title,
                     content: formData.content,
-                    location: formData.location,
-                    purpose: formData.purpose,
-                    numberOfPeople: formData.numberOfPeople,
-                    attendedBy: formData.attendedBy,
-                    absentees: formData.absentees,
+                    location: formData.location || undefined,
+                    purpose: formData.purpose || undefined,
+                    numberOfPeople: computedPeopleCount,
+                    attendedBy: formData.attendedBy || undefined,
+                    absentees: formData.absentees || undefined,
                     meetingDate: formData.meetingDate,
                     time: formData.time,
                 });
@@ -251,14 +282,35 @@ export function MeetingForm({
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                         placeholder="Enter The Meeting Title *"
-                        readOnly={readOnly}
+                        readOnly={isMetadataReadOnly}
                         className={cn(
                             "text-lg font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]",
-                            readOnly && "cursor-default"
+                            isMetadataReadOnly && "cursor-default text-gray-800"
                         )}
                     />
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* {!isEditing && (<button
+                        type="button"
+                        onClick={() => setShowMomPrintModal(true)}
+                        className="inline-flex items-center justify-center gap-1.5 h-7 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer"
+                        title="Preview & Print MOM Document"
+                    >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Print MOM</span>
+                    </button> ) } */}
+                    {!readOnly && !isNew && isOwner && (
+                        <button
+                            type="button"
+                            onClick={() => setShowDeleteModal(true)}
+                            disabled={isDeleting}
+                            className="inline-flex items-center justify-center gap-1.5 h-7 px-3 bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                            title="Delete Meeting"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                        </button>
+                    )}
                     {!readOnly && isDraft && (
                         <Button
                             variant="ghost"
@@ -319,11 +371,11 @@ export function MeetingForm({
                                     type="text"
                                     value={formData.location}
                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    placeholder={readOnly ? "No location set" : "Physical or Digital Link"}
-                                    readOnly={readOnly}
+                                    placeholder={isMetadataReadOnly ? "No location set" : "Physical or Digital Link"}
+                                    readOnly={isMetadataReadOnly}
                                     className={cn(
                                         "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400",
-                                        readOnly && "bg-gray-50/50 cursor-default"
+                                        isMetadataReadOnly && "bg-gray-50/50 cursor-default"
                                     )}
                                 />
                             </div>
@@ -342,10 +394,10 @@ export function MeetingForm({
                                             setFormData({ ...formData, meetingDate: date, time: time });
                                         }
                                     }}
-                                    readOnly={readOnly}
+                                    readOnly={isMetadataReadOnly}
                                     className={cn(
                                         "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900",
-                                        readOnly && "bg-gray-50/50 cursor-default"
+                                        isMetadataReadOnly && "bg-gray-50/50 cursor-default"
                                     )}
                                 />
                             </div>
@@ -359,10 +411,10 @@ export function MeetingForm({
                                     value={formData.numberOfPeople}
                                     onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
                                     min="0"
-                                    readOnly={readOnly}
+                                    readOnly={isMetadataReadOnly}
                                     className={cn(
                                         "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900",
-                                        readOnly && "bg-gray-50/50 cursor-default"
+                                        isMetadataReadOnly && "bg-gray-50/50 cursor-default"
                                     )}
                                 />
                             </div>
@@ -378,12 +430,12 @@ export function MeetingForm({
                                 <textarea
                                     value={formData.purpose}
                                     onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                                    placeholder={readOnly ? "No purpose specified" : "Objective of the session..."}
+                                    placeholder={isMetadataReadOnly ? "No purpose specified" : "Objective of the session..."}
                                     rows={2}
-                                    readOnly={readOnly}
+                                    readOnly={isMetadataReadOnly}
                                     className={cn(
                                         "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400 resize-none",
-                                        readOnly && "bg-gray-50/50 cursor-default"
+                                        isMetadataReadOnly && "bg-gray-50/50 cursor-default"
                                     )}
                                 />
                             </div>
@@ -399,13 +451,13 @@ export function MeetingForm({
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-50 text-green-700 text-xs font-bold border border-green-100 shadow-sm"
                                         >
                                             {name.trim()}
-                                            {!readOnly && (
+                                            {!isMetadataReadOnly && (
                                                 <button
                                                     type="button"
                                                     onClick={() => {
                                                         const names = formData.attendedBy.split(',').filter(n => n.trim());
                                                         names.splice(idx, 1);
-                                                        setFormData({ ...formData, attendedBy: names.join(', ') });
+                                                        updateAttendedBy(names.join(', '));
                                                     }}
                                                     className="hover:bg-green-100 rounded-full p-0.5 transition-colors"
                                                 >
@@ -432,7 +484,7 @@ export function MeetingForm({
                                             if (val.includes(',')) {
                                                 const newNames = val.split(',').map(n => n.trim()).filter(n => n);
                                                 const existing = formData.attendedBy.split(',').map(n => n.trim()).filter(n => n);
-                                                setFormData({ ...formData, attendedBy: [...existing, ...newNames].join(', ') });
+                                                updateAttendedBy([...existing, ...newNames].join(', '));
                                                 setAttendedByInput('');
                                             } else {
                                                 setAttendedByInput(val);
@@ -442,18 +494,18 @@ export function MeetingForm({
                                             if (e.key === 'Enter' && attendedByInput.trim()) {
                                                 e.preventDefault();
                                                 const existing = formData.attendedBy.split(',').map(n => n.trim()).filter(n => n);
-                                                setFormData({ ...formData, attendedBy: [...existing, attendedByInput.trim()].join(', ') });
+                                                updateAttendedBy([...existing, attendedByInput.trim()].join(', '));
                                                 setAttendedByInput('');
                                             } else if (e.key === 'Backspace' && !attendedByInput && formData.attendedBy) {
                                                 const names = formData.attendedBy.split(',').map(n => n.trim()).filter(n => n);
                                                 names.pop();
-                                                setFormData({ ...formData, attendedBy: names.join(', ') });
+                                                updateAttendedBy(names.join(', '));
                                             }
                                         }}
-                                        readOnly={readOnly}
+                                        readOnly={isMetadataReadOnly}
                                         className={cn(
                                             "flex-1 min-w-[100px] bg-transparent outline-none text-xs font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
-                                            readOnly && "hidden"
+                                            isMetadataReadOnly && "hidden"
                                         )}
                                     />
                                 </div>
@@ -474,14 +526,14 @@ export function MeetingForm({
                                                     {formData.attendedBy.split(',').filter(name => name.trim()).map((name, idx) => (
                                                         <li key={idx} className="text-xs font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                             <span className="flex-1 truncate">{name.trim()}</span>
-                                                            {!readOnly && (
+                                                            {!isMetadataReadOnly && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
                                                                         const names = formData.attendedBy.split(',').filter(n => n.trim());
                                                                         names.splice(idx, 1);
                                                                         const newVal = names.join(', ');
-                                                                        setFormData({ ...formData, attendedBy: newVal });
+                                                                        updateAttendedBy(newVal);
                                                                         if (names.length <= 5) setAttendedByShowAll(false);
                                                                     }}
                                                                     className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-all"
@@ -509,7 +561,7 @@ export function MeetingForm({
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 text-red-700 text-xs font-bold border border-red-100 shadow-sm"
                                         >
                                             {name.trim()}
-                                            {!readOnly && (
+                                            {!isMetadataReadOnly && (
                                                 <button
                                                     type="button"
                                                     onClick={() => {
@@ -560,10 +612,10 @@ export function MeetingForm({
                                                 setFormData({ ...formData, absentees: names.join(', ') });
                                             }
                                         }}
-                                        readOnly={readOnly}
+                                        readOnly={isMetadataReadOnly}
                                         className={cn(
                                             "flex-1 min-w-[100px] bg-transparent outline-none text-xs font-medium text-gray-900 placeholder:text-gray-400 py-0.5",
-                                            readOnly && "hidden"
+                                            isMetadataReadOnly && "hidden"
                                         )}
                                     />
                                 </div>
@@ -584,7 +636,7 @@ export function MeetingForm({
                                                     {formData.absentees.split(',').filter(name => name.trim()).map((name, idx) => (
                                                         <li key={idx} className="text-xs font-medium text-gray-700 group flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded-lg transition-colors">
                                                             <span className="flex-1 truncate">{name.trim()}</span>
-                                                            {!readOnly && (
+                                                            {!isMetadataReadOnly && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
@@ -612,18 +664,24 @@ export function MeetingForm({
 
                     </div>
 
-                    {/* Rich Text Editor */}
+                    {/* Discussion Area Table */}
                     <div className="pt-1 space-y-1">
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
-                            <MessageSquare className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
-                            Discussion Area <span className="text-red-500">*</span>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1 flex items-center justify-between">
+                            <span>
+                                <MessageSquare className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
+                                Discussion Area <span className="text-red-500">*</span>
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-medium normal-case">
+                                Type @ or # to search & mention users/projects
+                            </span>
                         </label>
-                        <RichTextEditor
+                        <DiscussionAreaTable
                             content={formData.content}
-                            onChange={(json) => setFormData({ ...formData, content: json })}
-                            placeholder={readOnly ? "" : "Document action items, decisions, and key insights... Use @ to mention users and # to mention projects"}
-                            highlightId={highlightProjectId}
+                            onChange={(jsonPayload) => setFormData({ ...formData, content: jsonPayload })}
                             readOnly={readOnly}
+                            userRole={activeOrgRole}
+                            currentUserId={currentUser?.id ?? undefined}
+                            currentUserName={currentUser?.name ?? undefined}
                         />
                     </div>
                 </div>
@@ -643,6 +701,21 @@ export function MeetingForm({
             />
 
 
+            {/* MOM Print Preview Modal */}
+            <MomPrintModal
+                isOpen={showMomPrintModal}
+                onClose={() => setShowMomPrintModal(false)}
+                meeting={{
+                    title: formData.title,
+                    location: formData.location,
+                    purpose: formData.purpose,
+                    numberOfPeople: formData.numberOfPeople,
+                    attendedBy: formData.attendedBy,
+                    absentees: formData.absentees,
+                    meetingDate: formData.meetingDate,
+                    content: formData.content,
+                }}
+            />
         </div>
     );
 }
