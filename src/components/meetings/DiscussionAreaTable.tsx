@@ -404,7 +404,11 @@ export function DiscussionAreaTable({
         setActiveProjectSearchRowId(null);
         setPopupPos(null);
         setProjectQuery('');
-        setTypedProjectQuery((prev) => ({ ...prev, [currentItem.id]: '' }));
+        setTypedProjectQuery((prev) => {
+            const next = { ...prev };
+            delete next[currentItem.id];
+            return next;
+        });
         updateRowsAndNotify(updated);
     };
 
@@ -630,50 +634,87 @@ export function DiscussionAreaTable({
                                                     <span title="No project assigned" className="text-gray-400 font-normal">-</span>
                                                 )
                                             ) : (
-                                                <div className="relative">
-                                                    <div className="flex items-center gap-1">
-                                                        <input
-                                                            type="text"
-                                                            value={typedProjectQuery[row.id] ?? row.project ?? ''}
-                                                            title={row.project}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                calculatePopupPosition(e.currentTarget);
-                                                                setTypedProjectQuery((prev) => ({ ...prev, [row.id]: val }));
-                                                                handleRowChange(index, 'project', val);
-                                                                handleRowChange(index, 'projectId', undefined);
-                                                                setProjectQuery(val.replace(/^[#@]/, ''));
-                                                                setActiveProjectSearchRowId(row.id);
-                                                                setActiveUserSearchRowId(null);
-                                                            }}
-                                                            onFocus={(e) => {
-                                                                calculatePopupPosition(e.currentTarget);
-                                                                setActiveProjectSearchRowId(row.id);
-                                                                setProjectQuery((typedProjectQuery[row.id] ?? row.project ?? '').replace(/^[#@]/, ''));
-                                                                setActiveUserSearchRowId(null);
-                                                            }}
-                                                            placeholder="Type #project name..."
-                                                            className={cn(
-                                                                "w-full px-2.5 py-1.5 rounded-lg border text-xs font-medium focus:outline-none focus:ring-2 transition-all",
-                                                                row.projectId
-                                                                    ? "border-emerald-300 bg-emerald-50/60 text-emerald-900 font-bold focus:ring-emerald-400"
-                                                                    : "border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-blue-100"
-                                                            )}
-                                                        />
-                                                        {row.project && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    handleRowChange(index, 'project', '');
-                                                                    handleRowChange(index, 'projectId', undefined);
-                                                                    setTypedProjectQuery((prev) => ({ ...prev, [row.id]: '' }));
-                                                                }}
-                                                                className="text-gray-400 hover:text-red-500 p-0.5"
+                                                <div className="relative space-y-1.5">
+                                                    {/* Selected Project Badge */}
+                                                    {row.project && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span
+                                                                title={row.project}
+                                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold text-xs shadow-2xs max-w-full"
                                                             >
-                                                                <X className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                                <Hash className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                                                                <span className="truncate">{row.project}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const updated = [...rows];
+                                                                        updated[index] = { ...updated[index], project: '', projectId: undefined };
+                                                                        setTypedProjectQuery((prev) => {
+                                                                            const next = { ...prev };
+                                                                            delete next[row.id];
+                                                                            return next;
+                                                                        });
+                                                                        updateRowsAndNotify(updated);
+                                                                    }}
+                                                                    className="hover:bg-emerald-200 rounded p-0.5 text-emerald-700 hover:text-emerald-900 transition-colors cursor-pointer flex-shrink-0 ml-1"
+                                                                    title="Remove project"
+                                                                >
+                                                                    <X className="w-3 h-3" />
+                                                                </button>
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Project Input (when no project selected) */}
+                                                    {!row.project && (
+                                                        <div className="flex items-center gap-1">
+                                                            <input
+                                                                type="text"
+                                                                value={typedProjectQuery[row.id] ?? ''}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    calculatePopupPosition(e.currentTarget);
+                                                                    setTypedProjectQuery((prev) => ({ ...prev, [row.id]: val }));
+                                                                    setProjectQuery(val.replace(/^[#@]/, ''));
+                                                                    setActiveProjectSearchRowId(row.id);
+                                                                    setActiveUserSearchRowId(null);
+                                                                }}
+                                                                onFocus={(e) => {
+                                                                    calculatePopupPosition(e.currentTarget);
+                                                                    setActiveProjectSearchRowId(row.id);
+                                                                    setProjectQuery((typedProjectQuery[row.id] ?? '').replace(/^[#@]/, ''));
+                                                                    setActiveUserSearchRowId(null);
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    if ((e.key === 'Enter' || e.key === ',') && typedProjectQuery[row.id]?.trim()) {
+                                                                        e.preventDefault();
+                                                                        const customProject = typedProjectQuery[row.id].replace(/^[#@]/, '').trim();
+                                                                        if (customProject) {
+                                                                            handleSelectProject(index, { id: `custom-${Date.now()}`, name: customProject });
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                placeholder="Type #project name..."
+                                                                className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 transition-all"
+                                                            />
+                                                            {typedProjectQuery[row.id] && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setTypedProjectQuery((prev) => {
+                                                                            const next = { ...prev };
+                                                                            delete next[row.id];
+                                                                            return next;
+                                                                        });
+                                                                    }}
+                                                                    className="text-gray-400 hover:text-red-500 p-0.5 transition-colors cursor-pointer"
+                                                                    title="Clear query"
+                                                                >
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
 
                                                     {/* Project Mention Suggestions Popup */}
                                                     {activeProjectSearchRowId === row.id && popupPos && (

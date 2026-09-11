@@ -190,6 +190,15 @@ export function MeetingForm({
 
         const computedPeopleCount = getAttendedPeopleCount(formData.attendedBy) || formData.numberOfPeople || undefined;
 
+        // Extract primary project ID from discussion table rows
+        let primaryProjectId: string | null = null;
+        if (formData.content && typeof formData.content === 'object' && Array.isArray(formData.content.rows)) {
+            const rowWithProject = formData.content.rows.find((r: any) => Boolean(r.projectId && r.project));
+            if (rowWithProject) {
+                primaryProjectId = rowWithProject.projectId;
+            }
+        }
+
         try {
             if (isNew) {
                 const newMeeting = await createMeeting({
@@ -202,6 +211,7 @@ export function MeetingForm({
                     attendedBy: formData.attendedBy || undefined,
                     absentees: formData.absentees || undefined,
                     time: formData.time || undefined,
+                    projectId: primaryProjectId || undefined,
                 });
                 success('Meeting created successfully');
                 onCreated?.(newMeeting);
@@ -217,6 +227,7 @@ export function MeetingForm({
                     absentees: formData.absentees || undefined,
                     meetingDate: formData.meetingDate,
                     time: formData.time,
+                    projectId: primaryProjectId || null as any,
                 });
                 success('Meeting saved successfully');
                 onSaved?.();
