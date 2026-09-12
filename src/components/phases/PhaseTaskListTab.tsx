@@ -1352,14 +1352,14 @@ function TaskNameCell(params: ICellRendererParams) {
         <div className="flex items-center h-full w-full pr-3 group/task relative" style={{ paddingLeft: `${indent}px` }}>
             {row.formattedTaskId && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1 group/copy shrink-0">
-                    <span className="text-[9px] font-bold text-black bg-white border border-gray-100 px-1.5 py-0.5 rounded tracking-tight min-w-[32px] text-center shadow-xs">
-                        {row.formattedTaskId.split('-').pop()}
-                    </span>
                     <button
                         onClick={handleCopy}
-                        className="p-1 opacity-0 group-hover/task:opacity-100 text-indigo-500 hover:text-indigo-600 rounded transition-all"
+                        className="flex justify-center items-center gap-1 p-1 group-hover/task:opacity-100 text-indigo-500 hover:text-indigo-600 rounded transition-all"
                         title={`Copy full ID: ${row.formattedTaskId}`}
                     >
+                        <span className="text-[9px] font-bold text-black bg-white border border-gray-100 px-1.5 py-0.5 rounded tracking-tight min-w-[32px] text-center shadow-xs">
+                            {row.formattedTaskId.split('-').pop()}
+                        </span>
                         {copied ? (
                             <Check className="w-2.5 h-2.5 text-emerald-500" />
                         ) : (

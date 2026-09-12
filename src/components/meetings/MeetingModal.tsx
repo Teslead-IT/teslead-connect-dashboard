@@ -166,13 +166,7 @@ export function MeetingModal({
                     <div className="flex items-center gap-2">
                         {!isCreateMode && activeMeetingId && (
                             isEditing ? (
-                                <button
-                                    onClick={handleCancelEdit}
-                                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all border border-gray-200"
-                                >
-                                    <RotateCcw className="w-3.5 h-3.5" />
-                                    Cancel
-                                </button>
+                                <div></div>
                             ) : (
                                 <button
                                     onClick={() => setIsEditing(true)}

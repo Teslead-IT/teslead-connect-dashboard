@@ -44,6 +44,7 @@ export interface CreateProjectPayload {
     status?: ProjectStatus;
     ownerId?: string;
     tags?: Array<{ name: string; color: string }>;
+    phases?: Array<{ name: string; taskLists?: string[] }>;
     orgId?: string;
 }
 

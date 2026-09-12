@@ -154,16 +154,16 @@ export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
                                             {index + 1}
                                         </td>
                                         <td className="px-3 py-2.5">
-                                            <div className="flex items-center gap-2" title={meeting.title || meeting.project?.name || 'N/A'}>
+                                            <div className="flex items-center gap-2" title={meeting.project?.name || meeting.title || '-'}>
                                                 <div className="w-6 h-6 bg-[#091590]/10 rounded-md flex items-center justify-center flex-shrink-0">
                                                     <FileSpreadsheet className="w-3.5 h-3.5 text-[#091590]" />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className="text-xs font-bold text-gray-900 truncate">
-                                                        {meeting.title || meeting.project?.name || 'N/A'}
+                                                        {meeting.project?.name || meeting.title || '-'}
                                                     </p>
                                                     <p className="text-[10px] text-gray-500 truncate">
-                                                        ID: {meeting.projectId || meeting.id}
+                                                        {meeting.projectId ? `ID: ${meeting.projectId}` : '-'}
                                                     </p>
                                                 </div>
                                             </div>
