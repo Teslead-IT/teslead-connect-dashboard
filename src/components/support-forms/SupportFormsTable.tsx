@@ -16,6 +16,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Loader2,
+    Printer,
 } from 'lucide-react';
 import { useSupportForms, useDeleteSupportForm, SupportForm } from '@/hooks/use-support-forms';
 

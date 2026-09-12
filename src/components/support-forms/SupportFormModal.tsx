@@ -10,7 +10,6 @@ import {
     Edit3,
     AlertTriangle,
     Loader2,
-    Calendar as CalendarIcon,
     FileText,
     FolderKanban,
     ClipboardList,
@@ -21,7 +20,6 @@ import {
     useUpdateSupportForm,
     useDeleteSupportForm,
     SupportMode,
-    SupportFormItem,
 } from '@/hooks/use-support-forms';
 import { useProjects } from '@/hooks/use-projects';
 
@@ -40,6 +38,172 @@ interface FormRowItem {
     startDate: string;
     endDate: string;
 }
+
+const escapeHtml = (value: string) =>
+    value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+const formatPrintDate = (value: string) => {
+    if (!value) return '';
+    const [year, month, day] = value.split('-');
+    if (!year || !month || !day) return value;
+    return `${day}/${month}/${year}`;
+};
+
+const buildSupportFormPrintDocument = ({
+    projectName,
+    projectStartDate,
+    projectCompletionDate,
+    items,
+    rowCount,
+}: {
+    projectName: string;
+    projectStartDate: string;
+    projectCompletionDate: string;
+    items: FormRowItem[];
+    rowCount: number;
+}) => {
+    const rows = Array.from({ length: rowCount }, (_, idx) => {
+        const row = items[idx];
+        return `
+            <tr>
+                <td class="center bold">${String(idx + 1).padStart(2, '0')}</td>
+                <td>${escapeHtml(row?.purpose || '')}</td>
+                <td class="center">${escapeHtml(row?.supportMode || '')}</td>
+                <td>${escapeHtml(row?.supportedBy || '')}</td>
+                <td class="center">${escapeHtml(formatPrintDate(row?.startDate || ''))}</td>
+                <td class="center">${escapeHtml(formatPrintDate(row?.endDate || ''))}</td>
+            </tr>
+        `;
+    }).join('');
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Online / Onsite Support Form</title>
+    <style>
+        @page { size: A4 portrait; margin: 12mm; }
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            color: #111;
+            font-family: Arial, Helvetica, sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .sheet { width: 100%; }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #091590;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+        }
+        .brand { display: flex; align-items: center; gap: 8px; }
+        .brand-badge {
+            background: #091590;
+            color: #fff;
+            font-weight: 900;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            padding: 3px 8px;
+        }
+        .brand-sub {
+            color: #091590;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .title {
+            margin: 0;
+            color: #091590;
+            font-size: 15px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            text-align: center;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        .meta { margin-bottom: 16px; }
+        .meta th, .items th {
+            background: #dbeafe;
+            color: #091590;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 8px 6px;
+            border: 1px solid #091590;
+        }
+        .meta td, .items td {
+            font-size: 12px;
+            padding: 8px 6px;
+            border: 1px solid #091590;
+            vertical-align: middle;
+        }
+        .meta td { text-align: center; font-weight: 600; }
+        .items td { height: 28px; }
+        .center { text-align: center; }
+        .bold { font-weight: 700; }
+        .col-sno { width: 48px; }
+        .col-mode { width: 110px; }
+        .col-by { width: 140px; }
+        .col-date { width: 100px; }
+    </style>
+</head>
+<body>
+    <div class="sheet">
+        <div class="header">
+            <div class="brand">
+                <span class="brand-badge">TESLEAD</span>
+                <span class="brand-sub">Technology Solutions</span>
+            </div>
+            <h1 class="title">Online / Onsite Support Form</h1>
+            <div style="width: 140px;"></div>
+        </div>
+        <table class="meta">
+            <thead>
+                <tr>
+                    <th>Project Name</th>
+                    <th>Project Start Date</th>
+                    <th>Project Completion Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>${escapeHtml(projectName || '—')}</td>
+                    <td>${escapeHtml(formatPrintDate(projectStartDate) || '—')}</td>
+                    <td>${escapeHtml(formatPrintDate(projectCompletionDate) || '—')}</td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="items">
+            <thead>
+                <tr>
+                    <th class="col-sno">S No</th>
+                    <th>Purpose</th>
+                    <th class="col-mode">Online / Onsite</th>
+                    <th class="col-by">Supported By</th>
+                    <th class="col-date">Start Date</th>
+                    <th class="col-date">End Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>`;
+};
 
 export const SupportFormModal: React.FC<SupportFormModalProps> = ({
     isOpen,
@@ -226,7 +390,47 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
     };
 
     const handlePrint = () => {
-        window.print();
+        const iframe = document.createElement('iframe');
+        iframe.setAttribute('aria-hidden', 'true');
+        Object.assign(iframe.style, {
+            position: 'fixed',
+            left: '-10000px',
+            top: '0',
+            width: '210mm',
+            height: '297mm',
+            border: '0',
+        });
+        document.body.appendChild(iframe);
+
+        const frameWindow = iframe.contentWindow;
+        const frameDoc = iframe.contentDocument || frameWindow?.document;
+        if (!frameWindow || !frameDoc) {
+            iframe.remove();
+            return;
+        }
+
+        frameDoc.open();
+        frameDoc.write(
+            buildSupportFormPrintDocument({
+                projectName,
+                projectStartDate,
+                projectCompletionDate,
+                items,
+                rowCount: Math.max(10, items.length),
+            })
+        );
+        frameDoc.close();
+
+        const cleanup = () => {
+            iframe.remove();
+        };
+
+        frameWindow.addEventListener('afterprint', cleanup, { once: true });
+
+        window.setTimeout(() => {
+            frameWindow.focus();
+            frameWindow.print();
+        }, 250);
     };
 
     if (!isOpen) return null;
@@ -237,118 +441,89 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
     // Minimum 10 rows for print layout to match specimen
     const printRowsCount = Math.max(10, items.length);
 
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 print:p-0 print:bg-white print:static print:block">
-            <style jsx global>{`
-                @media print {
-                    @page {
-                        margin: 0;
-                        size: auto;
-                    }
-                    body * {
-                        visibility: hidden !important;
-                    }
-                    #printable-support-form-container,
-                    #printable-support-form-container * {
-                        visibility: visible !important;
-                    }
-                    #printable-support-form-container {
-                        display: block !important;
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
-                        width: 100% !important;
-                        padding: 12mm !important;
-                        margin: 0 !important;
-                        background: #ffffff !important;
-                        color: #000000 !important;
-                        box-shadow: none !important;
-                        border: none !important;
-                    }
-                }
-            `}</style>
-
-            {/* ═══════════════════════════════════════════════════════════════════════════ */}
-            {/* PRINT ONLY SPECIMEN TEMPLATE (Displays strictly during window.print())     */}
-            {/* ═══════════════════════════════════════════════════════════════════════════ */}
-            <div id="printable-support-form-container" className="hidden print:block bg-white p-6 w-full text-slate-900 font-sans">
-                {/* Specimen Header */}
-                <div className="flex items-center justify-between border-b-2 border-[#091590] pb-3 mb-4">
-                    <div className="flex items-center gap-2">
-                        <div className="font-extrabold text-base text-[#091590] tracking-tight flex items-center gap-1.5">
-                            <span className="bg-[#091590] text-white px-2 py-0.5 rounded font-black text-xs">TESLEAD</span>
-                            <span className="text-[10px] text-[#091590] font-bold tracking-wider uppercase">TECHNOLOGY SOLUTIONS</span>
-                        </div>
-                    </div>
-                    <h1 className="text-base font-black text-[#091590] uppercase tracking-wide text-center">
-                        ONLINE / ONSITE SUPPORT FORM
-                    </h1>
-                    <div className="w-24"></div>
-                </div>
-
-                {/* Table 1: Top Metadata Table */}
-                <div className="border border-[#091590] bg-white mb-5">
-                    <div className="grid grid-cols-3 border-b border-[#091590] bg-blue-100/90 divide-x divide-[#091590] text-center font-bold text-xs text-[#091590] py-1.5">
-                        <div>Project Name</div>
-                        <div>Project Start Date</div>
-                        <div>Project Completion Date</div>
-                    </div>
-                    <div className="grid grid-cols-3 divide-x divide-[#091590] text-center text-xs font-semibold py-2">
-                        <div className="px-2 truncate">{projectName || '—'}</div>
-                        <div className="px-2">{projectStartDate || '—'}</div>
-                        <div className="px-2">{projectCompletionDate || '—'}</div>
+    // Specimen Document Component
+    const renderSpecimenTable = () => (
+        <div className="bg-white p-6 w-full text-slate-900 font-sans rounded-xl border border-gray-200 shadow-sm max-w-4xl mx-auto">
+            {/* Specimen Header */}
+            <div className="flex items-center justify-between border-b-2 border-[#091590] pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                    <div className="font-extrabold text-base text-[#091590] tracking-tight flex items-center gap-1.5">
+                        <span className="bg-[#091590] text-white px-2 py-0.5 rounded font-black text-xs">TESLEAD</span>
+                        <span className="text-[10px] text-[#091590] font-bold tracking-wider uppercase">TECHNOLOGY SOLUTIONS</span>
                     </div>
                 </div>
+                <h1 className="text-base font-black text-[#091590] uppercase tracking-wide text-center">
+                    ONLINE / ONSITE SUPPORT FORM
+                </h1>
+                <div className="w-24"></div>
+            </div>
 
-                {/* Table 2: Support Items Table */}
-                <div className="border border-[#091590] bg-white">
-                    <table className="w-full border-collapse text-xs text-left">
-                        <thead>
-                            <tr className="bg-blue-100/90 text-[#091590] border-b border-[#091590] font-bold text-xs uppercase tracking-wider text-center">
-                                <th className="border-r border-[#091590] px-2 py-2 w-12">S No</th>
-                                <th className="border-r border-[#091590] px-3 py-2">Purpose</th>
-                                <th className="border-r border-[#091590] px-2 py-2 w-32">Online / Onsite</th>
-                                <th className="border-r border-[#091590] px-3 py-2 w-40">Supported By</th>
-                                <th className="border-r border-[#091590] px-2 py-2 w-28">Start Date</th>
-                                <th className="px-2 py-2 w-28">End Date</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#091590]">
-                            {Array.from({ length: printRowsCount }).map((_, idx) => {
-                                const row = items[idx];
-                                return (
-                                    <tr key={idx} className="h-8">
-                                        <td className="border-r border-[#091590] px-2 py-1.5 text-center font-bold text-slate-800">
-                                            {String(idx + 1).padStart(2, '0')}
-                                        </td>
-                                        <td className="border-r border-[#091590] px-3 py-1.5 font-medium">
-                                            {row?.purpose || ''}
-                                        </td>
-                                        <td className="border-r border-[#091590] px-2 py-1.5 text-center font-semibold">
-                                            {row?.supportMode || ''}
-                                        </td>
-                                        <td className="border-r border-[#091590] px-3 py-1.5 font-medium">
-                                            {row?.supportedBy || ''}
-                                        </td>
-                                        <td className="border-r border-[#091590] px-2 py-1.5 text-center font-medium">
-                                            {row?.startDate || ''}
-                                        </td>
-                                        <td className="px-2 py-1.5 text-center font-medium">
-                                            {row?.endDate || ''}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+            {/* Table 1: Top Metadata Table */}
+            <div className="border border-[#091590] bg-white mb-5">
+                <div className="grid grid-cols-3 border-b border-[#091590] bg-blue-100/90 divide-x divide-[#091590] text-center font-bold text-xs text-[#091590] py-1.5">
+                    <div>Project Name</div>
+                    <div>Project Start Date</div>
+                    <div>Project Completion Date</div>
+                </div>
+                <div className="grid grid-cols-3 divide-x divide-[#091590] text-center text-xs font-semibold py-2">
+                    <div className="px-2 truncate">{projectName || '—'}</div>
+                    <div className="px-2">{projectStartDate || '—'}</div>
+                    <div className="px-2">{projectCompletionDate || '—'}</div>
                 </div>
             </div>
 
+            {/* Table 2: Support Items Table */}
+            <div className="border border-[#091590] bg-white">
+                <table className="w-full border-collapse text-xs text-left">
+                    <thead>
+                        <tr className="bg-blue-100/90 text-[#091590] border-b border-[#091590] font-bold text-xs uppercase tracking-wider text-center">
+                            <th className="border-r border-[#091590] px-2 py-2 w-12">S No</th>
+                            <th className="border-r border-[#091590] px-3 py-2">Purpose</th>
+                            <th className="border-r border-[#091590] px-2 py-2 w-32">Online / Onsite</th>
+                            <th className="border-r border-[#091590] px-3 py-2 w-40">Supported By</th>
+                            <th className="border-r border-[#091590] px-2 py-2 w-28">Start Date</th>
+                            <th className="px-2 py-2 w-28">End Date</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#091590]">
+                        {Array.from({ length: printRowsCount }).map((_, idx) => {
+                            const row = items[idx];
+                            return (
+                                <tr key={idx} className="h-8">
+                                    <td className="border-r border-[#091590] px-2 py-1.5 text-center font-bold text-slate-800">
+                                        {String(idx + 1).padStart(2, '0')}
+                                    </td>
+                                    <td className="border-r border-[#091590] px-3 py-1.5 font-medium">
+                                        {row?.purpose || ''}
+                                    </td>
+                                    <td className="border-r border-[#091590] px-2 py-1.5 text-center font-semibold">
+                                        {row?.supportMode || ''}
+                                    </td>
+                                    <td className="border-r border-[#091590] px-3 py-1.5 font-medium">
+                                        {row?.supportedBy || ''}
+                                    </td>
+                                    <td className="border-r border-[#091590] px-2 py-1.5 text-center font-medium">
+                                        {row?.startDate || ''}
+                                    </td>
+                                    <td className="px-2 py-1.5 text-center font-medium">
+                                        {row?.endDate || ''}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
             {/* ═══════════════════════════════════════════════════════════════════════════ */}
-            {/* INTERACTIVE WEB APP MODAL (Displays strictly on screen, hidden in print)    */}
+            {/* INTERACTIVE POPUP MODAL (Displays strictly on screen, hidden in print)      */}
             {/* ═══════════════════════════════════════════════════════════════════════════ */}
-            <div className="bg-white rounded-xl shadow-2xl border border-gray-100 w-full max-w-5xl overflow-hidden max-h-[92vh] flex flex-col print:hidden">
-                {/* Clean Top Header Bar */}
+            <div className="bg-white rounded-xl shadow-2xl border border-gray-100 w-full max-w-5xl overflow-hidden max-h-[92vh] flex flex-col">
+                {/* Modal Top Header Bar */}
                 <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="bg-blue-50 text-[#091590] p-2.5 rounded-xl border border-blue-100">
@@ -360,10 +535,10 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                     ? 'New Support Form'
                                     : mode === 'edit'
                                     ? 'Edit Support Form'
-                                    : 'View Support Form'}
+                                    : 'Support Form Preview'}
                             </h2>
                             <p className="text-xs text-gray-500 font-medium">
-                                Online & Onsite Support Details
+                                {mode === 'view' ? 'Formal Document Specimen Preview' : 'Online & Onsite Support Details'}
                             </p>
                         </div>
                     </div>
@@ -374,7 +549,7 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setMode('edit')}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#091590] bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors"
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-[#091590] bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
                                 >
                                     <Edit3 className="w-3.5 h-3.5" />
                                     Edit
@@ -382,39 +557,37 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                 <button
                                     type="button"
                                     onClick={handlePrint}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200 transition-colors"
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-[#091590] hover:bg-blue-900 rounded-md shadow-sm transition-all cursor-pointer"
                                 >
                                     <Printer className="w-3.5 h-3.5" />
                                     Print
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    Delete
                                 </button>
                             </>
                         )}
                         <button
                             type="button"
                             onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600 p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                            className="text-gray-400 hover:text-gray-600 p-2 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
                         >
                             <X className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
 
-                {/* Form Main Body */}
+                {/* Modal Main Body */}
                 <div className="flex-1 overflow-y-auto p-6 bg-slate-50/60">
                     {isFetching ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3">
                             <Loader2 className="w-8 h-8 text-[#091590] animate-spin" />
                             <p className="text-xs font-semibold text-gray-500">Loading form details...</p>
                         </div>
+                    ) : mode === 'view' ? (
+                        /* VIEW MODE: Displays formal document specimen preview on screen */
+                        <div className="space-y-4">
+                            {renderSpecimenTable()}
+                        </div>
                     ) : (
+                        /* CREATE / EDIT MODE: Displays interactive input form */
                         <form id="support-form" onSubmit={handleSave} className="space-y-6">
                             {/* Section 1: Project Information */}
                             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
@@ -431,36 +604,30 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                         <label className="block text-xs font-bold text-gray-700">
                                             Project Name <span className="text-red-500">*</span>
                                         </label>
-                                        {mode === 'view' ? (
-                                            <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800">
-                                                {projectName || '—'}
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-2">
-                                                {projects.length > 0 && (
-                                                    <select
-                                                        value={projectId}
-                                                        onChange={(e) => handleProjectSelect(e.target.value)}
-                                                        className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] bg-white text-gray-800"
-                                                    >
-                                                        <option value="">-- Select Existing Project (Optional) --</option>
-                                                        {projects.map((p: any) => (
-                                                            <option key={p.id} value={p.id}>
-                                                                {p.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                )}
-                                                <input
-                                                    type="text"
-                                                    placeholder="Enter Project Name *"
-                                                    value={projectName}
-                                                    onChange={(e) => setProjectName(e.target.value)}
-                                                    required
-                                                    className="w-full text-xs font-semibold border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] text-gray-900 bg-white"
-                                                />
-                                            </div>
-                                        )}
+                                        <div className="space-y-2">
+                                            {projects.length > 0 && (
+                                                <select
+                                                    value={projectId}
+                                                    onChange={(e) => handleProjectSelect(e.target.value)}
+                                                    className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] bg-white text-gray-800"
+                                                >
+                                                    <option value="">-- Select Existing Project (Optional) --</option>
+                                                    {projects.map((p: any) => (
+                                                        <option key={p.id} value={p.id}>
+                                                            {p.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Project Name *"
+                                                value={projectName}
+                                                onChange={(e) => setProjectName(e.target.value)}
+                                                required
+                                                className="w-full text-xs font-semibold border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] text-gray-900 bg-white"
+                                            />
+                                        </div>
                                     </div>
 
                                     {/* Project Start Date */}
@@ -468,18 +635,12 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                         <label className="block text-xs font-bold text-gray-700">
                                             Project Start Date
                                         </label>
-                                        {mode === 'view' ? (
-                                            <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800">
-                                                {projectStartDate || '—'}
-                                            </div>
-                                        ) : (
-                                            <input
-                                                type="date"
-                                                value={projectStartDate}
-                                                onChange={(e) => setProjectStartDate(e.target.value)}
-                                                className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] text-gray-800 bg-white"
-                                            />
-                                        )}
+                                        <input
+                                            type="date"
+                                            value={projectStartDate}
+                                            onChange={(e) => setProjectStartDate(e.target.value)}
+                                            className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] text-gray-800 bg-white"
+                                        />
                                     </div>
 
                                     {/* Project Completion Date */}
@@ -487,18 +648,12 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                         <label className="block text-xs font-bold text-gray-700">
                                             Project Completion Date
                                         </label>
-                                        {mode === 'view' ? (
-                                            <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800">
-                                                {projectCompletionDate || '—'}
-                                            </div>
-                                        ) : (
-                                            <input
-                                                type="date"
-                                                value={projectCompletionDate}
-                                                onChange={(e) => setProjectCompletionDate(e.target.value)}
-                                                className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] text-gray-800 bg-white"
-                                            />
-                                        )}
+                                        <input
+                                            type="date"
+                                            value={projectCompletionDate}
+                                            onChange={(e) => setProjectCompletionDate(e.target.value)}
+                                            className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] text-gray-800 bg-white"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -528,9 +683,7 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                                 <th className="px-3 py-2.5 w-48">Supported By</th>
                                                 <th className="px-3 py-2.5 w-36">Start Date</th>
                                                 <th className="px-3 py-2.5 w-36">End Date</th>
-                                                {mode !== 'view' && (
-                                                    <th className="px-2 py-2.5 w-10 text-center"></th>
-                                                )}
+                                                <th className="px-2 py-2.5 w-10 text-center"></th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
@@ -543,122 +696,84 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
 
                                                     {/* Purpose */}
                                                     <td className="p-2">
-                                                        {mode === 'view' ? (
-                                                            <span className="px-2 py-1 font-medium text-gray-800 block">
-                                                                {row.purpose || '—'}
-                                                            </span>
-                                                        ) : (
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Describe task purpose..."
-                                                                value={row.purpose}
-                                                                onChange={(e) =>
-                                                                    handleRowChange(idx, 'purpose', e.target.value)
-                                                                }
-                                                                className="w-full text-xs px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-medium bg-white"
-                                                            />
-                                                        )}
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Describe task purpose..."
+                                                            value={row.purpose}
+                                                            onChange={(e) =>
+                                                                handleRowChange(idx, 'purpose', e.target.value)
+                                                            }
+                                                            className="w-full text-xs px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-medium bg-white"
+                                                        />
                                                     </td>
 
                                                     {/* Online / Onsite */}
                                                     <td className="p-2">
-                                                        {mode === 'view' ? (
-                                                            <span
-                                                                className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                                                                    row.supportMode === 'ONSITE'
-                                                                        ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                                                                        : 'bg-blue-100 text-blue-800 border border-blue-200'
-                                                                }`}
-                                                            >
-                                                                {row.supportMode}
-                                                            </span>
-                                                        ) : (
-                                                            <select
-                                                                value={row.supportMode}
-                                                                onChange={(e) =>
-                                                                    handleRowChange(
-                                                                        idx,
-                                                                        'supportMode',
-                                                                        e.target.value as SupportMode
-                                                                    )
-                                                                }
-                                                                className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-semibold bg-white"
-                                                            >
-                                                                <option value="ONLINE">ONLINE</option>
-                                                                <option value="ONSITE">ONSITE</option>
-                                                            </select>
-                                                        )}
+                                                        <select
+                                                            value={row.supportMode}
+                                                            onChange={(e) =>
+                                                                handleRowChange(
+                                                                    idx,
+                                                                    'supportMode',
+                                                                    e.target.value as SupportMode
+                                                                )
+                                                            }
+                                                            className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-semibold bg-white"
+                                                        >
+                                                            <option value="ONLINE">ONLINE</option>
+                                                            <option value="ONSITE">ONSITE</option>
+                                                        </select>
                                                     </td>
 
                                                     {/* Supported By */}
                                                     <td className="p-2">
-                                                        {mode === 'view' ? (
-                                                            <span className="px-2 py-1 font-medium text-gray-800 block">
-                                                                {row.supportedBy || '—'}
-                                                            </span>
-                                                        ) : (
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Engineer / Assignee..."
-                                                                value={row.supportedBy}
-                                                                onChange={(e) =>
-                                                                    handleRowChange(idx, 'supportedBy', e.target.value)
-                                                                }
-                                                                className="w-full text-xs px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-medium bg-white"
-                                                            />
-                                                        )}
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Engineer / Assignee..."
+                                                            value={row.supportedBy}
+                                                            onChange={(e) =>
+                                                                handleRowChange(idx, 'supportedBy', e.target.value)
+                                                            }
+                                                            className="w-full text-xs px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-medium bg-white"
+                                                        />
                                                     </td>
 
                                                     {/* Start Date */}
                                                     <td className="p-2">
-                                                        {mode === 'view' ? (
-                                                            <span className="px-2 py-1 font-medium text-gray-800 block">
-                                                                {row.startDate || '—'}
-                                                            </span>
-                                                        ) : (
-                                                            <input
-                                                                type="date"
-                                                                value={row.startDate}
-                                                                onChange={(e) =>
-                                                                    handleRowChange(idx, 'startDate', e.target.value)
-                                                                }
-                                                                className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-medium bg-white"
-                                                            />
-                                                        )}
+                                                        <input
+                                                            type="date"
+                                                            value={row.startDate}
+                                                            onChange={(e) =>
+                                                                handleRowChange(idx, 'startDate', e.target.value)
+                                                            }
+                                                            className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-medium bg-white"
+                                                        />
                                                     </td>
 
                                                     {/* End Date */}
                                                     <td className="p-2">
-                                                        {mode === 'view' ? (
-                                                            <span className="px-2 py-1 font-medium text-gray-800 block">
-                                                                {row.endDate || '—'}
-                                                            </span>
-                                                        ) : (
-                                                            <input
-                                                                type="date"
-                                                                value={row.endDate}
-                                                                onChange={(e) =>
-                                                                    handleRowChange(idx, 'endDate', e.target.value)
-                                                                }
-                                                                className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-medium bg-white"
-                                                            />
-                                                        )}
+                                                        <input
+                                                            type="date"
+                                                            value={row.endDate}
+                                                            onChange={(e) =>
+                                                                handleRowChange(idx, 'endDate', e.target.value)
+                                                            }
+                                                            className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-[#091590] font-medium bg-white"
+                                                        />
                                                     </td>
 
                                                     {/* Action Remove */}
-                                                    {mode !== 'view' && (
-                                                        <td className="p-2 text-center">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleRemoveRow(idx)}
-                                                                disabled={items.length <= 1}
-                                                                className="text-gray-400 hover:text-red-600 disabled:opacity-30 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                                                                title="Remove row"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        </td>
-                                                    )}
+                                                    <td className="p-2 text-center">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveRow(idx)}
+                                                            disabled={items.length <= 1}
+                                                            className="text-gray-400 hover:text-red-600 disabled:opacity-30 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                                                            title="Remove row"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -666,18 +781,16 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                 </div>
 
                                 {/* Table Add Row Controls */}
-                                {mode !== 'view' && (
-                                    <div className="flex justify-between items-center pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={handleAddRow}
-                                            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#091590] bg-blue-50 border border-blue-200 px-3.5 py-2 rounded-lg hover:bg-blue-100 transition-all cursor-pointer shadow-xs"
-                                        >
-                                            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                                            Add Row
-                                        </button>
-                                    </div>
-                                )}
+                                <div className="flex justify-between items-center pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={handleAddRow}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#091590] bg-blue-50 border border-blue-200 px-3.5 py-2 rounded-lg hover:bg-blue-100 transition-all cursor-pointer shadow-xs"
+                                    >
+                                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                        Add Row
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     )}
@@ -720,7 +833,7 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
 
             {/* Soft Delete Confirmation Dialog */}
             {showDeleteConfirm && (
-                <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
+                <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-150">
                         <div className="flex items-center gap-3 text-red-600 mb-4">
                             <div className="p-3 bg-red-100 rounded-xl">
@@ -754,11 +867,14 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                             >
                                 {isDeleting ? (
                                     <>
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <Loader2 className="w-4 h-4 animate-spin" />
                                         Deleting...
                                     </>
                                 ) : (
-                                    'Confirm Soft Delete'
+                                    <>
+                                        <Trash2 className="w-4 h-4" />
+                                        Delete Form
+                                    </>
                                 )}
                             </button>
                         </div>
