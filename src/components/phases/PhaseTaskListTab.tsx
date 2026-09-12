@@ -97,6 +97,8 @@ interface FlatRow {
     name: string;
     status?: { id: string; name: string; color: string };
     assignees?: Array<{ id: string; name: string; email: string; avatarUrl?: string }>;
+    assignedBy?: { id: string; name: string; email?: string; avatarUrl?: string } | null;
+    createdBy?: { id: string; name: string; email?: string; avatarUrl?: string } | null;
     tags?: Array<{ id: string; name: string; color: string }>;
     startDate?: string | null;
     dueDate?: string | null;
@@ -302,6 +304,8 @@ export default function PhaseTaskListTab({
                                     name: task.title,
                                     status: task.status,
                                     assignees: task.assignees,
+                                    assignedBy: (task as any).assignedBy || (task as any).createdBy || null,
+                                    createdBy: (task as any).createdBy || null,
                                     tags: task.tags,
                                     startDate: null,
                                     dueDate: task.dueDate,
@@ -577,10 +581,17 @@ export default function PhaseTaskListTab({
             cellClass: '!p-0',
         },
         {
-            headerName: 'Owner',
+            headerName: 'Assigned To',
             field: 'assignees',
             width: 140,
             cellRenderer: OwnerCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Assigned By',
+            field: 'assignedBy',
+            width: 140,
+            cellRenderer: AssignedByCell,
             cellClass: '!p-0',
         },
         {
@@ -1708,6 +1719,56 @@ function OwnerCell(params: ICellRendererParams) {
             {assignees.length > 2 && (
                 <span className="text-[10px] text-gray-400 font-bold">+{assignees.length - 2}</span>
             )}
+        </div>
+    );
+}
+
+function AssignedByCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType === 'tasklist') return null;
+
+    if (row.rowType === 'phase') {
+        return (
+            <div className="flex items-center h-full px-2">
+                <span className="text-xs text-gray-400 font-medium">-</span>
+            </div>
+        );
+    }
+
+    let assignedBy = row.assignedBy || row.createdBy || (row.taskData as any)?.assignedBy || (row.taskData as any)?.createdBy;
+
+    if (Array.isArray(assignedBy)) {
+        assignedBy = assignedBy[0];
+    }
+
+    if (!assignedBy) {
+        return (
+            <div className="flex items-center h-full px-2">
+                <span className="text-xs text-gray-400 font-medium">—</span>
+            </div>
+        );
+    }
+
+    const name = typeof assignedBy === 'string' ? assignedBy : assignedBy.name || 'System';
+    const avatarUrl = typeof assignedBy === 'object' ? assignedBy.avatarUrl : undefined;
+
+    return (
+        <div className="flex items-center h-full px-2 gap-1.5" title={name}>
+            <div
+                className={cn(
+                    "w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold text-white shadow-sm flex-shrink-0",
+                    avatarUrl ? '' : getAvatarColor(name)
+                )}
+            >
+                {avatarUrl ? (
+                    <img src={avatarUrl} alt={name} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                    name.charAt(0).toUpperCase()
+                )}
+            </div>
+            <span className="text-[11px] text-gray-700 font-medium truncate max-w-[80px]">
+                {name.split(' ')[0]}
+            </span>
         </div>
     );
 }

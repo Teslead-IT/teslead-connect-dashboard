@@ -116,13 +116,13 @@ export function MeetingsTable({ onSelectMeeting }: MeetingsTableProps) {
         <div className="space-y-4">
             {/* Export Button */}
             <div className="flex justify-end">
-                <button
+                {/* <button
                     onClick={exportToExcel}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-all shadow-sm uppercase tracking-wider"
                 >
                     <FileSpreadsheet className="w-4 h-4" />
                     Export to Excel
-                </button>
+                </button> */}
             </div>
 
             {/* Table */}

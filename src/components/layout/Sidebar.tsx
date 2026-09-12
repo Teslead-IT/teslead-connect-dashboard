@@ -31,6 +31,7 @@ import {
     Building2,
     Clock,
     ClipboardCheck,
+    ClipboardList,
 } from 'lucide-react';
 
 interface NavItemBase {
@@ -68,6 +69,11 @@ const navItems: NavItem[] = [
         label: 'Meetings',
         href: '/meetings',
         icon: <Calendar className="w-4 h-4 flex-shrink-0" />,
+    },
+    {
+        label: 'Support Forms',
+        href: '/support-forms',
+        icon: <ClipboardList className="w-4 h-4 flex-shrink-0" />,
     },
     // {
     //     label: 'Timesheet',
