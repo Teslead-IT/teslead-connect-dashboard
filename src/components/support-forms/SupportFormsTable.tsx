@@ -139,21 +139,36 @@ export const SupportFormsTable: React.FC<SupportFormsTableProps> = ({
         return (
             <div className="h-full flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                 <button
-                    onClick={() => onView(form)}
+                    type="button"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onView(form);
+                    }}
                     className="p-1.5 text-gray-500 hover:text-[#091590] hover:bg-blue-50 rounded-lg transition-colors"
-                    title="View Form"
+                    title="Preview Form"
                 >
                     <Eye className="w-4 h-4" />
                 </button>
                 <button
-                    onClick={() => onEdit(form)}
+                    type="button"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onEdit(form);
+                    }}
                     className="p-1.5 text-gray-500 hover:text-[#091590] hover:bg-blue-50 rounded-lg transition-colors"
                     title="Edit Form"
                 >
                     <Edit3 className="w-4 h-4" />
                 </button>
                 <button
-                    onClick={() => handleDelete(form)}
+                    type="button"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete(form);
+                    }}
                     disabled={isDeletingThis}
                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30"
                     title="Soft Delete Form"
@@ -216,7 +231,7 @@ export const SupportFormsTable: React.FC<SupportFormsTableProps> = ({
             sortable: false,
             filter: false,
         },
-    ], [deletingId, handleDelete]);
+    ], [deletingId, handleDelete, onView, onEdit]);
 
     const defaultColDef = useMemo(() => ({
         sortable: true,
@@ -226,6 +241,8 @@ export const SupportFormsTable: React.FC<SupportFormsTableProps> = ({
     }), []);
 
     const onRowClicked = useCallback((event: any) => {
+        const target = event.event?.target as HTMLElement | undefined;
+        if (target?.closest('button')) return;
         if (event.data) {
             onView(event.data);
         }

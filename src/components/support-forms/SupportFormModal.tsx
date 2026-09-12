@@ -84,9 +84,23 @@ const buildSupportFormPrintDocument = ({
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Online / Onsite Support Form</title>
+    <title></title>
     <style>
-        @page { size: A4 portrait; margin: 12mm; }
+        @page {
+            size: A4 portrait;
+            margin: 14mm 0 10mm 0;
+        }
+        @page :first {
+            margin: 0;
+        }
+        @page {
+            @top-left { content: none; }
+            @top-center { content: none; }
+            @top-right { content: none; }
+            @bottom-left { content: none; }
+            @bottom-center { content: none; }
+            @bottom-right { content: none; }
+        }
         * { box-sizing: border-box; }
         html, body {
             margin: 0;
@@ -97,7 +111,7 @@ const buildSupportFormPrintDocument = ({
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
-        .sheet { width: 100%; }
+        .sheet { width: 100%; padding: 12mm; }
         .header {
             display: flex;
             align-items: center;
@@ -132,6 +146,8 @@ const buildSupportFormPrintDocument = ({
             text-align: center;
         }
         table { width: 100%; border-collapse: collapse; }
+        .items thead { display: table-header-group; }
+        .items tr { break-inside: avoid; page-break-inside: avoid; }
         .meta { margin-bottom: 16px; }
         .meta th, .items th {
             background: #dbeafe;
@@ -421,7 +437,12 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
         );
         frameDoc.close();
 
+        const previousTitle = document.title;
+        document.title = ' ';
+        frameDoc.title = '';
+
         const cleanup = () => {
+            document.title = previousTitle;
             iframe.remove();
         };
 
