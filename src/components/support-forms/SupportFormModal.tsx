@@ -53,20 +53,12 @@ const formatPrintDate = (value: string) => {
     return `${day}/${month}/${year}`;
 };
 
-const buildSupportFormPrintDocument = ({
-    projectName,
-    projectStartDate,
-    projectCompletionDate,
-    items,
-    rowCount,
-}: {
-    projectName: string;
-    projectStartDate: string;
-    projectCompletionDate: string;
-    items: FormRowItem[];
-    rowCount: number;
-}) => {
-    const rows = Array.from({ length: rowCount }, (_, idx) => {
+const PRINT_PAGE1_ROWS = 26;
+const PRINT_PAGEN_ROWS = 30;
+
+const buildItemsTableHtml = (items: FormRowItem[], startIndex: number, count: number) => {
+    const rows = Array.from({ length: count }, (_, offset) => {
+        const idx = startIndex + offset;
         const row = items[idx];
         return `
             <tr>
@@ -80,6 +72,52 @@ const buildSupportFormPrintDocument = ({
         `;
     }).join('');
 
+    return `
+        <table class="items">
+            <thead>
+                <tr>
+                    <th class="col-sno">S No</th>
+                    <th>Purpose</th>
+                    <th class="col-mode">Online / Onsite</th>
+                    <th class="col-by">Supported By</th>
+                    <th class="col-date">Start Date</th>
+                    <th class="col-date">End Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+    `;
+};
+
+const buildSupportFormPrintDocument = ({
+    projectName,
+    projectStartDate,
+    projectCompletionDate,
+    items,
+    rowCount,
+}: {
+    projectName: string;
+    projectStartDate: string;
+    projectCompletionDate: string;
+    items: FormRowItem[];
+    rowCount: number;
+}) => {
+    const firstCount = Math.min(PRINT_PAGE1_ROWS, rowCount);
+    let continuationPages = '';
+    let offset = firstCount;
+
+    while (offset < rowCount) {
+        const count = Math.min(PRINT_PAGEN_ROWS, rowCount - offset);
+        continuationPages += `
+            <div class="page page-next">
+                ${buildItemsTableHtml(items, offset, count)}
+            </div>
+        `;
+        offset += count;
+    }
+
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -88,9 +126,6 @@ const buildSupportFormPrintDocument = ({
     <style>
         @page {
             size: A4 portrait;
-            margin: 14mm 0 10mm 0;
-        }
-        @page :first {
             margin: 0;
         }
         @page {
@@ -111,7 +146,16 @@ const buildSupportFormPrintDocument = ({
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
-        .sheet { width: 100%; padding: 12mm; }
+        .page-first {
+            width: 100%;
+            padding: 12mm;
+        }
+        .page-next {
+            width: 100%;
+            page-break-before: always;
+            break-before: page;
+            padding: 20mm 12mm 12mm 12mm;
+        }
         .header {
             display: flex;
             align-items: center;
@@ -146,7 +190,6 @@ const buildSupportFormPrintDocument = ({
             text-align: center;
         }
         table { width: 100%; border-collapse: collapse; }
-        .items thead { display: table-header-group; }
         .items tr { break-inside: avoid; page-break-inside: avoid; }
         .meta { margin-bottom: 16px; }
         .meta th, .items th {
@@ -176,7 +219,7 @@ const buildSupportFormPrintDocument = ({
     </style>
 </head>
 <body>
-    <div class="sheet">
+    <div class="page-first">
         <div class="header">
             <div class="brand">
                 <span class="brand-badge">TESLEAD</span>
@@ -201,22 +244,9 @@ const buildSupportFormPrintDocument = ({
                 </tr>
             </tbody>
         </table>
-        <table class="items">
-            <thead>
-                <tr>
-                    <th class="col-sno">S No</th>
-                    <th>Purpose</th>
-                    <th class="col-mode">Online / Onsite</th>
-                    <th class="col-by">Supported By</th>
-                    <th class="col-date">Start Date</th>
-                    <th class="col-date">End Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${rows}
-            </tbody>
-        </table>
+        ${buildItemsTableHtml(items, 0, firstCount)}
     </div>
+    ${continuationPages}
 </body>
 </html>`;
 };
