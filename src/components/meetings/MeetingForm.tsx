@@ -20,6 +20,7 @@ import {
     MessageSquare,
     X,
     Printer,
+    ChevronDown,
 } from 'lucide-react';
 import { MomPrintModal } from '@/components/meetings/MomPrintModal';
 import { useToast } from '@/components/ui/Toast';
@@ -112,6 +113,8 @@ export function MeetingForm({
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showMomPrintModal, setShowMomPrintModal] = useState(false);
+    const [printModalMode, setPrintModalMode] = useState<'internal' | 'client'>('internal');
+    const [showPrintDropdown, setShowPrintDropdown] = useState(false);
     const isInitializedRef = useRef(false);
     const lastMeetingIdRef = useRef(meetingId);
 
@@ -190,6 +193,15 @@ export function MeetingForm({
 
         const computedPeopleCount = getAttendedPeopleCount(formData.attendedBy) || formData.numberOfPeople || undefined;
 
+        // Extract primary project ID from discussion table rows
+        let primaryProjectId: string | null = null;
+        if (formData.content && typeof formData.content === 'object' && Array.isArray(formData.content.rows)) {
+            const rowWithProject = formData.content.rows.find((r: any) => Boolean(r.projectId && r.project));
+            if (rowWithProject) {
+                primaryProjectId = rowWithProject.projectId;
+            }
+        }
+
         try {
             if (isNew) {
                 const newMeeting = await createMeeting({
@@ -202,6 +214,7 @@ export function MeetingForm({
                     attendedBy: formData.attendedBy || undefined,
                     absentees: formData.absentees || undefined,
                     time: formData.time || undefined,
+                    projectId: primaryProjectId || undefined,
                 });
                 success('Meeting created successfully');
                 onCreated?.(newMeeting);
@@ -217,6 +230,7 @@ export function MeetingForm({
                     absentees: formData.absentees || undefined,
                     meetingDate: formData.meetingDate,
                     time: formData.time,
+                    projectId: primaryProjectId || null as any,
                 });
                 success('Meeting saved successfully');
                 onSaved?.();
@@ -290,15 +304,70 @@ export function MeetingForm({
                     />
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    {!isEditing && (<button
-                        type="button"
-                        onClick={() => setShowMomPrintModal(true)}
-                        className="inline-flex items-center justify-center gap-1.5 h-7 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer"
-                        title="Preview & Print MOM Document"
-                    >
-                        <Printer className="w-3.5 h-3.5" />
-                        <span>Print MOM</span>
-                    </button> ) }
+                    {!isEditing && (
+                        <div className="relative">
+                            <div className="inline-flex items-center rounded-lg shadow-sm bg-emerald-700 hover:bg-emerald-800 text-white transition-colors">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPrintModalMode('internal');
+                                        setShowMomPrintModal(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 h-7 px-2.5 font-bold text-[10px] uppercase tracking-wider cursor-pointer border-r border-emerald-600/60 hover:bg-emerald-800/80 rounded-l-lg transition-colors"
+                                    title="Preview & Print Internal MOM Document"
+                                >
+                                    <Printer className="w-3.5 h-3.5" />
+                                    <span>Print MOM</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPrintDropdown(!showPrintDropdown)}
+                                    className="h-7 px-1.5 flex items-center justify-center hover:bg-emerald-800/80 rounded-r-lg cursor-pointer transition-colors"
+                                    title="Select MOM Print Format"
+                                >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+
+                            {showPrintDropdown && (
+                                <>
+                                    <div className="fixed inset-0 z-[60]" onClick={() => setShowPrintDropdown(false)} />
+                                    <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-[70] py-1 text-gray-900 text-xs font-semibold animate-in fade-in duration-150">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPrintModalMode('internal');
+                                                setShowMomPrintModal(true);
+                                                setShowPrintDropdown(false);
+                                            }}
+                                            className="w-full text-left px-3.5 py-2 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer text-gray-800"
+                                        >
+                                            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                                            <div>
+                                                <p className="font-bold text-[11px]">Print MOM (Internal)</p>
+                                                <p className="text-[9px] text-gray-500 font-normal">All columns included</p>
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPrintModalMode('client');
+                                                setShowMomPrintModal(true);
+                                                setShowPrintDropdown(false);
+                                            }}
+                                            className="w-full text-left px-3.5 py-2 hover:bg-amber-50/70 flex items-center gap-2.5 transition-colors cursor-pointer text-gray-800 border-t border-gray-100"
+                                        >
+                                            <UserCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                                            <div>
+                                                <p className="font-bold text-[11px]">Print MOM (Client)</p>
+                                                <p className="text-[9px] text-amber-700 font-normal">Removes Status & Assigned To</p>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
                     {!readOnly && !isNew && isOwner && (
                         <button
                             type="button"
@@ -705,6 +774,7 @@ export function MeetingForm({
             <MomPrintModal
                 isOpen={showMomPrintModal}
                 onClose={() => setShowMomPrintModal(false)}
+                initialMode={printModalMode}
                 meeting={{
                     title: formData.title,
                     location: formData.location,
