@@ -28,6 +28,7 @@ import {
     FileText,
     Settings,
     ClipboardCheck,
+    UserCheck,
     Flame,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
@@ -785,6 +786,25 @@ function TaskDetailsPanel({
                             </span>
                         ))
                     )}
+                </div>
+            </div>
+            <div>
+                <label className={cn(labelClasses, "flex items-center gap-2")}><UserCheck className="w-3 h-3" /> Assigned By</label>
+                <div className="flex items-center gap-2">
+                    {(() => {
+                        const assignedBy = (task as any).assignedBy || task.createdBy;
+                        if (!assignedBy) return <span className="text-xs text-gray-400">System</span>;
+                        const name = typeof assignedBy === 'string' ? assignedBy : assignedBy.name || 'System';
+                        const avatarUrl = typeof assignedBy === 'object' ? assignedBy.avatarUrl : undefined;
+                        return (
+                            <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-100 text-xs font-medium", rounded)}>
+                                <span className={cn("w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold overflow-hidden", avatarUrl ? '' : getAvatarColor(name))}>
+                                    {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
+                                </span>
+                                {name}
+                            </span>
+                        );
+                    })()}
                 </div>
             </div>
             {task.tags && task.tags.length > 0 && (

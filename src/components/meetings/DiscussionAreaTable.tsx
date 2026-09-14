@@ -42,6 +42,7 @@ const STATUS_OPTIONS = [
     { value: 'OPEN', label: 'Open', color: 'bg-amber-100 text-amber-800 border-amber-200' },
     { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 text-blue-800 border-blue-200' },
     { value: 'HOLD', label: 'Hold', color: 'bg-red-100 text-red-800 border-red-200' },
+    { value: 'NOT_WORKED', label: 'Not Worked', color: 'bg-orange-100 text-orange-800 border-orange-200' },
     { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
     { value: 'RESOLVED', label: 'Resolved', color: 'bg-teal-100 text-teal-800 border-teal-200' },
     { value: 'PENDING', label: 'Pending', color: 'bg-purple-100 text-purple-800 border-purple-200' },

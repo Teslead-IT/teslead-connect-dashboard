@@ -21,8 +21,10 @@ import {
     X,
     Printer,
     ChevronDown,
+    RotateCcw,
 } from 'lucide-react';
 import { MomPrintModal } from '@/components/meetings/MomPrintModal';
+import { ImportPreviousMeetingModal } from '@/components/meetings/ImportPreviousMeetingModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { useOrgStore } from '@/stores/orgStore';
@@ -113,10 +115,42 @@ export function MeetingForm({
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showMomPrintModal, setShowMomPrintModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [printModalMode, setPrintModalMode] = useState<'internal' | 'client'>('internal');
     const [showPrintDropdown, setShowPrintDropdown] = useState(false);
     const isInitializedRef = useRef(false);
     const lastMeetingIdRef = useRef(meetingId);
+
+    const handleImportData = (importedData: {
+        location?: string;
+        purpose?: string;
+        attendedBy?: string;
+        absentees?: string;
+        numberOfPeople?: number;
+        rows: any[];
+    }) => {
+        setFormData((prev) => {
+            const newAttendedBy = importedData.attendedBy ?? prev.attendedBy;
+            const newAbsentees = importedData.absentees ?? prev.absentees;
+            const newLocation = importedData.location || prev.location;
+            const newPurpose = importedData.purpose || prev.purpose;
+            const newCount = getAttendedPeopleCount(newAttendedBy) || importedData.numberOfPeople || prev.numberOfPeople;
+
+            return {
+                ...prev,
+                location: newLocation,
+                purpose: newPurpose,
+                attendedBy: newAttendedBy,
+                absentees: newAbsentees,
+                numberOfPeople: newCount,
+                content: {
+                    type: 'discussionTable',
+                    rows: importedData.rows,
+                },
+            };
+        });
+        success(`Imported ${importedData.rows.length} item(s) from previous meeting (completed items ignored)`);
+    };
 
     // Helper to update attendedBy and sync numberOfPeople count automatically
     const updateAttendedBy = (newAttendedBy: string) => {
@@ -367,6 +401,17 @@ export function MeetingForm({
                                 </>
                             )}
                         </div>
+                    )}
+                    {!readOnly && isNew && (
+                        <button
+                            type="button"
+                            onClick={() => setShowImportModal(true)}
+                            className="inline-flex items-center justify-center gap-1.5 h-7 px-3 bg-[#091590]/10 hover:bg-[#091590]/20 text-[#091590] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors border border-[#091590]/20 shadow-sm cursor-pointer"
+                            title="Fetch and pre-fill data from a previous meeting"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Import Previous Data</span>
+                        </button>
                     )}
                     {!readOnly && !isNew && isOwner && (
                         <button
@@ -785,6 +830,14 @@ export function MeetingForm({
                     meetingDate: formData.meetingDate,
                     content: formData.content,
                 }}
+            />
+
+            {/* Import Previous Data Modal */}
+            <ImportPreviousMeetingModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                currentMeetingDate={formData.meetingDate || defaultDate}
+                onImport={handleImportData}
             />
         </div>
     );
