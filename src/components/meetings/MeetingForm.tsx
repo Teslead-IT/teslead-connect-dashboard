@@ -402,7 +402,7 @@ export function MeetingForm({
                             )}
                         </div>
                     )}
-                    {!readOnly && (
+                    {!readOnly && isNew && (
                         <button
                             type="button"
                             onClick={() => setShowImportModal(true)}
