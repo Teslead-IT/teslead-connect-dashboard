@@ -1,29 +1,24 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Calendar as CalendarIcon, List as ListIcon, LayoutGrid, Plus, Search } from 'lucide-react';
+import { List as ListIcon, LayoutGrid, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMeetings } from '@/hooks/use-meetings';
 
 import { MeetingsTable } from '@/components/meetings/MeetingsTable';
-import { MeetingModal } from '@/components/meetings/MeetingModal';
 import { Loader } from '@/components/ui/Loader';
 
 
 export default function MeetingsPage() {
+    const router = useRouter();
     const [view, setView] = useState<'calendar' | 'list'>('calendar');
 
-    // Modal state
-    const [modalOpen, setModalOpen] = useState(false);
-    const [modalDate, setModalDate] = useState('');
-    const [modalMeetingId, setModalMeetingId] = useState<string | null>(null);
-    const [modalCreateMode, setModalCreateMode] = useState(false);
-
     // Fetch meetings from backend
-    const { data: meetingsData, isLoading, refetch } = useMeetings({ limit: 1000 });
+    const { data: meetingsData, isLoading } = useMeetings({ limit: 1000 });
 
     const meetings = meetingsData?.data || [];
 
@@ -40,58 +35,30 @@ export default function MeetingsPage() {
         },
     }));
 
-    // Click on a calendar event → open modal in view mode for that meeting's date
+    // Click on a calendar event → navigate to separate meeting detail page
     const handleEventClick = (info: any) => {
         const meetingId = info.event.id;
-        const eventDate = info.event.startStr?.split('T')[0] || new Date().toISOString().split('T')[0];
-        setModalDate(eventDate);
-        setModalMeetingId(meetingId);
-        setModalCreateMode(false);
-        setModalOpen(true);
+        router.push(`/meetings/${meetingId}`);
     };
 
-    // Click "Create Meeting" button → open modal in create mode for today
+    // Click "Create Meeting" button → navigate to separate create meeting page
     const handleCreateMeeting = () => {
         const today = new Date().toISOString().split('T')[0];
-        setModalDate(today);
-        setModalMeetingId(null);
-        setModalCreateMode(true);
-        setModalOpen(true);
+        router.push(`/meetings/new?date=${today}`);
     };
 
-    // Select meeting from table in list view
-    const handleSelectMeetingFromTable = (meeting: any) => {
-        const eventDate = meeting.meetingDate
-            ? new Date(meeting.meetingDate).toISOString().split('T')[0]
-            : new Date().toISOString().split('T')[0];
-        setModalDate(eventDate);
-        setModalMeetingId(meeting.id);
-        setModalCreateMode(false);
-        setModalOpen(true);
+    // Click on a date on the calendar → navigate to separate create meeting page for that date
+    const handleDateClick = (info: any) => {
+        router.push(`/meetings/new?date=${info.dateStr}`);
     };
 
-    const handleModalClose = () => {
-        setModalOpen(false);
-        setModalMeetingId(null);
-        setModalCreateMode(false);
-        refetch();
+    // Select meeting from table in list view → navigate to separate meeting detail page
+    const handleSelectMeetingFromTable = (meetingId: string) => {
+        router.push(`/meetings/${meetingId}`);
     };
 
-    /**
-     * Change redirection: clicking "more" opens the modal for that day directly.
-     * Returning 'none' prevents the default popover from showing.
-     * We keep this commented-out note as requested: // Default behavior was a popover.
-     */
-    const handleMoreLinkClick = (info: any) => {
-        const eventDate = info.date.toISOString().split('T')[0];
-        setModalDate(eventDate);
-        setModalMeetingId(null);
-        setModalCreateMode(false);
-        setModalOpen(true);
-
-        // To revert to the popup behavior in the future, uncomment the line below and comment out 'return none'
-        // return 'popover';
-        return 'none';
+    const handleMoreLinkClick = () => {
+        return 'popover';
     };
 
 
@@ -140,7 +107,7 @@ export default function MeetingsPage() {
 
                             <button
                                 onClick={handleCreateMeeting}
-                                className="inline-flex items-center justify-center bg-white text-[#091590] hover:bg-blue-50 active:scale-[0.98] font-bold px-4 h-8 text-xs rounded-lg ml-1 sm:ml-2 transition-all duration-200 shadow-md whitespace-nowrap"
+                                className="inline-flex items-center justify-center bg-[#091590] text-white hover:bg-[#071170] active:scale-[0.98] font-bold px-4 h-8 text-xs rounded-lg ml-1 sm:ml-2 transition-all duration-200 shadow-md whitespace-nowrap cursor-pointer"
                             >
                                 <Plus className="w-3.5 h-3.5 sm:mr-1.5 stroke-[2.5]" />
                                 <span className="hidden sm:inline">New Meeting</span>
@@ -268,11 +235,12 @@ export default function MeetingsPage() {
                             initialView="dayGridMonth"
                             events={calendarEvents}
                             eventClick={handleEventClick}
+                            dateClick={handleDateClick}
                             moreLinkClick={handleMoreLinkClick}
                             headerToolbar={{
-                                left: 'prev,next', // today
+                                left: 'prev,next',
                                 center: 'title',
-                                right: '', // dayGridMonth
+                                right: '',
                             }}
                             dayMaxEvents={3}
                             moreLinkContent={(args: any) => `+${args.num}  more [View All]`}
@@ -288,25 +256,12 @@ export default function MeetingsPage() {
                 ) : (
                     <div className="h-full overflow-y-auto p-4">
                         <MeetingsTable
-                            onSelectMeeting={(meetingId, meetingDate) => {
-                                setModalDate(meetingDate);
-                                setModalMeetingId(meetingId);
-                                setModalCreateMode(false);
-                                setModalOpen(true);
-                            }}
+                            onSelectMeeting={(meetingId) => handleSelectMeetingFromTable(meetingId)}
                         />
                     </div>
                 )}
             </div>
-
-            {/* Meeting Modal */}
-            <MeetingModal
-                isOpen={modalOpen}
-                onClose={handleModalClose}
-                selectedDate={modalDate}
-                selectedMeetingId={modalMeetingId}
-                createMode={modalCreateMode}
-            />
         </div>
     );
 }
+

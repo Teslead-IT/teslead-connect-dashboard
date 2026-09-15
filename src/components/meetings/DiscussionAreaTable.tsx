@@ -420,7 +420,7 @@ export function DiscussionAreaTable({
             <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col">
                 <div
                     className="overflow-x-auto overflow-y-auto max-h-[400px] min-h-[400px] relative scrollbar-thin"
-                    onScroll={() => {
+                    onScroll={() => {   
                         if (popupPos) {
                             setActiveUserSearchRowId(null);
                             setActiveProjectSearchRowId(null);
@@ -428,19 +428,19 @@ export function DiscussionAreaTable({
                         }
                     }}
                 >
-                    <table className="w-full text-left border-collapse min-w-[750px]">
+                    <table className="w-full text-left border-collapse min-w-[980px]">
                         {/* Table Header */}
                         <thead className="sticky top-0 z-20 bg-[#091590] shadow-2xs">
                             <tr className="bg-[#091590] text-white text-[11px] font-bold uppercase tracking-wider">
                                 <th className="py-2.5 px-3 w-12 text-center border-r border-blue-900/40 sticky top-0 bg-[#091590]">S.No</th>
-                                <th className="py-2.5 px-3 w-48 border-r border-blue-900/40 sticky top-0 bg-[#091590]">User</th>
-                                <th className="py-2.5 px-3 w-48 border-r border-blue-900/40 sticky top-0 bg-[#091590]">Project</th>
+                                <th className="py-2.5 px-3 w-44 min-w-[150px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">User</th>
+                                <th className="py-2.5 px-2 w-20 min-w-[20px] max-w-[80px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Project</th>
                                 <th className="py-2.5 px-3 min-w-[280px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">
                                     Inspection & Discussion Points
                                 </th>
-                                <th className="py-2.5 px-3 w-36 border-r border-blue-900/40 sticky top-0 bg-[#091590]">Status</th>
-                                <th className="py-2.5 px-3 w-44 border-r border-blue-900/40 sticky top-0 bg-[#091590]">Remarks</th>
-                                {!readOnly && <th className="py-2.5 px-2 w-10 text-center sticky top-0 bg-[#091590]">Action</th>}
+                                <th className="py-2.5 px-3 w-32 min-w-[125px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Status</th>
+                                <th className="py-2.5 px-3 w-72 min-w-[260px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Remarks</th>
+                                {!readOnly && <th className="py-2.5 px-2 w-12 text-center sticky top-0 bg-[#091590]">Action</th>}
                             </tr>
                         </thead>
 
@@ -455,12 +455,12 @@ export function DiscussionAreaTable({
                                 return (
                                     <tr key={row.id} className="hover:bg-blue-50/20 transition-colors group">
                                         {/* S.No */}
-                                        <td className="py-2 px-3 text-center font-bold text-gray-500 bg-gray-50/50 align-top pt-3">
+                                        <td className="py-2 px-3 w-12 text-center font-bold text-gray-500 bg-gray-50/50 align-top pt-3">
                                             {index + 1}
                                         </td>
 
                                         {/* User Column */}
-                                        <td className="py-2 px-2 align-top relative">
+                                        <td className="py-2 px-2 w-44 min-w-[150px] align-top relative">
                                             {!canEditFullRow ? (
                                                 row.user ? (
                                                     <div className="flex flex-wrap gap-1" title={row.user}>
@@ -625,12 +625,12 @@ export function DiscussionAreaTable({
                                         </td>
 
                                         {/* Project Column */}
-                                        <td className="py-2 px-2 align-top relative">
+                                        <td className="py-2 px-1 w-60 min-w-[60px] max-w-[140px] align-top relative">
                                             {!canEditFullRow ? (
                                                 row.project ? (
-                                                    <span title={row.project} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-xs">
-                                                        <Hash className="w-3 h-3 text-emerald-600" />
-                                                        {row.project}
+                                                    <span title={row.project} className="inline-flex items-center gap-1 px-1 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-xs truncate max-w-full">
+                                                        <Hash className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                                                        <span className="truncate">{row.project}</span>
                                                     </span>
                                                 ) : (
                                                     <span title="No project assigned" className="text-gray-400 font-normal">-</span>
@@ -776,7 +776,7 @@ export function DiscussionAreaTable({
                                         </td>
 
                                         {/* Discussion Points Column */}
-                                        <td className="py-2 px-2 align-top">
+                                        <td className="py-2 px-2 min-w-[280px] align-top">
                                             {!canEditFullRow ? (
                                                 <p title={row.discussionPoints} className="text-xs text-gray-900 whitespace-pre-wrap leading-relaxed py-1 px-1">
                                                     {row.discussionPoints || '-'}
@@ -794,7 +794,7 @@ export function DiscussionAreaTable({
                                         </td>
 
                                         {/* Status Column */}
-                                        <td className="py-2 px-2 align-top">
+                                        <td className="py-2 px-2 w-32 min-w-[125px] align-top">
                                             {!canEditStatusRemark ? (
                                                 <span
                                                     title={STATUS_OPTIONS.find((s) => s.value === row.status)?.label}
@@ -812,7 +812,7 @@ export function DiscussionAreaTable({
                                                     title={STATUS_OPTIONS.find((s) => s.value === row.status)?.label}
                                                     onChange={(e) => handleRowChange(index, 'status', e.target.value)}
                                                     className={cn(
-                                                        "w-full px-2 py-1.5 rounded-lg border text-xs font-bold focus:outline-none transition-all cursor-pointer",
+                                                        "w-full px-2 py-1.5 rounded-lg border text-xs font-bold focus:outline-none transition-all cursor-pointer truncate",
                                                         STATUS_OPTIONS.find((s) => s.value === row.status)?.color ||
                                                         "bg-white border-gray-200 text-gray-900"
                                                     )}
@@ -827,26 +827,26 @@ export function DiscussionAreaTable({
                                         </td>
 
                                         {/* Remarks Column */}
-                                        <td className="py-2 px-2 align-top">
+                                        <td className="py-2 px-2 w-72 min-w-[260px] align-top">
                                             {!canEditStatusRemark ? (
-                                                <p title={row.remarks} className="text-xs text-gray-600 py-1 px-1 mt-1">
+                                                <p title={row.remarks} className="text-xs text-gray-600 py-1 px-1 mt-1 whitespace-pre-wrap leading-relaxed">
                                                     {row.remarks || '-'}
                                                 </p>
                                             ) : (
-                                                <input
-                                                    type="text"
+                                                <textarea
                                                     value={row.remarks}
                                                     title={row.remarks}
                                                     onChange={(e) => handleRowChange(index, 'remarks', e.target.value)}
                                                     placeholder="Remarks / notes..."
-                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all"
+                                                    rows={2}
+                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
                                                 />
                                             )}
                                         </td>
 
                                         {/* Action Column */}
                                         {!readOnly && (
-                                            <td className="py-2 px-2 text-center align-top pt-3">
+                                            <td className="py-2 px-2 w-12 text-center align-top pt-3">
                                                 {canDeleteThisRow ? (
                                                     <button
                                                         type="button"
