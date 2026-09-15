@@ -37,7 +37,7 @@ export default function MeetingDetailPage() {
                     defaultDate={dateParam}
                     highlightProjectId={highlightProjectId}
                     readOnly={false}
-                    isEditing={true}
+                    isEditing={isNew}
                     onCreated={(newMeeting) => {
                         router.replace(`/meetings/${newMeeting.id}`);
                     }}
