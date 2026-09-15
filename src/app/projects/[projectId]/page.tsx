@@ -76,6 +76,7 @@ const TAB_ITEMS: TabItem[] = [
     { id: 'documents', label: 'Documents' },
     { id: 'tasks', label: 'Tasks' },
     { id: 'phases', label: 'Phases' },
+    { id: 'testing', label: 'Testing' },
     { id: 'time-logs', label: 'Time Logs' },
     { id: 'issues', label: 'Issues' },
     { id: 'timesheet', label: 'Timesheet' },
@@ -498,6 +499,20 @@ export default function ProjectDetailPage() {
                         isEditable={projectPermissions.canEditTask}
                         searchQuery={searchQuery}
                     />
+                ) : activeTab === 'testing' ? (
+                    <div className="h-full">
+                        <PhaseTaskListTab
+                            projectId={projectId}
+                            projectName={project.name}
+                            projectColor={project.color}
+                            isEditable={projectPermissions.canEditTask}
+                            canCreateTask={projectPermissions.canCreateTask}
+                            canDeleteTask={projectPermissions.canDeleteTask}
+                            currentUserRole={project?.role}
+                            searchQuery={searchQuery}
+                            filterStatusName="Ready for testing"
+                        />
+                    </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
