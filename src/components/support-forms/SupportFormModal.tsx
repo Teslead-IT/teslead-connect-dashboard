@@ -14,6 +14,7 @@ import {
     FolderKanban,
     ClipboardList,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import {
     useSupportForm,
     useCreateSupportForm,
@@ -46,11 +47,80 @@ const escapeHtml = (value: string) =>
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
 
-const formatPrintDate = (value: string) => {
+const toDatetimeLocalValue = (dateStr?: string | null): string => {
+    if (!dateStr) return '';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch {
+        return '';
+    }
+};
+
+const formatDateOnly = (dateStr?: string | null): string => {
+    if (!dateStr) return '—';
+    try {
+        const cleanStr = dateStr.split('T')[0];
+        const parts = cleanStr.split('-');
+        if (parts.length === 3) {
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            const d = parseInt(parts[2], 10);
+            const dateObj = new Date(y, m, d);
+            if (!isNaN(dateObj.getTime())) {
+                return format(dateObj, 'dd MMM yyyy');
+            }
+        }
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return format(d, 'dd MMM yyyy');
+    } catch {
+        return dateStr;
+    }
+};
+
+const formatDateTimeAMPM = (dateStr?: string | null): string => {
+    if (!dateStr) return '—';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return format(d, 'dd MMM yyyy, hh:mm a');
+    } catch {
+        return dateStr;
+    }
+};
+
+const formatPrintDateOnly = (value?: string | null): string => {
     if (!value) return '';
-    const [year, month, day] = value.split('-');
-    if (!year || !month || !day) return value;
-    return `${day}/${month}/${year}`;
+    try {
+        const cleanStr = value.split('T')[0];
+        const parts = cleanStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return value;
+        return format(d, 'dd/MM/yyyy');
+    } catch {
+        return value || '';
+    }
+};
+
+const formatPrintDateTime = (value?: string | null): string => {
+    if (!value) return '';
+    try {
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return value;
+        return format(d, 'dd/MM/yyyy hh:mm a');
+    } catch {
+        return value || '';
+    }
 };
 
 const PRINT_PAGE1_ROWS = 26;
@@ -66,8 +136,8 @@ const buildItemsTableHtml = (items: FormRowItem[], startIndex: number, count: nu
                 <td>${escapeHtml(row?.purpose || '')}</td>
                 <td class="center">${escapeHtml(row?.supportMode || '')}</td>
                 <td>${escapeHtml(row?.supportedBy || '')}</td>
-                <td class="center">${escapeHtml(formatPrintDate(row?.startDate || ''))}</td>
-                <td class="center">${escapeHtml(formatPrintDate(row?.endDate || ''))}</td>
+                <td class="center">${escapeHtml(formatPrintDateTime(row?.startDate || ''))}</td>
+                <td class="center">${escapeHtml(formatPrintDateTime(row?.endDate || ''))}</td>
             </tr>
         `;
     }).join('');
@@ -80,8 +150,8 @@ const buildItemsTableHtml = (items: FormRowItem[], startIndex: number, count: nu
                     <th>Purpose</th>
                     <th class="col-mode">Online / Onsite</th>
                     <th class="col-by">Supported By</th>
-                    <th class="col-date">Start Date</th>
-                    <th class="col-date">End Date</th>
+                    <th class="col-date">Start Date & Time</th>
+                    <th class="col-date">End Date & Time</th>
                 </tr>
             </thead>
             <tbody>
@@ -215,7 +285,7 @@ const buildSupportFormPrintDocument = ({
         .col-sno { width: 48px; }
         .col-mode { width: 110px; }
         .col-by { width: 140px; }
-        .col-date { width: 100px; }
+        .col-date { width: 130px; }
     </style>
 </head>
 <body>
@@ -239,8 +309,8 @@ const buildSupportFormPrintDocument = ({
             <tbody>
                 <tr>
                     <td>${escapeHtml(projectName || '—')}</td>
-                    <td>${escapeHtml(formatPrintDate(projectStartDate) || '—')}</td>
-                    <td>${escapeHtml(formatPrintDate(projectCompletionDate) || '—')}</td>
+                    <td>${escapeHtml(formatPrintDateOnly(projectStartDate) || '—')}</td>
+                    <td>${escapeHtml(formatPrintDateOnly(projectCompletionDate) || '—')}</td>
                 </tr>
             </tbody>
         </table>
@@ -304,12 +374,8 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                         purpose: item.purpose || '',
                         supportMode: item.supportMode || 'ONLINE',
                         supportedBy: item.supportedBy || '',
-                        startDate: item.startDate
-                            ? new Date(item.startDate).toISOString().split('T')[0]
-                            : '',
-                        endDate: item.endDate
-                            ? new Date(item.endDate).toISOString().split('T')[0]
-                            : '',
+                        startDate: toDatetimeLocalValue(item.startDate),
+                        endDate: toDatetimeLocalValue(item.endDate),
                     }))
                 );
             } else {
@@ -518,8 +584,8 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                 </div>
                 <div className="grid grid-cols-3 divide-x divide-[#091590] text-center text-xs font-semibold py-2">
                     <div className="px-2 truncate">{projectName || '—'}</div>
-                    <div className="px-2">{projectStartDate || '—'}</div>
-                    <div className="px-2">{projectCompletionDate || '—'}</div>
+                    <div className="px-2">{formatDateOnly(projectStartDate)}</div>
+                    <div className="px-2">{formatDateOnly(projectCompletionDate)}</div>
                 </div>
             </div>
 
@@ -531,9 +597,9 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                             <th className="border-r border-[#091590] px-2 py-2 w-12">S No</th>
                             <th className="border-r border-[#091590] px-3 py-2">Purpose</th>
                             <th className="border-r border-[#091590] px-2 py-2 w-32">Online / Onsite</th>
-                            <th className="border-r border-[#091590] px-3 py-2 w-40">Supported By</th>
-                            <th className="border-r border-[#091590] px-2 py-2 w-28">Start Date</th>
-                            <th className="px-2 py-2 w-28">End Date</th>
+                            <th className="border-r border-[#091590] px-3 py-2 w-36">Supported By</th>
+                            <th className="border-r border-[#091590] px-2 py-2 w-44">Start Date & Time</th>
+                            <th className="px-2 py-2 w-44">End Date & Time</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-[#091590]">
@@ -554,10 +620,10 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                         {row?.supportedBy || ''}
                                     </td>
                                     <td className="border-r border-[#091590] px-2 py-1.5 text-center font-medium">
-                                        {row?.startDate || ''}
+                                        {row?.startDate ? formatDateTimeAMPM(row.startDate) : ''}
                                     </td>
                                     <td className="px-2 py-1.5 text-center font-medium">
-                                        {row?.endDate || ''}
+                                        {row?.endDate ? formatDateTimeAMPM(row.endDate) : ''}
                                     </td>
                                 </tr>
                             );
@@ -730,10 +796,10 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                             <tr className="bg-slate-100/70 text-slate-700 font-bold border-b border-gray-200 uppercase tracking-wider text-[11px]">
                                                 <th className="px-3 py-2.5 w-12 text-center">S.No</th>
                                                 <th className="px-3 py-2.5">Purpose</th>
-                                                <th className="px-3 py-2.5 w-36">Mode</th>
-                                                <th className="px-3 py-2.5 w-48">Supported By</th>
-                                                <th className="px-3 py-2.5 w-36">Start Date</th>
-                                                <th className="px-3 py-2.5 w-36">End Date</th>
+                                                <th className="px-3 py-2.5 w-32">Mode</th>
+                                                <th className="px-3 py-2.5 w-44">Supported By</th>
+                                                <th className="px-3 py-2.5 w-48">Start Date & Time</th>
+                                                <th className="px-3 py-2.5 w-48">End Date & Time</th>
                                                 <th className="px-2 py-2.5 w-10 text-center"></th>
                                             </tr>
                                         </thead>
@@ -789,10 +855,10 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                                         />
                                                     </td>
 
-                                                    {/* Start Date */}
+                                                    {/* Start Date & Time */}
                                                     <td className="p-2">
                                                         <input
-                                                            type="date"
+                                                            type="datetime-local"
                                                             value={row.startDate}
                                                             onChange={(e) =>
                                                                 handleRowChange(idx, 'startDate', e.target.value)
@@ -801,10 +867,10 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                                         />
                                                     </td>
 
-                                                    {/* End Date */}
+                                                    {/* End Date & Time */}
                                                     <td className="p-2">
                                                         <input
-                                                            type="date"
+                                                            type="datetime-local"
                                                             value={row.endDate}
                                                             onChange={(e) =>
                                                                 handleRowChange(idx, 'endDate', e.target.value)
