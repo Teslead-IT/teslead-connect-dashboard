@@ -83,10 +83,34 @@ export const SupportFormsTable: React.FC<SupportFormsTableProps> = ({
         }
     }, [deleteMutation]);
 
-    const formatDate = (dateStr?: string | null) => {
+    const formatDateOnly = (dateStr?: string | null) => {
         if (!dateStr) return '—';
         try {
-            return format(new Date(dateStr), 'dd MMM yyyy');
+            const cleanStr = dateStr.split('T')[0];
+            const parts = cleanStr.split('-');
+            if (parts.length === 3) {
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                const d = parseInt(parts[2], 10);
+                const dateObj = new Date(y, m, d);
+                if (!isNaN(dateObj.getTime())) {
+                    return format(dateObj, 'dd MMM yyyy');
+                }
+            }
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return format(d, 'dd MMM yyyy');
+        } catch {
+            return dateStr;
+        }
+    };
+
+    const formatDateTime = (dateStr?: string | null) => {
+        if (!dateStr) return '—';
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return format(d, 'dd MMM yyyy, hh:mm a');
         } catch {
             return dateStr;
         }
@@ -115,7 +139,7 @@ export const SupportFormsTable: React.FC<SupportFormsTableProps> = ({
         return (
             <div className="h-full flex items-center gap-1.5 text-gray-600 font-medium">
                 <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                <span>{formatDate(dateStr)}</span>
+                <span className="whitespace-nowrap">{formatDateOnly(dateStr)}</span>
             </div>
         );
     };
@@ -202,13 +226,13 @@ export const SupportFormsTable: React.FC<SupportFormsTableProps> = ({
         {
             field: 'projectStartDate',
             headerName: 'START DATE',
-            width: 140,
+            width: 175,
             cellRenderer: DateRenderer,
         },
         {
             field: 'projectCompletionDate',
             headerName: 'COMPLETION DATE',
-            width: 150,
+            width: 175,
             cellRenderer: DateRenderer,
         },
         {
@@ -220,7 +244,7 @@ export const SupportFormsTable: React.FC<SupportFormsTableProps> = ({
         {
             field: 'createdAt',
             headerName: 'CREATED AT',
-            width: 140,
+            width: 175,
             cellRenderer: DateRenderer,
         },
         {
