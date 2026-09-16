@@ -127,6 +127,7 @@ interface PhaseTaskListTabProps {
     canDeleteTask?: boolean;
     currentUserRole?: ProjectRole;
     searchQuery?: string;
+    filterStatusName?: string;
 }
 
 function isAdmin(role?: ProjectRole): boolean {
@@ -141,7 +142,8 @@ export default function PhaseTaskListTab({
     canCreateTask = isEditable,
     canDeleteTask = false,
     currentUserRole,
-    searchQuery = ''
+    searchQuery = '',
+    filterStatusName
 }: PhaseTaskListTabProps) {
     const showViewButton = isAdmin(currentUserRole);
     const { data: phases = [], isLoading } = useStructuredPhases(projectId);
@@ -333,21 +335,48 @@ export default function PhaseTaskListTab({
     }, [phases, expandedPhases, expandedTaskLists, expandedTasks, isEditable]);
 
     const filteredFlatRows = useMemo(() => {
-        if (!searchQuery.trim()) return flatRows;
+        let rows = flatRows;
+
+        if (filterStatusName) {
+            const targetStatus = filterStatusName.trim().toLowerCase();
+            const matchingIds = new Set<string>();
+
+            flatRows.forEach((r) => {
+                if (r.status?.name && r.status.name.trim().toLowerCase() === targetStatus) {
+                    matchingIds.add(r.rowId);
+                }
+            });
+
+            const idsToInclude = new Set<string>(matchingIds);
+            flatRows.forEach((r) => {
+                if (r.rowType === 'tasklist' && flatRows.some((x) => x.taskListId === r.taskListId && matchingIds.has(x.rowId))) {
+                    idsToInclude.add(r.rowId);
+                }
+            });
+            flatRows.forEach((r) => {
+                if (r.rowType === 'phase' && flatRows.some((x) => x.phaseId === r.phaseId && idsToInclude.has(x.rowId))) {
+                    idsToInclude.add(r.rowId);
+                }
+            });
+
+            rows = flatRows.filter((r) => idsToInclude.has(r.rowId));
+        }
+
+        if (!searchQuery.trim()) return rows;
         const q = searchQuery.trim().toLowerCase();
         const matches = (name: string) => name.toLowerCase().includes(q);
         const ids = new Set<string>();
-        flatRows.forEach((r) => { if (matches(r.name)) ids.add(r.rowId); });
-        flatRows.forEach((r) => {
-            if (r.rowType === 'tasklist' && flatRows.some((x) => x.taskListId === r.taskListId && ids.has(x.rowId)))
+        rows.forEach((r) => { if (matches(r.name)) ids.add(r.rowId); });
+        rows.forEach((r) => {
+            if (r.rowType === 'tasklist' && rows.some((x) => x.taskListId === r.taskListId && ids.has(x.rowId)))
                 ids.add(r.rowId);
         });
-        flatRows.forEach((r) => {
-            if (r.rowType === 'phase' && flatRows.some((x) => x.phaseId === r.phaseId && ids.has(x.rowId)))
+        rows.forEach((r) => {
+            if (r.rowType === 'phase' && rows.some((x) => x.phaseId === r.phaseId && ids.has(x.rowId)))
                 ids.add(r.rowId);
         });
-        return flatRows.filter((r) => ids.has(r.rowId));
-    }, [flatRows, searchQuery]);
+        return rows.filter((r) => ids.has(r.rowId));
+    }, [flatRows, searchQuery, filterStatusName]);
 
     // Force AG Grid to completely redraw rows when the data or expansion state changes.
     // This ensures icons and indentation are always in sync with the current state.
@@ -907,6 +936,7 @@ export default function PhaseTaskListTab({
                     workflow={workflow}
                     isEditable={isEditable}
                     searchQuery={searchQuery}
+                    filterStatusName={filterStatusName}
                     onUpdateStatus={handleUpdateStatus}
                     onEditTask={(task) => setTaskViewModal({ isOpen: true, selectedTaskId: task.id, startInEditMode: true })}
                     onViewTask={(taskId) => setTaskViewModal({ isOpen: true, selectedTaskId: taskId, startInEditMode: false })}
@@ -1046,6 +1076,7 @@ function TasksBoardView({
     workflow,
     isEditable,
     searchQuery = '',
+    filterStatusName,
     onUpdateStatus,
     onEditTask,
     onViewTask,
@@ -1057,6 +1088,7 @@ function TasksBoardView({
     workflow: any[];
     isEditable: boolean;
     searchQuery?: string;
+    filterStatusName?: string;
     onUpdateStatus: (taskId: string, statusId: string) => void;
     onEditTask: (task: any) => void;
     onViewTask?: (taskId: string) => void;
@@ -1082,10 +1114,15 @@ function TasksBoardView({
     }, [phases]);
 
     const filteredTasks = useMemo(() => {
-        if (!searchQuery.trim()) return allTasks;
+        let tasks = allTasks;
+        if (filterStatusName) {
+            const targetStatus = filterStatusName.trim().toLowerCase();
+            tasks = tasks.filter((t: any) => t.status?.name?.trim().toLowerCase() === targetStatus);
+        }
+        if (!searchQuery.trim()) return tasks;
         const q = searchQuery.trim().toLowerCase();
-        return allTasks.filter((t: any) => t.title?.toLowerCase().includes(q));
-    }, [allTasks, searchQuery]);
+        return tasks.filter((t: any) => t.title?.toLowerCase().includes(q));
+    }, [allTasks, searchQuery, filterStatusName]);
 
     const parentTasks = useMemo(() => filteredTasks.filter(t => !t.parentId), [filteredTasks]);
 
