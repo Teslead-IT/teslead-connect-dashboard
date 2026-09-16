@@ -24,6 +24,8 @@ import {
     ChevronDown,
     RotateCcw,
     Pencil,
+    Minimize2,
+    Maximize2,
 } from 'lucide-react';
 import { MomPrintModal } from '@/components/meetings/MomPrintModal';
 import { ImportPreviousMeetingModal } from '@/components/meetings/ImportPreviousMeetingModal';
@@ -142,8 +144,20 @@ export function MeetingForm({
     const [showImportModal, setShowImportModal] = useState(false);
     const [printModalMode, setPrintModalMode] = useState<'internal' | 'client'>('internal');
     const [showPrintDropdown, setShowPrintDropdown] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const isInitializedRef = useRef(false);
     const lastMeetingIdRef = useRef(meetingId);
+
+    // ESC key to exit fullscreen
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                setIsFullscreen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFullscreen]);
 
     const handleImportData = (importedData: {
         location?: string;
@@ -855,15 +869,44 @@ export function MeetingForm({
                     {/* Discussion Area Table */}
                     <div className="pt-1 space-y-1">
                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1 flex items-center justify-between">
-                            <span>
+                            <div className='flex flex-col'>
+                                <span>
                                 <MessageSquare className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
                                 Discussion Area <span className="text-red-500">*</span>
                             </span>
-                            <span className="text-[10px] text-gray-400 font-medium normal-case">
-                                Type @ or # to search & mention users/projects
+                             <span className="text-[10px] text-gray-400 font-medium normal-case">
+                                    Type @ or # to search & mention users/projects
                             </span>
+                            </div>
+                            <div className='flex flex-col'>
+                                <button
+                                type="button"
+                                onClick={() => setIsFullscreen(!isFullscreen)}
+                                className={cn(
+                                    "inline-flex items-center gap-1.5 px-3 py-1.5 font-bold text-xs rounded-lg transition-all shadow-2xs cursor-pointer border",
+                                    isFullscreen
+                                        ? "bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300"
+                                        : "bg-white hover:bg-slate-100 text-[#091590] border-blue-200 hover:border-[#091590]"
+                                )}
+                                title={isFullscreen ? "Exit Full Screen (ESC)" : "Expand Table to Full Screen"}
+                            >
+                                {isFullscreen ? (
+                                    <>
+                                        <Minimize2 className="w-3.5 h-3.5 text-gray-700" />
+                                        <span>Exit Full Screen</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Maximize2 className="w-3.5 h-3.5 text-[#091590]" />
+                                        <span>Expand Table</span>
+                                    </>
+                                )}
+                            </button>
+                            </div>
                         </label>
                         <DiscussionAreaTable
+                            isFullScreen={isFullscreen}
+                            onExitFullScreen={() => setIsFullscreen(false)}
                             content={formData.content}
                             onChange={(jsonPayload) => setFormData({ ...formData, content: jsonPayload })}
                             readOnly={!isEditingState || readOnly}
