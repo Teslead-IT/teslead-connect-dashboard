@@ -32,6 +32,8 @@ import {
     FileText,
     FileImage,
     File,
+    FileArchive,
+    Info,
 } from 'lucide-react';
 import { cn, getAvatarColor, formatDate } from '@/lib/utils';
 import type { Issue, IssueType, IssueSeverity, IssuePriority, UpdateIssuePayload } from '@/types/issue';
@@ -1018,20 +1020,61 @@ export function IssueViewModal({
 
                             {activeTab === 'attachments' && (
                                 <div className="space-y-4">
+                                    {/* Supported Formats Banner */}
+                                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                                <Info className="w-3.5 h-3.5 text-indigo-500" /> Supported File Formats
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 font-medium">Max size: 25MB per file</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-2xs">
+                                                <FileImage className="w-4 h-4 text-blue-500 shrink-0" />
+                                                <div>
+                                                    <div className="text-xs font-bold text-slate-700">Images</div>
+                                                    <div className="text-[10px] text-slate-500 font-mono">PNG, JPG, WEBP, GIF</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-2xs">
+                                                <FileText className="w-4 h-4 text-red-500 shrink-0" />
+                                                <div>
+                                                    <div className="text-xs font-bold text-slate-700">Documents</div>
+                                                    <div className="text-[10px] text-slate-500 font-mono">PDF, DOC, DOCX</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-2xs">
+                                                <FileSpreadsheet className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                <div>
+                                                    <div className="text-xs font-bold text-slate-700">Spreadsheets</div>
+                                                    <div className="text-[10px] text-slate-500 font-mono">XLS, XLSX, CSV</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-2xs">
+                                                <FileArchive className="w-4 h-4 text-amber-500 shrink-0" />
+                                                <div>
+                                                    <div className="text-xs font-bold text-slate-700">Logs & Archives</div>
+                                                    <div className="text-[10px] text-slate-500 font-mono">TXT, LOG, ZIP</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {!isReadOnly && (
-                                        <div className="relative border-2 border-dashed border-gray-200 hover:border-red-400 rounded-xl p-6 text-center transition cursor-pointer bg-gray-50/50 group">
+                                        <div className="relative border-2 border-dashed border-gray-200 hover:border-red-400 rounded-xl p-5 text-center transition cursor-pointer bg-gray-50/50 group">
                                             <input
                                                 type="file"
                                                 multiple
+                                                accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.log,.zip"
                                                 onChange={handleFileUpload}
                                                 disabled={isUploading}
                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                             />
-                                            <Upload className="w-8 h-8 mx-auto text-gray-400 group-hover:text-red-500 transition mb-2" />
+                                            <Upload className="w-7 h-7 mx-auto text-gray-400 group-hover:text-red-500 transition mb-1.5" />
                                             <p className="text-xs font-semibold text-gray-700">
                                                 {isUploading ? 'Uploading files...' : 'Click or drag files here to attach'}
                                             </p>
-                                            <p className="text-[10px] text-gray-400 mt-1">Supports PNG, JPG, PDF, ZIP up to 25MB</p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5">Supports Images, Documents, Spreadsheets, Logs & Archives (Up to 25MB)</p>
                                         </div>
                                     )}
 

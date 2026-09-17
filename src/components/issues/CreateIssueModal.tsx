@@ -24,6 +24,11 @@ import {
     Link2,
     Paperclip,
     Upload,
+    FileImage,
+    FileText,
+    FileSpreadsheet,
+    FileArchive,
+    Info,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import type { IssueType, IssueSeverity, IssuePriority, CreateIssuePayload } from '@/types/issue';
@@ -351,7 +356,7 @@ export function CreateIssueModal({
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
             <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-            <div className="relative w-full max-w-lg bg-white shadow-2xl h-full flex flex-col animate-slide-in-right">
+            <div className="relative w-full max-w-2xl bg-white shadow-2xl h-full flex flex-col animate-slide-in-right">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gradient-to-r from-white to-gray-50/80">
                     <div className="flex items-center gap-2">
@@ -750,19 +755,66 @@ export function CreateIssueModal({
 
                         {/* File Attachments */}
                         <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                                <Paperclip className="w-3 h-3 text-indigo-500" /> Issue Attachments / Screenshots
-                            </label>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                                    <Paperclip className="w-3.5 h-3.5 text-indigo-500" /> Issue Attachments / Screenshots
+                                </label>
+                                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                    Max 25MB per file
+                                </span>
+                            </div>
+
+                            {/* Supported Formats Banner */}
+                            <div className="mb-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Info className="w-3.5 h-3.5 text-indigo-500" /> Supported File Formats
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-medium">All standard formats supported</span>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-md shadow-2xs">
+                                        <FileImage className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                        <div>
+                                            <div className="text-[10px] font-bold text-slate-700">Images</div>
+                                            <div className="text-[9px] text-slate-500 font-mono">PNG, JPG, WEBP, GIF</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-md shadow-2xs">
+                                        <FileText className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                                        <div>
+                                            <div className="text-[10px] font-bold text-slate-700">Documents</div>
+                                            <div className="text-[9px] text-slate-500 font-mono">PDF, DOC, DOCX</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-md shadow-2xs">
+                                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                        <div>
+                                            <div className="text-[10px] font-bold text-slate-700">Spreadsheets</div>
+                                            <div className="text-[9px] text-slate-500 font-mono">XLS, XLSX, CSV</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-md shadow-2xs">
+                                        <FileArchive className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                        <div>
+                                            <div className="text-[10px] font-bold text-slate-700">Logs & Archives</div>
+                                            <div className="text-[9px] text-slate-500 font-mono">TXT, LOG, ZIP</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="relative border-2 border-dashed border-gray-200 hover:border-indigo-400 bg-gray-50/50 hover:bg-indigo-50/30 rounded-lg p-3.5 transition text-center cursor-pointer group">
                                 <input
                                     type="file"
                                     multiple
+                                    accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.log,.zip"
                                     onChange={handleFileUpload}
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 />
                                 <Upload className="w-5 h-5 mx-auto text-gray-400 group-hover:text-indigo-500 transition mb-1" />
                                 <p className="text-xs font-semibold text-gray-700">Click or drag files here to attach</p>
-                                <p className="text-[10px] text-gray-400 mt-0.5">PNG, JPG, logs, PDFs up to 25MB</p>
+                                <p className="text-[10px] text-gray-400 mt-0.5">Supports Images, Documents, Spreadsheets, Logs & Archives up to 25MB</p>
                             </div>
 
                             {attachments.length > 0 && (
