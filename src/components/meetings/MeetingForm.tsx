@@ -913,6 +913,9 @@ export function MeetingForm({
                             userRole={activeOrgRole}
                             currentUserId={currentUser?.id ?? undefined}
                             currentUserName={currentUser?.name ?? undefined}
+                            onSave={handleSave}
+                            isSaving={isSaving}
+                            isNew={isNew}
                         />
                     </div>
                 </div>

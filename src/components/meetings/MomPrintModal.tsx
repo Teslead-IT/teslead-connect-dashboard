@@ -45,7 +45,7 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
     }
 
     // Pad rows to minimum 8 rows for a full, professional paper document layout
-    const TARGET_MIN_ROWS = 16;
+    const TARGET_MIN_ROWS = 8;
     const discussionRows = [...rawDiscussionRows];
     if (discussionRows.length < TARGET_MIN_ROWS) {
         const padCount = TARGET_MIN_ROWS - discussionRows.length;
@@ -75,8 +75,17 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
             <style jsx global>{`
                 @media print {
                     @page {
-                        margin: 0;
-                        size: auto;
+                        size: portrait;
+                        margin: 10mm 10mm 10mm 10mm;
+                    }
+                    html, body {
+                        height: auto !important;
+                        min-height: 0 !important;
+                        overflow: visible !important;
+                        background: white !important;
+                        color: black !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     body * {
                         visibility: hidden !important;
@@ -84,20 +93,59 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                     #printable-mom-container, #printable-mom-container * {
                         visibility: visible !important;
                     }
+                    /* Reset modal and flex container restrictions during print so multi-page flow isn't clipped */
+                    .fixed, .absolute, div, main, section {
+                        position: static !important;
+                        overflow: visible !important;
+                        max-height: none !important;
+                        height: auto !important;
+                        min-height: 0 !important;
+                        flex: none !important;
+                        transform: none !important;
+                        backdrop-filter: none !important;
+                        box-shadow: none !important;
+                    }
                     #printable-mom-container {
                         position: absolute !important;
                         left: 0 !important;
                         top: 0 !important;
                         width: 100% !important; 
-                        padding: 12mm !important;
+                        max-width: none !important;
+                        padding: 0 !important;
                         margin: 0 !important;
                         background: white !important;
                         color: black !important;
                         box-shadow: none !important;
                         border: none !important;
+                        min-height: 0 !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                        display: block !important;
                     }
                     .no-print {
                         display: none !important;
+                    }
+                    table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
+                        page-break-inside: auto !important;
+                        break-inside: auto !important;
+                    }
+                    thead {
+                        display: table-header-group !important;
+                    }
+                    tbody {
+                        display: table-row-group !important;
+                    }
+                    tr {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    td, th {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                 }
             `}</style>
@@ -182,7 +230,7 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                 <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
                     <div
                         id="printable-mom-container"
-                        className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm max-w-4xl mx-auto space-y-4 text-black text-xs uppercase flex flex-col justify-between min-h-[750px]"
+                        className="bg-white p-6 print:p-0 rounded-xl border border-gray-300 print:border-none shadow-sm print:shadow-none max-w-4xl mx-auto space-y-4 text-black text-xs uppercase flex flex-col justify-between print:block print:min-h-0 min-h-[750px]"
                     >
                         <div className="space-y-4">
                             {/* Section 1: NO OF PEOPLE / LOCATION / DATE */}

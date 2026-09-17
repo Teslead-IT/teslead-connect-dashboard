@@ -28,6 +28,7 @@ import {
     Bell,
     Calendar,
     ListTodo,
+    Bug,
     Building2,
     Clock,
     ClipboardCheck,
@@ -63,6 +64,7 @@ const navItems: NavItem[] = [
         children: [
             { label: 'Projects', href: '/projects', icon: <FolderKanban className="w-3 h-3 flex-shrink-0" /> },
             { label: 'Tasks', href: '/projects/tasks', icon: <ListTodo className="w-3 h-3 flex-shrink-0" /> },
+            { label: 'Issues', href: '/projects/issues', icon: <Bug className="w-3 h-3 flex-shrink-0" /> },
         ],
     },
     {
