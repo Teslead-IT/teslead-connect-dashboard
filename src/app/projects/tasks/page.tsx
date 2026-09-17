@@ -17,6 +17,7 @@ import { useStructuredPhases } from '@/hooks/use-phases';
 import { useProjectMembers } from '@/hooks/use-projects';
 import { taskService } from '@/services/tasks.service';
 import { TaskViewModal } from '@/components/tasks/TaskViewModal';
+import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import type { MyTask, MyTaskTag } from '@/types/task';
@@ -30,13 +31,27 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
     5: { label: 'Lowest', color: 'bg-gray-100 text-gray-600 border-gray-200' },
 };
 
-function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, projectId: string, currentStatus: any }) {
+function StatusDropdown({
+    taskId,
+    projectId,
+    currentStatus,
+    taskTitle,
+    currentExpectedOutput,
+}: {
+    taskId: string;
+    projectId: string;
+    currentStatus: any;
+    taskTitle?: string;
+    currentExpectedOutput?: string | null;
+}) {
     const { data: workflow = [] } = useProjectWorkflow(projectId);
     const updateTaskMutation = useUpdateTask(projectId);
     const toast = useToast();
 
     // Local state for immediate feedback
     const [localStatusId, setLocalStatusId] = useState(currentStatus.id);
+    const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
+    const [isOutputModalOpen, setIsOutputModalOpen] = useState(false);
 
     // Sync local state with prop when it changes from server
     useEffect(() => {
@@ -52,21 +67,35 @@ function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, 
         return allStatuses.find(s => s.id === localStatusId) || currentStatus;
     }, [localStatusId, currentStatus, allStatuses]);
 
-    const handleStatusChange = async (newStatusId: string) => {
-        if (newStatusId === localStatusId) return;
-
-        // Optimistically update local state
+    const performStatusUpdate = async (newStatusId: string, expectedOutput?: string) => {
         setLocalStatusId(newStatusId);
-
         const tid = toast.loading('Updating status...');
         try {
-            await updateTaskMutation.mutateAsync({ taskId, data: { statusId: newStatusId } });
+            const data: any = { statusId: newStatusId };
+            if (expectedOutput !== undefined) {
+                data.expectedOutput = expectedOutput;
+            }
+            await updateTaskMutation.mutateAsync({ taskId, data });
             toast.success('Status updated', undefined, { id: tid });
         } catch (error) {
-            // Revert on error
             setLocalStatusId(currentStatus.id);
             toast.error('Failed to update status', undefined, { id: tid });
         }
+    };
+
+    const handleStatusChange = async (newStatusId: string) => {
+        if (newStatusId === localStatusId) return;
+
+        const targetStatus = allStatuses.find((s: any) => s.id === newStatusId);
+        const name = (targetStatus?.name || '').toLowerCase();
+
+        if (name.includes('ready for testing') || name === 'ready for testing') {
+            setPendingStatusId(newStatusId);
+            setIsOutputModalOpen(true);
+            return;
+        }
+
+        await performStatusUpdate(newStatusId);
     };
 
     const color = selectedStatus?.color || '#64748b';
@@ -99,6 +128,28 @@ function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, 
             <div className="absolute right-3 pointer-events-none opacity-80">
                 <ChevronDown className="w-3 h-3" style={{ color }} />
             </div>
+
+            {isOutputModalOpen && pendingStatusId && (() => {
+                const targetSt = allStatuses.find((s: any) => s.id === pendingStatusId);
+                return (
+                    <ExpectedOutputModal
+                        isOpen={isOutputModalOpen}
+                        onClose={() => {
+                            setIsOutputModalOpen(false);
+                            setPendingStatusId(null);
+                        }}
+                        onConfirm={async (expOutput) => {
+                            await performStatusUpdate(pendingStatusId, expOutput);
+                            setIsOutputModalOpen(false);
+                            setPendingStatusId(null);
+                        }}
+                        taskTitle={taskTitle}
+                        initialValue={currentExpectedOutput || ''}
+                        statusName={targetSt?.name || 'Ready for testing'}
+                        statusColor={targetSt?.color || color}
+                    />
+                );
+            })()}
         </div>
     );
 }
@@ -289,9 +340,28 @@ export default function TasksPage() {
     };
 
     const StatusRenderer = (props: ICellRendererParams) => {
-        const { id: taskId, status, projectId } = props.data as MyTask;
+        const { id: taskId, status, projectId, title, expectedOutput } = props.data as MyTask;
         if (!status) return null;
-        return <StatusDropdown taskId={taskId} projectId={projectId} currentStatus={status} />;
+        return (
+            <StatusDropdown
+                taskId={taskId}
+                projectId={projectId}
+                currentStatus={status}
+                taskTitle={title}
+                currentExpectedOutput={expectedOutput}
+            />
+        );
+    };
+
+    const ExpectedOutputRenderer = (props: ICellRendererParams) => {
+        const value = props.value as string | undefined | null;
+        if (!value) return <div className="h-full flex items-center text-gray-400 italic text-[11px]">-</div>;
+
+        return (
+            <div className="h-full flex items-center truncate text-xs text-gray-700 font-medium" title={value}>
+                {value}
+            </div>
+        );
     };
 
     const PriorityRenderer = (props: ICellRendererParams) => {
@@ -422,6 +492,13 @@ export default function TasksPage() {
                 width: 140,
                 valueGetter: (params) => params.data?.status?.name,
                 cellRenderer: StatusRenderer,
+            },
+            {
+                field: 'expectedOutput',
+                headerName: 'EXPECTED OUTPUT',
+                flex: 1.5,
+                minWidth: 180,
+                cellRenderer: ExpectedOutputRenderer,
             },
             {
                 field: 'priority',

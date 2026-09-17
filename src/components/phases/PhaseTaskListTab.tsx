@@ -49,6 +49,7 @@ import {
 import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
 import { CreateTaskListModal } from './CreateTaskListModal';
+import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
 import { cn, getAvatarColor } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
 import {
@@ -96,6 +97,7 @@ interface FlatRow {
 
     name: string;
     status?: { id: string; name: string; color: string };
+    expectedOutput?: string | null;
     assignees?: Array<{ id: string; name: string; email: string; avatarUrl?: string }>;
     assignedBy?: { id: string; name: string; email?: string; avatarUrl?: string } | null;
     createdBy?: { id: string; name: string; email?: string; avatarUrl?: string } | null;
@@ -305,6 +307,7 @@ export default function PhaseTaskListTab({
                                     formattedTaskId: task.taskId,
                                     name: task.title,
                                     status: task.status,
+                                    expectedOutput: task.expectedOutput,
                                     assignees: task.assignees,
                                     assignedBy: (task as any).assignedBy || (task as any).createdBy || null,
                                     createdBy: (task as any).createdBy || null,
@@ -444,10 +447,14 @@ export default function PhaseTaskListTab({
         }
     };
 
-    const handleUpdateStatus = useCallback(async (taskId: string, statusId: string) => {
+    const handleUpdateStatus = useCallback(async (taskId: string, statusId: string, expectedOutput?: string) => {
         const tid = toast.loading('Updating status...');
         try {
-            await updateTaskMutation.mutateAsync({ taskId, data: { statusId } });
+            const data: any = { statusId };
+            if (expectedOutput !== undefined) {
+                data.expectedOutput = expectedOutput;
+            }
+            await updateTaskMutation.mutateAsync({ taskId, data });
             toast.success('Status updated', undefined, { id: tid });
         } catch {
             toast.error('Failed to update status', undefined, { id: tid });
@@ -607,6 +614,13 @@ export default function PhaseTaskListTab({
             field: 'status',
             width: 150,
             cellRenderer: StatusCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Expected Output',
+            field: 'expectedOutput',
+            width: 200,
+            cellRenderer: ExpectedOutputCell,
             cellClass: '!p-0',
         },
         {
@@ -1550,6 +1564,18 @@ function TypeCell(params: ICellRendererParams) {
     );
 }
 
+function ExpectedOutputCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
+    const value = row.expectedOutput || (row.taskData as any)?.expectedOutput;
+    if (!value) return <div className="px-2 text-[10px] text-gray-400 italic">-</div>;
+    return (
+        <div className="px-2 h-full flex items-center truncate text-xs text-gray-700 font-medium" title={value}>
+            {value}
+        </div>
+    );
+}
+
 function StatusCell(params: ICellRendererParams) {
     const row = params.data as FlatRow;
     const ctx = params.context;
@@ -1561,6 +1587,9 @@ function StatusCell(params: ICellRendererParams) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+
+    const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
+    const [isOutputModalOpen, setIsOutputModalOpen] = useState(false);
 
     const allStatuses = useMemo(() =>
         workflow.flatMap((s: any) => (s.statuses || []).map((st: any) => ({ ...st, stageName: s.name })))
@@ -1606,6 +1635,16 @@ function StatusCell(params: ICellRendererParams) {
 
     const handleStatusChange = async (newStatusId: string) => {
         if (newStatusId === localStatusId) return;
+
+        const targetStatus = allStatuses.find((s: any) => s.id === newStatusId);
+        const name = (targetStatus?.name || '').toLowerCase();
+
+        if (name.includes('ready for testing') || name === 'ready for testing') {
+            setPendingStatusId(newStatusId);
+            setIsOutputModalOpen(true);
+            return;
+        }
+
         setLocalStatusId(newStatusId);
         try {
             await onUpdateStatus?.(row.taskId!, newStatusId);
@@ -1702,6 +1741,34 @@ function StatusCell(params: ICellRendererParams) {
                 </AnimatePresence>,
                 document.body
             )}
+
+            {isOutputModalOpen && pendingStatusId && (() => {
+                const targetSt = allStatuses.find((s: any) => s.id === pendingStatusId);
+                return (
+                    <ExpectedOutputModal
+                        isOpen={isOutputModalOpen}
+                        onClose={() => {
+                            setIsOutputModalOpen(false);
+                            setPendingStatusId(null);
+                        }}
+                        onConfirm={async (expOutput) => {
+                            setLocalStatusId(pendingStatusId);
+                            try {
+                                await onUpdateStatus?.(row.taskId!, pendingStatusId, expOutput);
+                            } catch {
+                                setLocalStatusId(row.status?.id || '');
+                            } finally {
+                                setIsOutputModalOpen(false);
+                                setPendingStatusId(null);
+                            }
+                        }}
+                        taskTitle={row.name}
+                        initialValue={row.expectedOutput || ''}
+                        statusName={targetSt?.name || 'Ready for testing'}
+                        statusColor={targetSt?.color || color}
+                    />
+                );
+            })()}
         </div>
     );
 }

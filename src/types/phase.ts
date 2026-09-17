@@ -58,6 +58,7 @@ export interface StructuredTask {
     taskId: string;
     title: string;
     description?: string;
+    expectedOutput?: string | null;
     priority: number;
     order: number;
     dueDate: string | null;

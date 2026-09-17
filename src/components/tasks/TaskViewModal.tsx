@@ -739,6 +739,12 @@ function TaskDetailsPanel({
                     <div className={cn(fieldClasses, "whitespace-pre-wrap")}>{task.description}</div>
                 </div>
             )}
+            {task.expectedOutput && (
+                <div>
+                    <label className={cn(labelClasses, "flex items-center gap-2 text-purple-600")}><ClipboardCheck className="w-3 h-3 text-purple-600" /> Expected Output</label>
+                    <div className={cn(fieldClasses, "whitespace-pre-wrap border-purple-200 bg-purple-50/30 text-purple-950 font-medium")}>{task.expectedOutput}</div>
+                </div>
+            )}
             <div>
                 <label className={labelClasses}>Status</label>
                 <div className={cn("inline-flex items-center gap-2 px-3 py-2 border bg-white", rounded)}>
@@ -849,6 +855,7 @@ function TaskEditForm({
     const [formData, setFormData] = useState<CreateTaskPayload>({
         title: task.title,
         description: task.description || '',
+        expectedOutput: task.expectedOutput || '',
         priority: task.priority as TaskPriority,
         statusId: task.status?.id || '',
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
@@ -875,6 +882,7 @@ function TaskEditForm({
         setFormData({
             title: task.title,
             description: task.description || '',
+            expectedOutput: task.expectedOutput || '',
             priority: task.priority as TaskPriority,
             statusId: task.status?.id || '',
             dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
@@ -921,6 +929,11 @@ function TaskEditForm({
             <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Description</label>
                 <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className={cn(inputClass, "resize-none")} placeholder="Add details..." />
+            </div>
+
+            <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5"><ClipboardCheck className="w-3 h-3 inline mr-1 text-purple-500" />Expected Output</label>
+                <textarea value={formData.expectedOutput || ''} onChange={(e) => setFormData({ ...formData, expectedOutput: e.target.value })} rows={2} className={cn(inputClass, "resize-none")} placeholder="Add expected output criteria..." />
             </div>
 
             <div>

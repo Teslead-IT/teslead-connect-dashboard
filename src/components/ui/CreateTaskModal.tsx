@@ -64,6 +64,7 @@ export function CreateTaskModal({
     const [formData, setFormData] = useState<CreateTaskPayload>({
         title: '',
         description: '',
+        expectedOutput: '',
         priority: 3,
         statusId: '',
         dueDate: '',
@@ -104,6 +105,7 @@ export function CreateTaskModal({
                 setFormData({
                     title: initialData.title,
                     description: initialData.description || '',
+                    expectedOutput: initialData.expectedOutput || '',
                     priority: initialData.priority,
                     statusId: initialData.status?.id || defaultStatusId,
                     dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : '',
@@ -117,6 +119,7 @@ export function CreateTaskModal({
                 setFormData({
                     title: '',
                     description: '',
+                    expectedOutput: '',
                     priority: 3,
                     statusId: defaultStatusId,
                     dueDate: '',
@@ -532,6 +535,21 @@ export function CreateTaskModal({
                                 rows={3}
                                 className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] resize-none disabled:bg-gray-50 disabled:text-gray-500 placeholder:text-gray-300 transition-all"
                                 placeholder="Add more details..."
+                                disabled={isReadOnly}
+                            />
+                        </div>
+
+                        {/* Expected Output */}
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <ClipboardCheck className="w-3 h-3 text-purple-500" /> Expected Output
+                            </label>
+                            <textarea
+                                value={formData.expectedOutput || ''}
+                                onChange={(e) => setFormData({ ...formData, expectedOutput: e.target.value })}
+                                rows={2}
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] resize-none disabled:bg-gray-50 disabled:text-gray-500 placeholder:text-gray-300 transition-all"
+                                placeholder="e.g. Expected output criteria for testing..."
                                 disabled={isReadOnly}
                             />
                         </div>

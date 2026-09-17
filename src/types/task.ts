@@ -53,6 +53,7 @@ export interface Task {
     taskId: string;
     title: string;
     description?: string;
+    expectedOutput?: string | null;
     parentId: string | null;
     priority: TaskPriority;
     dueDate: string | null;
@@ -74,6 +75,7 @@ export interface Task {
 export interface CreateTaskPayload {
     title: string;
     description?: string;
+    expectedOutput?: string;
     parentId?: string | null;
     priority?: TaskPriority;
     dueDate?: string;
@@ -90,6 +92,7 @@ export interface CreateTaskPayload {
 export interface UpdateTaskPayload {
     title?: string;
     description?: string;
+    expectedOutput?: string;
     priority?: TaskPriority;
     dueDate?: string;
     assigneeIds?: string[];
@@ -137,6 +140,7 @@ export interface MyTask {
     type?: TaskType | null;
     title: string;
     description?: string;
+    expectedOutput?: string | null;
     priority: number;
     order: number;
     dueDate: string | null;

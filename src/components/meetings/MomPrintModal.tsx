@@ -64,19 +64,31 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
     }
 
     const handlePrint = () => {
+        // Blank title so the browser print header does not show "Teslead Connect"
+        const previousTitle = document.title;
+        document.title = ' ';
+        const restoreTitle = () => {
+            document.title = previousTitle;
+            window.removeEventListener('afterprint', restoreTitle);
+        };
+        window.addEventListener('afterprint', restoreTitle);
         window.print();
     };
 
     const isClientMode = mode === 'client';
+    const discussionColCount = isClientMode ? 4 : 6;
 
     return (
         <div className="mom-print-overlay fixed inset-0 z-[10000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto print:bg-transparent print:backdrop-blur-none">
             {/* Print specific CSS */}
             <style jsx global>{`
                 @media print {
+                    /* Zero @page margin removes browser header/footer (date, title, URL).
+                       Left/right + page-1 top: container padding.
+                       Pages 2+ top/bottom: repeating discussion table thead/tfoot gap rows. */
                     @page {
                         size: A4 portrait;
-                        margin: 14mm 12mm;
+                        margin: 0;
                     }
                     html, body {
                         height: auto !important;
@@ -128,7 +140,8 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                         width: 100% !important;
                         max-width: none !important;
                         margin: 0 !important;
-                        padding: 0 !important;
+                        padding: 14mm 12mm 12mm 12mm !important;
+                        box-sizing: border-box !important;
                         background: white !important;
                         background-color: white !important;
                         color: black !important;
@@ -155,6 +168,9 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                     #printable-mom-container tbody {
                         display: table-row-group !important;
                     }
+                    #printable-mom-container tfoot {
+                        display: table-footer-group !important;
+                    }
                     #printable-mom-container tr {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
@@ -167,6 +183,35 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                         vertical-align: middle !important;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
+                    }
+                    /* Repeats with discussion thead/tfoot on every continued page (2, 3, 4…) */
+                    #printable-mom-container table.mom-discussion-table > thead > tr.mom-print-page-gap,
+                    #printable-mom-container table.mom-discussion-table > tfoot > tr.mom-print-page-gap {
+                        display: table-row !important;
+                    }
+                    #printable-mom-container table.mom-discussion-table > thead > tr.mom-print-page-gap > td,
+                    #printable-mom-container table.mom-discussion-table > tfoot > tr.mom-print-page-gap > td {
+                        height: 14mm !important;
+                        max-height: 14mm !important;
+                        padding: 0 !important;
+                        border: none !important;
+                        background: white !important;
+                        background-color: white !important;
+                        color: transparent !important;
+                        font-size: 0 !important;
+                        line-height: 0 !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    /* On page 1, cancel the thead gap so headers sit normally under ATTENDED BY.
+                       On pages 2+, only the repeating thead gap remains → top margin. */
+                    #printable-mom-container .mom-print-gap-anchor {
+                        display: block !important;
+                        height: 14mm !important;
+                        overflow: hidden !important;
+                    }
+                    #printable-mom-container table.mom-discussion-table {
+                        margin-top: -14mm !important;
                     }
                 }
             `}</style>
@@ -276,8 +321,14 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                             </table>
 
                             {/* Section 4: MAIN DISCUSSION TABLE */}
-                            <table className="w-full border-collapse border border-gray-800">
+                            {/* Print-only anchor cancels thead top-gap on page 1; gap still shows on pages 2+ */}
+                            <div className="mom-print-gap-anchor hidden print:block" aria-hidden="true" />
+                            <table className="mom-discussion-table w-full border-collapse border border-gray-800">
                                 <thead>
+                                    {/* Print-only gap: repeats on pages 2+ as top margin (with @page margin: 0) */}
+                                    <tr className="mom-print-page-gap hidden print:table-row">
+                                        <td colSpan={discussionColCount}>{'\u00A0'}</td>
+                                    </tr>
                                     <tr className="bg-[#404040] text-white text-center font-bold">
                                         <th className="border border-gray-800 py-2.5 px-2 w-12 align-middle">SNO</th>
                                         <th className="border border-gray-800 py-2.5 px-3 text-left align-middle">INSPECTION & DISCUSSION POINTS</th>
@@ -316,6 +367,12 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                                         );
                                     })}
                                 </tbody>
+                                <tfoot>
+                                    {/* Print-only gap: repeats as bottom margin on each page */}
+                                    <tr className="mom-print-page-gap hidden print:table-row">
+                                        <td colSpan={discussionColCount}>{'\u00A0'}</td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
