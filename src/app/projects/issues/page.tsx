@@ -104,7 +104,6 @@ export default function MyIssuesPage() {
         const title = issue.title || '';
         const initial = title.charAt(0).toUpperCase() || 'I';
         const projectColor = issue.projectColor || '#3b82f6';
-        const assigneeName = issue.assignees?.[0]?.name || issue.assignees?.[0]?.email || null;
 
         return (
             <div className="flex items-center gap-3 group cursor-pointer w-full overflow-hidden">
@@ -118,16 +117,9 @@ export default function MyIssuesPage() {
                     {initial}
                 </div>
                 <div className="min-w-0 flex flex-col justify-center flex-1">
-                    <div className="flex items-center gap-1.5 w-full">
-                        <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-xs block" title={title}>
-                            {title}
-                        </span>
-                        {assigneeName && (
-                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight bg-gray-50 text-gray-500 border border-gray-100">
-                                {assigneeName}
-                            </span>
-                        )}
-                    </div>
+                    <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-xs block" title={title}>
+                        {title}
+                    </span>
                 </div>
             </div>
         );
@@ -156,18 +148,80 @@ export default function MyIssuesPage() {
         );
     };
 
+    const AssigneesRenderer = (props: ICellRendererParams<Issue>) => {
+        const assignees = props.data?.assignees || [];
+
+        if (assignees.length === 0) {
+            return <div className="h-full flex items-center text-[10px] text-gray-400 italic">Unassigned</div>;
+        }
+
+        return (
+            <div className="h-full flex items-center gap-1">
+                {assignees.slice(0, 3).map((a: any) => (
+                    <div
+                        key={a.id || a.userId || a.email}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 bg-[#091590] overflow-hidden shadow-xs"
+                        title={a.name || a.email}
+                    >
+                        {a.avatarUrl ? (
+                            <img src={a.avatarUrl} alt={a.name || a.email} className="w-full h-full object-cover" />
+                        ) : (
+                            (a.name || a.email || '?').charAt(0).toUpperCase()
+                        )}
+                    </div>
+                ))}
+                {assignees.length > 3 && (
+                    <span className="text-[10px] text-gray-500 font-medium">+{assignees.length - 3}</span>
+                )}
+            </div>
+        );
+    };
+
     const TagsRenderer = (props: ICellRendererParams<Issue>) => {
         const type = props.data?.type || 'BUG';
         return (
-            <div className="h-full flex items-center gap-1 flex-wrap content-center">
+            <div className="h-full flex items-center">
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-emerald-50 text-emerald-600 border-emerald-100 shadow-2xs uppercase">
                     {type}
                 </span>
-                {props.data?.phaseName && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-blue-50 text-blue-600 border-blue-100 shadow-2xs uppercase">
-                        {props.data.phaseName}
-                    </span>
-                )}
+            </div>
+        );
+    };
+
+    const PhaseRenderer = (props: ICellRendererParams<Issue>) => {
+        const phaseName = props.data?.phaseName;
+        if (!phaseName) return <div className="h-full flex items-center text-gray-300 text-xs">-</div>;
+
+        return (
+            <div className="h-full flex items-center">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-tight">
+                    {phaseName}
+                </span>
+            </div>
+        );
+    };
+
+    const ProjectRenderer = (props: ICellRendererParams<Issue>) => {
+        const issue = props.data;
+        if (!issue) return null;
+        const pName = issue.projectName || 'Project';
+        const pColor = issue.projectColor || '#091590';
+        const initial = pName.charAt(0).toUpperCase() || 'P';
+
+        return (
+            <div className="h-full flex items-center gap-2">
+                <div
+                    className="w-5 h-5 rounded flex items-center justify-center text-white font-bold text-[9px] flex-shrink-0"
+                    style={{
+                        backgroundColor: pColor,
+                        background: `linear-gradient(135deg, ${pColor}, ${pColor}dd)`
+                    }}
+                >
+                    {initial}
+                </div>
+                <span className="font-semibold text-gray-800 text-[11px] truncate" title={pName}>
+                    {pName}
+                </span>
             </div>
         );
     };
@@ -202,29 +256,40 @@ export default function MyIssuesPage() {
         },
         {
             field: 'issueId',
-            headerName: 'PROJECTID',
+            headerName: 'ISSUE ID',
             width: 120,
             pinned: 'left',
             cellClass: 'text-gray-400 font-mono text-[10px]',
         },
         {
-            field: 'title',
+            field: 'projectName',
             headerName: 'PROJECT',
+            width: 140,
+            cellRenderer: ProjectRenderer,
+        },
+        {
+            field: 'title',
+            headerName: 'ISSUE',
             flex: 2,
-            minWidth: 260,
+            minWidth: 240,
             cellRenderer: IssueTitleRenderer,
         },
         {
             field: 'type',
-            headerName: 'TAGS',
-            flex: 1,
-            minWidth: 180,
+            headerName: 'TYPE',
+            width: 120,
             cellRenderer: TagsRenderer,
             sortable: false,
         },
         {
+            field: 'phaseName',
+            headerName: 'PHASE',
+            width: 140,
+            cellRenderer: PhaseRenderer,
+        },
+        {
             field: 'severity',
-            headerName: 'ACCESS',
+            headerName: 'SEVERITY',
             width: 110,
             cellRenderer: AccessRenderer,
         },
@@ -239,13 +304,20 @@ export default function MyIssuesPage() {
         },
         {
             field: 'priority',
-            headerName: 'ROLE',
+            headerName: 'PRIORITY',
             width: 100,
             cellRenderer: RoleRenderer,
         },
         {
+            field: 'assignees',
+            headerName: 'ASSIGNEES',
+            width: 130,
+            cellRenderer: AssigneesRenderer,
+            sortable: false,
+        },
+        {
             field: 'createdAt',
-            headerName: 'START',
+            headerName: 'CREATED',
             width: 120,
             cellRenderer: DateRenderer,
         },

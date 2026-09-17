@@ -94,6 +94,9 @@ export function CreateIssueModal({
     const [phaseSearch, setPhaseSearch] = useState('');
     const [showTaskListDropdown, setShowTaskListDropdown] = useState(false);
     const [taskListSearch, setTaskListSearch] = useState('');
+    const [showTaskDropdown, setShowTaskDropdown] = useState(false);
+    const [taskSearch, setTaskSearch] = useState('');
+
     const [showStatusDropdown, setShowStatusDropdown] = useState(false);
     const [statusSearch, setStatusSearch] = useState('');
     const [isCreatingStatus, setIsCreatingStatus] = useState(false);
@@ -156,15 +159,24 @@ export function CreateIssueModal({
             setSubmitted(false);
             setShowPhaseDropdown(false);
             setShowTaskListDropdown(false);
+            setShowTaskDropdown(false);
             setShowStatusDropdown(false);
             setShowAssigneePicker(false);
             setIsCreatingStatus(false);
             setNewStatusName('');
+            setTaskSearch('');
+            setPhaseSearch('');
+            setTaskListSearch('');
         }
     }, [isOpen, defaultStatusId]);
 
     const selectedPhase = phases.find(p => p.id === formData.phaseId);
     const availableTaskLists = selectedPhase?.taskLists || [];
+
+    const selectedTask = useMemo(() =>
+        tasks.find(t => t.id === formData.taskId),
+        [tasks, formData.taskId]
+    );
 
     const filteredPhases = useMemo(() => {
         if (!phaseSearch.trim()) return phases;
@@ -175,6 +187,15 @@ export function CreateIssueModal({
         if (!taskListSearch.trim()) return availableTaskLists;
         return availableTaskLists.filter(tl => tl.name.toLowerCase().includes(taskListSearch.toLowerCase()));
     }, [availableTaskLists, taskListSearch]);
+
+    const filteredTasks = useMemo(() => {
+        return tasks.filter(t => {
+            if (formData.phaseId && t.phaseId && t.phaseId !== formData.phaseId) return false;
+            if (formData.taskListId && t.taskListId && t.taskListId !== formData.taskListId) return false;
+            if (taskSearch.trim() && !t.title.toLowerCase().includes(taskSearch.toLowerCase())) return false;
+            return true;
+        });
+    }, [tasks, formData.phaseId, formData.taskListId, taskSearch]);
 
     const filteredMembers = useMemo(() => {
         if (!assigneeSearch.trim()) return members;
@@ -197,6 +218,39 @@ export function CreateIssueModal({
 
     const currentStatus = allStatuses.find(s => s.id === formData.statusId);
     const currentPriority = PRIORITY_OPTIONS.find(p => p.value === formData.priority) || PRIORITY_OPTIONS[2];
+
+    const handleTaskSelect = (taskId: string) => {
+        if (!taskId) {
+            setFormData(prev => ({ ...prev, taskId: '' }));
+            return;
+        }
+
+        const t = tasks.find(item => item.id === taskId);
+        if (!t) {
+            setFormData(prev => ({ ...prev, taskId }));
+            return;
+        }
+
+        let taskAssigneeIds: string[] = [];
+        if (Array.isArray(t.assigneeIds) && t.assigneeIds.length > 0) {
+            taskAssigneeIds = t.assigneeIds;
+        } else if (Array.isArray((t as any).assignees) && (t as any).assignees.length > 0) {
+            taskAssigneeIds = (t as any).assignees
+                .map((a: any) => a.userId || a.id)
+                .filter(Boolean);
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            taskId: t.id,
+            phaseId: t.phaseId || prev.phaseId,
+            taskListId: t.taskListId || prev.taskListId,
+            expectedOutput: t.expectedOutput !== undefined && t.expectedOutput !== null && t.expectedOutput !== ''
+                ? t.expectedOutput
+                : prev.expectedOutput,
+            assigneeIds: taskAssigneeIds.length > 0 ? taskAssigneeIds : prev.assigneeIds,
+        }));
+    };
 
     const toggleAssignee = (userId: string) => {
         setFormData(prev => {
@@ -255,6 +309,22 @@ export function CreateIssueModal({
         setError(null);
 
         if (!formData.title.trim()) {
+            setError('Issue title is required.');
+            return;
+        }
+
+        if (!formData.phaseId) {
+            setError('Phase is mandatory. Please select a phase.');
+            return;
+        }
+
+        if (!formData.taskListId) {
+            setError('Task list is mandatory. Please select a task list.');
+            return;
+        }
+
+        if (!formData.taskId) {
+            setError('Linked task is mandatory. Please select a task.');
             return;
         }
 
@@ -313,7 +383,7 @@ export function CreateIssueModal({
 
                 {/* Form Body */}
                 <div className="flex-1 overflow-y-auto">
-                    <form className="p-5 space-y-5" onSubmit={handleSubmit}>
+                    <form className="p-5 space-y-4" onSubmit={handleSubmit}>
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-xs text-red-700">
                                 <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
@@ -321,147 +391,250 @@ export function CreateIssueModal({
                             </div>
                         )}
 
-                        {/* Phase & Task List Dropdowns */}
-                        <div className="grid grid-cols-2 gap-3">
-                            {/* Phase */}
-                            <div className="relative">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                                    <Layers className="w-3 h-3 text-indigo-500" /> Phase <span className="text-red-400">*</span>
-                                </label>
+                        {/* Top Mandatory Section: Linked Task, Phase, Task List */}
+                        <div className="p-3.5 bg-gradient-to-br from-indigo-50/40 via-purple-50/30 to-blue-50/40 border border-indigo-100/80 rounded-lg space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Link2 className="w-4 h-4 text-indigo-600" /> Linked Task & Location
+                                </span>
+                            </div>
 
+                            {/* Phase & Task List Grid */}
+                            <div className="grid grid-cols-2 gap-3">
+                                {/* Phase Dropdown */}
                                 <div className="relative">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPhaseDropdown(!showPhaseDropdown)}
-                                        className={cn(
-                                            "w-full px-3 py-2.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
-                                            submitted && !formData.phaseId
-                                                ? "border-red-500 ring-red-500/10 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
-                                                : "border-gray-200 focus:ring-indigo-500/20 focus:border-indigo-500"
-                                        )}
-                                    >
-                                        <span className="truncate flex-1 uppercase">
-                                            {selectedPhase?.name || "Select Phase"}
-                                        </span>
-                                        <Layers className={cn("w-3.5 h-3.5 text-gray-400 transition-transform", showPhaseDropdown && "rotate-180")} />
-                                    </button>
+                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                        <Layers className="w-3 h-3 text-indigo-500" /> Phase <span className="text-red-500">*</span>
+                                    </label>
 
-                                    {showPhaseDropdown && (
-                                        <>
-                                            <div className="fixed inset-0 z-10" onClick={() => setShowPhaseDropdown(false)} />
-                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
-                                                <div className="p-2 border-b border-gray-50 bg-gray-50/50">
-                                                    <div className="relative">
-                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                                                        <input
-                                                            autoFocus
-                                                            type="text"
-                                                            placeholder="Search phases..."
-                                                            value={phaseSearch}
-                                                            onChange={(e) => setPhaseSearch(e.target.value)}
-                                                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
-                                                        />
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPhaseDropdown(!showPhaseDropdown)}
+                                            className={cn(
+                                                "w-full px-3 py-2 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
+                                                submitted && !formData.phaseId
+                                                    ? "border-red-500 ring-red-500/10 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
+                                                    : "border-gray-200 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                            )}
+                                        >
+                                            <span className="truncate flex-1 uppercase">
+                                                {selectedPhase?.name || "Select Phase"}
+                                            </span>
+                                            <Layers className={cn("w-3.5 h-3.5 text-gray-400 transition-transform", showPhaseDropdown && "rotate-180")} />
+                                        </button>
+
+                                        {showPhaseDropdown && (
+                                            <>
+                                                <div className="fixed inset-0 z-10" onClick={() => setShowPhaseDropdown(false)} />
+                                                <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                                    <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                        <div className="relative">
+                                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                placeholder="Search phases..."
+                                                                value={phaseSearch}
+                                                                onChange={(e) => setPhaseSearch(e.target.value)}
+                                                                className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="overflow-y-auto max-h-48 custom-scrollbar">
+                                                        {filteredPhases.length === 0 ? (
+                                                            <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No phases found</div>
+                                                        ) : (
+                                                            filteredPhases.map((phase) => (
+                                                                <button
+                                                                    key={phase.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            phaseId: phase.id,
+                                                                            taskListId: '',
+                                                                            taskId: '',
+                                                                        }));
+                                                                        setShowPhaseDropdown(false);
+                                                                        setPhaseSearch('');
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-full px-3 py-2 text-left text-xs hover:bg-indigo-50/80 transition-colors flex items-center justify-between gap-2 group",
+                                                                        formData.phaseId === phase.id ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700"
+                                                                    )}
+                                                                >
+                                                                    <span className="truncate flex-1">{phase.name}</span>
+                                                                    {formData.phaseId === phase.id && (
+                                                                        <Check className="w-3.5 h-3.5 flex-shrink-0 text-indigo-600" />
+                                                                    )}
+                                                                </button>
+                                                            ))
+                                                        )}
                                                     </div>
                                                 </div>
-                                                <div className="overflow-y-auto max-h-48 custom-scrollbar">
-                                                    {filteredPhases.length === 0 ? (
-                                                        <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No phases found</div>
-                                                    ) : (
-                                                        filteredPhases.map((phase) => (
-                                                            <button
-                                                                key={phase.id}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setFormData({
-                                                                        ...formData,
-                                                                        phaseId: phase.id,
-                                                                        taskListId: ''
-                                                                    });
-                                                                    setShowPhaseDropdown(false);
-                                                                    setPhaseSearch('');
-                                                                }}
-                                                                className={cn(
-                                                                    "w-full px-3 py-2.5 text-left text-xs hover:bg-indigo-50/80 transition-colors flex items-center justify-between gap-2 group",
-                                                                    formData.phaseId === phase.id ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700"
-                                                                )}
-                                                            >
-                                                                <span className="truncate flex-1">{phase.name}</span>
-                                                                {formData.phaseId === phase.id ? (
-                                                                    <Check className="w-3.5 h-3.5 flex-shrink-0 text-indigo-600" />
-                                                                ) : (
-                                                                    <Layers className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                                )}
-                                                            </button>
-                                                        ))
-                                                    )}
+                                            </>
+                                        )}
+                                    </div>
+                                    {submitted && !formData.phaseId && (
+                                        <p className="text-[10px] text-red-500 mt-1 font-semibold flex items-center gap-1">
+                                            <AlertCircle className="w-2.5 h-2.5" /> Phase is required
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Task List Dropdown */}
+                                <div className="relative">
+                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                        <ListTodo className="w-3 h-3 text-emerald-500" /> Task List <span className="text-red-500">*</span>
+                                    </label>
+
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            disabled={!formData.phaseId}
+                                            onClick={() => setShowTaskListDropdown(!showTaskListDropdown)}
+                                            className={cn(
+                                                "w-full px-3 py-2 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
+                                                !formData.phaseId && "bg-gray-50 text-gray-400 cursor-not-allowed",
+                                                submitted && !formData.taskListId
+                                                    ? "border-red-500 ring-red-500/10 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
+                                                    : "border-gray-200 focus:ring-emerald-500/20 focus:border-emerald-500"
+                                            )}
+                                        >
+                                            <span className="truncate flex-1 uppercase">
+                                                {availableTaskLists.find(tl => tl.id === formData.taskListId)?.name || "Select Task List"}
+                                            </span>
+                                            <ListTodo className={cn("w-3.5 h-3.5 text-gray-400 transition-transform", showTaskListDropdown && "rotate-180")} />
+                                        </button>
+
+                                        {showTaskListDropdown && formData.phaseId && (
+                                            <>
+                                                <div className="fixed inset-0 z-10" onClick={() => setShowTaskListDropdown(false)} />
+                                                <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                                    <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                        <div className="relative">
+                                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                placeholder="Search task lists..."
+                                                                value={taskListSearch}
+                                                                onChange={(e) => setTaskListSearch(e.target.value)}
+                                                                className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500/20 bg-white"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="overflow-y-auto max-h-48 custom-scrollbar">
+                                                        {filteredTaskLists.length === 0 ? (
+                                                            <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No task lists found</div>
+                                                        ) : (
+                                                            filteredTaskLists.map((tl) => (
+                                                                <button
+                                                                    key={tl.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            taskListId: tl.id,
+                                                                            taskId: '',
+                                                                        }));
+                                                                        setShowTaskListDropdown(false);
+                                                                        setTaskListSearch('');
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-full px-3 py-2 text-left text-xs hover:bg-emerald-50/80 transition-colors flex items-center justify-between gap-2 group",
+                                                                        formData.taskListId === tl.id ? "bg-emerald-50 text-emerald-700 font-semibold" : "text-gray-700"
+                                                                    )}
+                                                                >
+                                                                    <span className="truncate flex-1">{tl.name}</span>
+                                                                    {formData.taskListId === tl.id && (
+                                                                        <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-600" />
+                                                                    )}
+                                                                </button>
+                                                            ))
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </>
+                                            </>
+                                        )}
+                                    </div>
+                                    {submitted && !formData.taskListId && (
+                                        <p className="text-[10px] text-red-500 mt-1 font-semibold flex items-center gap-1">
+                                            <AlertCircle className="w-2.5 h-2.5" /> Task list is required
+                                        </p>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Task List */}
+                            {/* Linked Task Dropdown */}
                             <div className="relative">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                                    <ListTodo className="w-3 h-3 text-emerald-500" /> Task List
+                                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                    <Link2 className="w-3 h-3 text-blue-500" /> Linked Task <span className="text-red-500">*</span>
                                 </label>
 
                                 <div className="relative">
                                     <button
                                         type="button"
-                                        disabled={!formData.phaseId}
-                                        onClick={() => setShowTaskListDropdown(!showTaskListDropdown)}
+                                        onClick={() => setShowTaskDropdown(!showTaskDropdown)}
                                         className={cn(
-                                            "w-full px-3 py-2.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
-                                            !formData.phaseId && "bg-gray-50 text-gray-400 cursor-not-allowed",
-                                            formData.phaseId && "border-gray-200 focus:ring-emerald-500/20 focus:border-emerald-500"
+                                            "w-full px-3 py-2.5 border rounded-md text-xs font-semibold focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2",
+                                            submitted && !formData.taskId
+                                                ? "border-red-500 ring-red-500/10 shadow-[0_0_0_1px_rgba(239,68,68,0.1)] text-gray-700"
+                                                : "border-gray-200 focus:ring-blue-500/20 focus:border-blue-500 text-gray-800"
                                         )}
                                     >
-                                        <span className="truncate flex-1 uppercase">
-                                            {availableTaskLists.find(tl => tl.id === formData.taskListId)?.name || "Select Task List"}
+                                        <span className="truncate flex-1">
+                                            {selectedTask?.title || "Select Linked Task..."}
                                         </span>
-                                        <ListTodo className={cn("w-3.5 h-3.5 text-gray-400 transition-transform", showTaskListDropdown && "rotate-180")} />
+                                        <Link2 className={cn("w-3.5 h-3.5 text-blue-500 transition-transform", showTaskDropdown && "rotate-180")} />
                                     </button>
 
-                                    {showTaskListDropdown && formData.phaseId && (
+                                    {showTaskDropdown && (
                                         <>
-                                            <div className="fixed inset-0 z-10" onClick={() => setShowTaskListDropdown(false)} />
-                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                            <div className="fixed inset-0 z-10" onClick={() => setShowTaskDropdown(false)} />
+                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-64 overflow-hidden flex flex-col">
                                                 <div className="p-2 border-b border-gray-50 bg-gray-50/50">
                                                     <div className="relative">
                                                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                                                         <input
                                                             autoFocus
                                                             type="text"
-                                                            placeholder="Search task lists..."
-                                                            value={taskListSearch}
-                                                            onChange={(e) => setTaskListSearch(e.target.value)}
-                                                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500/20 bg-white"
+                                                            placeholder="Search tasks..."
+                                                            value={taskSearch}
+                                                            onChange={(e) => setTaskSearch(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
                                                         />
                                                     </div>
                                                 </div>
                                                 <div className="overflow-y-auto max-h-48 custom-scrollbar">
-                                                    {filteredTaskLists.length === 0 ? (
-                                                        <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No task lists found</div>
+                                                    {filteredTasks.length === 0 ? (
+                                                        <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No tasks found</div>
                                                     ) : (
-                                                        filteredTaskLists.map((tl) => (
+                                                        filteredTasks.map((t) => (
                                                             <button
-                                                                key={tl.id}
+                                                                key={t.id}
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    setFormData({ ...formData, taskListId: tl.id });
-                                                                    setShowTaskListDropdown(false);
-                                                                    setTaskListSearch('');
+                                                                    handleTaskSelect(t.id);
+                                                                    setShowTaskDropdown(false);
+                                                                    setTaskSearch('');
                                                                 }}
                                                                 className={cn(
-                                                                    "w-full px-3 py-2.5 text-left text-xs hover:bg-emerald-50/80 transition-colors flex items-center justify-between gap-2 group",
-                                                                    formData.taskListId === tl.id ? "bg-emerald-50 text-emerald-700 font-semibold" : "text-gray-700"
+                                                                    "w-full px-3 py-2.5 text-left text-xs hover:bg-blue-50/80 transition-colors flex items-center justify-between gap-2 group border-b border-gray-50 last:border-0",
+                                                                    formData.taskId === t.id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700"
                                                                 )}
                                                             >
-                                                                <span className="truncate flex-1">{tl.name}</span>
-                                                                {formData.taskListId === tl.id && (
-                                                                    <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-600" />
+                                                                <div className="flex flex-col gap-0.5 truncate flex-1">
+                                                                    <span className="truncate font-medium">{t.title}</span>
+                                                                    {t.expectedOutput && (
+                                                                        <span className="text-[10px] text-gray-400 truncate italic">
+                                                                            Expected: {t.expectedOutput}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {formData.taskId === t.id && (
+                                                                    <Check className="w-3.5 h-3.5 flex-shrink-0 text-blue-600" />
                                                                 )}
                                                             </button>
                                                         ))
@@ -471,6 +644,11 @@ export function CreateIssueModal({
                                         </>
                                     )}
                                 </div>
+                                {submitted && !formData.taskId && (
+                                    <p className="text-[10px] text-red-500 mt-1 font-semibold flex items-center gap-1">
+                                        <AlertCircle className="w-2.5 h-2.5" /> Linked task is required
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -490,7 +668,6 @@ export function CreateIssueModal({
                                         : "border-gray-200 focus:ring-indigo-500/20 focus:border-indigo-500"
                                 )}
                                 placeholder="What needs to be done?"
-                                autoFocus
                             />
                             {submitted && !formData.title.trim() && (
                                 <p className="text-[10px] text-red-500 mt-1 font-semibold flex items-center gap-1">
@@ -527,35 +704,6 @@ export function CreateIssueModal({
                                 })}
                             </div>
                         </div>
-
-                        {/* Severity Grid */}
-                        {/* <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                                <Flame className="w-3 h-3 text-red-500" /> Severity
-                            </label>
-                            <div className="grid grid-cols-4 gap-2">
-                                {SEVERITY_OPTIONS.map((opt) => {
-                                    const Icon = opt.icon;
-                                    const isSelected = formData.severity === opt.value;
-                                    return (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            onClick={() => setFormData({ ...formData, severity: opt.value })}
-                                            className={cn(
-                                                "flex items-center gap-1.5 px-2.5 py-2 rounded-md border text-xs font-semibold transition-all duration-200 justify-center",
-                                                isSelected
-                                                    ? `${opt.bg} ${opt.color} border-red-500 shadow-xs scale-[1.02]`
-                                                    : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                                            )}
-                                        >
-                                            <Icon className={cn("w-3.5 h-3.5", isSelected ? opt.color : "text-gray-400")} />
-                                            <span>{opt.label}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div> */}
 
                         {/* Description */}
                         <div>
@@ -641,8 +789,8 @@ export function CreateIssueModal({
                             )}
                         </div>
 
-                        {/* Status & Priority Row */}
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* Status, Priority, & Due Date Grid */}
+                        <div className="grid grid-cols-3 gap-3">
                             {/* Status Popover */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
@@ -781,10 +929,8 @@ export function CreateIssueModal({
                                     ))}
                                 </select>
                             </div>
-                        </div>
 
-                        {/* Due Date & Linked Task */}
-                        <div className="grid grid-cols-2 gap-3">
+                            {/* Due Date */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                                     <Calendar className="w-3 h-3 text-gray-400" /> Due Date
@@ -795,24 +941,6 @@ export function CreateIssueModal({
                                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                                     className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                                 />
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                                    <Link2 className="w-3 h-3 text-blue-500" /> Linked Task
-                                </label>
-                                <select
-                                    value={formData.taskId || ''}
-                                    onChange={(e) => setFormData({ ...formData, taskId: e.target.value || null })}
-                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                                >
-                                    <option value="">(No Linked Task)</option>
-                                    {tasks.map((t) => (
-                                        <option key={t.id} value={t.id}>
-                                            {t.title}
-                                        </option>
-                                    ))}
-                                </select>
                             </div>
                         </div>
 

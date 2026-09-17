@@ -54,6 +54,8 @@ export interface Task {
     title: string;
     description?: string;
     expectedOutput?: string | null;
+    phaseId?: string | null;
+    taskListId?: string | null;
     parentId: string | null;
     priority: TaskPriority;
     dueDate: string | null;

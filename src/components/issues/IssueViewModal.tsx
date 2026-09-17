@@ -25,6 +25,13 @@ import {
     Upload,
     Plus,
     Tag,
+    Eye,
+    Download,
+    ExternalLink,
+    FileSpreadsheet,
+    FileText,
+    FileImage,
+    File,
 } from 'lucide-react';
 import { cn, getAvatarColor, formatDate } from '@/lib/utils';
 import type { Issue, IssueType, IssueSeverity, IssuePriority, UpdateIssuePayload } from '@/types/issue';
@@ -33,6 +40,8 @@ import type { ProjectMember } from '@/types/project';
 import type { PhaseWithTaskLists } from '@/types/phase';
 import { useIssueDetail, useUpdateIssue, useDeleteIssue, useAddIssueAttachment, useRemoveIssueAttachment } from '@/hooks/use-issues';
 import { useToast } from '@/components/ui/Toast';
+import { useUser } from '@/hooks/use-auth';
+import { useOrgStore } from '@/stores/orgStore';
 
 interface IssueViewModalProps {
     issueId: string | null;
@@ -70,6 +79,141 @@ const PRIORITY_OPTIONS: { value: IssuePriority; label: string; color: string; bg
     { value: 5, label: 'Critical', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: '⬆' },
 ];
 
+interface AttachmentPreviewData {
+    fileName: string;
+    fileUrl: string;
+    mimeType?: string;
+    fileSize?: number;
+}
+
+function AttachmentPreviewModal({
+    attachment,
+    onClose,
+}: {
+    attachment: AttachmentPreviewData | null;
+    onClose: () => void;
+}) {
+    if (!attachment) return null;
+
+    const { fileName, fileUrl, mimeType, fileSize } = attachment;
+    const lowerName = fileName.toLowerCase();
+
+    const isImage = mimeType?.startsWith('image/') ||
+        fileUrl.startsWith('data:image/') ||
+        /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(lowerName);
+
+    const isPdf = mimeType === 'application/pdf' ||
+        fileUrl.startsWith('data:application/pdf') ||
+        lowerName.endsWith('.pdf');
+
+    const isExcel = mimeType?.includes('excel') ||
+        mimeType?.includes('spreadsheet') ||
+        /\.(xlsx?|csv)$/i.test(lowerName);
+
+    const isWordDoc = mimeType?.includes('word') ||
+        mimeType?.includes('officedocument') ||
+        /\.(docx?)$/i.test(lowerName);
+
+    const isHttpUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 animate-in fade-in duration-200">
+            <div className="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-100">
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50/90">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-4">
+                        {isImage && <FileImage className="w-5 h-5 text-purple-600 shrink-0" />}
+                        {isPdf && <FileText className="w-5 h-5 text-red-600 shrink-0" />}
+                        {isExcel && <FileSpreadsheet className="w-5 h-5 text-emerald-600 shrink-0" />}
+                        {isWordDoc && <FileText className="w-5 h-5 text-blue-600 shrink-0" />}
+                        {!isImage && !isPdf && !isExcel && !isWordDoc && <File className="w-5 h-5 text-gray-500 shrink-0" />}
+
+                        <div className="min-w-0 flex-1">
+                            <h3 className="text-sm font-bold text-gray-900 truncate" title={fileName}>{fileName}</h3>
+                            {fileSize && (
+                                <span className="text-[10px] text-gray-400 block font-medium">{(fileSize / 1024).toFixed(1)} KB</span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                        <a
+                            href={fileUrl}
+                            download={fileName}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-2xs transition"
+                            title="Download file"
+                        >
+                            <Download className="w-3.5 h-3.5 text-gray-500" /> Download
+                        </a>
+
+                        <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-2xs transition"
+                            title="Open in new window"
+                        >
+                            <ExternalLink className="w-3.5 h-3.5 text-gray-500" /> Open External
+                        </a>
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Content Viewer */}
+                <div className="flex-1 bg-gray-900/5 p-4 overflow-auto flex items-center justify-center min-h-[450px]">
+                    {isImage ? (
+                        <img
+                            src={fileUrl}
+                            alt={fileName}
+                            className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-md border border-gray-200"
+                        />
+                    ) : isPdf ? (
+                        <iframe
+                            src={fileUrl}
+                            className="w-full h-[75vh] rounded-lg border border-gray-200 bg-white"
+                            title={fileName}
+                        />
+                    ) : (isExcel || isWordDoc) && isHttpUrl ? (
+                        <iframe
+                            src={`https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`}
+                            className="w-full h-[75vh] rounded-lg border border-gray-200 bg-white"
+                            title={fileName}
+                        />
+                    ) : (
+                        <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-200 max-w-md space-y-4">
+                            <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto text-indigo-600">
+                                {isExcel ? <FileSpreadsheet className="w-8 h-8" /> : <FileText className="w-8 h-8" />}
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-900 truncate mb-1">{fileName}</h4>
+                                <p className="text-xs text-gray-500">
+                                    Direct in-app preview is optimized for images, PDFs, and web documents. Click below to view or download.
+                                </p>
+                            </div>
+                            <div className="pt-2 flex justify-center gap-3">
+                                <a
+                                    href={fileUrl}
+                                    download={fileName}
+                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-xs"
+                                >
+                                    <Download className="w-4 h-4" /> Download File
+                                </a>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function IssueViewModal({
     issueId,
     projectId,
@@ -82,6 +226,7 @@ export function IssueViewModal({
     isReadOnly = false,
 }: IssueViewModalProps) {
     const toast = useToast();
+    const { data: user } = useUser();
     const { data: issue, isLoading } = useIssueDetail(issueId || '');
     const updateMutation = useUpdateIssue(projectId);
     const deleteMutation = useDeleteIssue(projectId);
@@ -91,6 +236,19 @@ export function IssueViewModal({
     const [activeTab, setActiveTab] = useState<'details' | 'history' | 'attachments'>('details');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [previewAttachment, setPreviewAttachment] = useState<AttachmentPreviewData | null>(null);
+
+    // Permission check for delete action: Only OWNER or ADMIN can delete issue
+    const currentUserMember = useMemo(() => {
+        if (!user || !members.length) return null;
+        return members.find(m => {
+            const uid = m?.user?.id || m?.userId || m?.id;
+            return uid === user.id;
+        });
+    }, [user, members]);
+
+    const userRole = currentUserMember?.role || (user as any)?.role || (useOrgStore.getState() as any).currentRole || (useOrgStore.getState() as any).role;
+    const canDelete = userRole === 'OWNER' || userRole === 'ADMIN';
 
     // Form Draft State
     const [formData, setFormData] = useState<UpdateIssuePayload>({
@@ -108,42 +266,32 @@ export function IssueViewModal({
         assigneeIds: [],
     });
 
-    // Popover Toggle & Search States
-    const [showStatusPop, setShowStatusPop] = useState(false);
-    const [statusSearch, setStatusSearch] = useState('');
-    const [showTypePop, setShowTypePop] = useState(false);
-    const [showPrioPop, setShowPrioPop] = useState(false);
-    const [showAssigneePop, setShowAssigneePop] = useState(false);
-    const [assigneeSearch, setAssigneeSearch] = useState('');
-
+    // Popover Toggles
     const [showPhasePop, setShowPhasePop] = useState(false);
     const [phaseSearch, setPhaseSearch] = useState('');
     const [showTaskListPop, setShowTaskListPop] = useState(false);
-    const [taskListSearch, setTaskListSearch] = useState('');
     const [showTaskPop, setShowTaskPop] = useState(false);
-    const [taskSearch, setTaskSearch] = useState('');
+    const [showAssigneePop, setShowAssigneePop] = useState(false);
+    const [assigneeSearch, setAssigneeSearch] = useState('');
 
     useEffect(() => {
         if (issue) {
             setFormData({
-                title: issue.title || '',
+                title: issue.title,
                 description: issue.description || '',
                 expectedOutput: issue.expectedOutput || '',
                 actualOutput: issue.actualOutput || '',
                 type: issue.type || 'BUG',
-                severity: issue.severity || undefined,
                 priority: (issue.priority as IssuePriority) || 3,
                 statusId: issue.status?.id || '',
                 phaseId: issue.phaseId || undefined,
                 taskListId: issue.taskListId || undefined,
                 taskId: issue.taskId || undefined,
                 dueDate: issue.dueDate ? issue.dueDate.split('T')[0] : undefined,
-                assigneeIds: issue.assignees
-                    ? issue.assignees.map((a: any) => a.id || a.userId || a.user?.id).filter(Boolean)
-                    : [],
+                assigneeIds: issue.assignees?.map(a => a.id) || [],
             });
         }
-    }, [issue, isOpen]);
+    }, [issue]);
 
     const allStatuses = useMemo(() =>
         workflow.flatMap(stage =>
@@ -152,76 +300,58 @@ export function IssueViewModal({
         [workflow]
     );
 
-    const filteredMembers = useMemo(() => {
-        if (!assigneeSearch.trim()) return members;
-        const q = assigneeSearch.toLowerCase();
-        return members.filter(m => {
-            const u = m?.user || m;
-            const n = u?.name || '';
-            const e = u?.email || '';
-            return n.toLowerCase().includes(q) || e.toLowerCase().includes(q);
-        });
-    }, [members, assigneeSearch]);
+    const selectedPhase = phases.find(p => p.id === formData.phaseId);
+    const availableTaskLists = selectedPhase?.taskLists || [];
+    const selectedTaskList = availableTaskLists.find(tl => tl.id === formData.taskListId);
+    const selectedTask = tasks.find(t => t.id === formData.taskId);
+
+    const currentStatus = useMemo(() =>
+        allStatuses.find(s => s.id === formData.statusId),
+        [allStatuses, formData.statusId]
+    );
+    const statusColor = currentStatus?.color || '#3b82f6';
+
+    const currentPriority = useMemo(() =>
+        PRIORITY_OPTIONS.find(p => p.value === formData.priority) || PRIORITY_OPTIONS[2],
+        [formData.priority]
+    );
+
+    const currentTypeOption = useMemo(() =>
+        ISSUE_TYPE_OPTIONS.find(t => t.value === formData.type) || ISSUE_TYPE_OPTIONS[0],
+        [formData.type]
+    );
+
+    const TypeIcon = currentTypeOption.icon;
 
     const filteredPhases = useMemo(() => {
         if (!phaseSearch.trim()) return phases;
         return phases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
     }, [phases, phaseSearch]);
 
-    const selectedPhase = useMemo(() =>
-        phases.find(p => p.id === formData.phaseId),
-        [phases, formData.phaseId]
-    );
-
-    const availableTaskLists = useMemo(() =>
-        selectedPhase?.taskLists || [],
-        [selectedPhase]
-    );
-
-    const selectedTaskList = useMemo(() =>
-        availableTaskLists.find(tl => tl.id === formData.taskListId),
-        [availableTaskLists, formData.taskListId]
-    );
-
-    const filteredTaskLists = useMemo(() => {
-        if (!taskListSearch.trim()) return availableTaskLists;
-        return availableTaskLists.filter(tl => tl.name.toLowerCase().includes(taskListSearch.toLowerCase()));
-    }, [availableTaskLists, taskListSearch]);
+    const filteredTaskLists = availableTaskLists;
 
     const filteredTasks = useMemo(() => {
-        if (!taskSearch.trim()) return tasks;
-        return tasks.filter(t => t.title.toLowerCase().includes(taskSearch.toLowerCase()));
-    }, [tasks, taskSearch]);
+        if (!formData.phaseId) return tasks;
+        return tasks.filter(t => t.phaseId === formData.phaseId);
+    }, [tasks, formData.phaseId]);
 
-    const selectedTask = useMemo(() =>
-        tasks.find(t => t.id === formData.taskId) || issue?.linkedTask,
-        [tasks, formData.taskId, issue?.linkedTask]
-    );
+    const filteredMembers = useMemo(() => {
+        if (!assigneeSearch.trim()) return members;
+        const q = assigneeSearch.toLowerCase();
+        return members.filter(m => {
+            const u = m?.user || m;
+            const name = u?.name || '';
+            const email = u?.email || '';
+            return name.toLowerCase().includes(q) || email.toLowerCase().includes(q);
+        });
+    }, [members, assigneeSearch]);
 
     const selectedAssignees = useMemo(() => {
-        return (formData.assigneeIds || []).map(id => {
-            const member = members.find(m => (m?.user?.id || m?.userId || m?.id) === id);
-            if (member) {
-                const u = member.user || member;
-                return {
-                    id,
-                    name: u?.name || u?.email || 'User',
-                    avatarUrl: u?.avatarUrl,
-                };
-            }
-            const existing = issue?.assignees?.find((a: any) => (a.id || a.userId || a.user?.id) === id);
-            if (existing) {
-                return {
-                    id,
-                    name: existing.name || existing.email || 'User',
-                    avatarUrl: existing.avatarUrl,
-                };
-            }
-            return { id, name: 'User', avatarUrl: undefined };
-        });
-    }, [members, formData.assigneeIds, issue?.assignees]);
-
-    if (!isOpen || !issueId) return null;
+        const ids = formData.assigneeIds || [];
+        return members
+            .map(m => m?.user || m)
+            .filter(u => u && ids.includes(u.id || (u as any).userId));
+    }, [members, formData.assigneeIds]);
 
     const toggleAssignee = (userId: string) => {
         setFormData(prev => {
@@ -234,42 +364,34 @@ export function IssueViewModal({
     };
 
     const handleSave = async () => {
-        if (!formData.title?.trim()) {
+        if (!issueId || !formData.title?.trim()) {
             toast.error('Title is required');
             return;
         }
 
         try {
-            const payload: UpdateIssuePayload = {
-                title: formData.title,
-                description: formData.description,
-                expectedOutput: formData.expectedOutput,
-                actualOutput: formData.actualOutput,
-                type: formData.type,
-                severity: formData.severity,
-                priority: formData.priority,
-                statusId: formData.statusId,
-                phaseId: formData.phaseId || null,
-                taskListId: formData.taskListId || null,
-                taskId: formData.taskId || null,
-                dueDate: formData.dueDate && formData.dueDate.trim() !== '' ? new Date(formData.dueDate).toISOString() : undefined,
-                assigneeIds: formData.assigneeIds,
-            };
-
-            await updateMutation.mutateAsync({ issueId, data: payload });
+            await updateMutation.mutateAsync({
+                issueId,
+                data: {
+                    ...formData,
+                    dueDate: formData.dueDate ? formData.dueDate : undefined,
+                },
+            });
             toast.success('Issue updated successfully');
         } catch (err: any) {
-            toast.error('Failed to update issue');
+            toast.error('Failed to update issue', err.message);
         }
     };
 
     const handleDelete = async () => {
+        if (!issueId) return;
         try {
             await deleteMutation.mutateAsync(issueId);
-            toast.success('Issue deleted');
+            toast.success('Issue deleted successfully');
+            setShowDeleteConfirm(false);
             onClose();
         } catch (err: any) {
-            toast.error('Failed to delete issue');
+            toast.error('Failed to delete issue', err.message);
         }
     };
 
@@ -279,50 +401,43 @@ export function IssueViewModal({
 
         setIsUploading(true);
         try {
-            for (const file of Array.from(files)) {
-                await new Promise<void>((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                        const fileUrl = event.target?.result as string;
-                        try {
-                            await addAttachmentMutation.mutateAsync({
-                                issueId,
-                                data: {
-                                    fileName: file.name,
-                                    fileUrl: fileUrl,
-                                    mimeType: file.type,
-                                    fileSize: file.size,
-                                },
-                            });
-                        } catch (err) {
-                            toast.error('Failed to attach file');
-                        }
-                        resolve();
-                    };
-                    reader.readAsDataURL(file);
-                });
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const fileUrl = event.target?.result as string;
+                    await addAttachmentMutation.mutateAsync({
+                        issueId,
+                        data: {
+                            fileName: file.name,
+                            fileUrl: fileUrl,
+                            mimeType: file.type,
+                            fileSize: file.size,
+                        },
+                    });
+                };
+                reader.readAsDataURL(file);
             }
-            toast.success('Files uploaded successfully');
-        } catch (err) {
-            toast.error('Error uploading files');
+            toast.success('Attachments added successfully');
+        } catch (err: any) {
+            toast.error('Failed to upload attachments');
         } finally {
             setIsUploading(false);
         }
     };
 
-    const currentStatus = allStatuses.find(s => s.id === formData.statusId) || issue?.status;
-    const currentTypeOpt = ISSUE_TYPE_OPTIONS.find(o => o.value === formData.type) || ISSUE_TYPE_OPTIONS[0];
-    const currentPrioOpt = PRIORITY_OPTIONS.find(o => o.value === formData.priority) || PRIORITY_OPTIONS[2];
-    const TypeIcon = currentTypeOpt.icon;
+    if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end">
+        <div className="fixed inset-0 z-50 flex justify-end">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+
             <div className="relative w-full max-w-3xl bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300 border-l border-gray-100">
                 {/* Header Bar */}
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-white to-gray-50/80">
                     <div className="flex items-center space-x-3">
-                        <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full shadow-2xs flex items-center gap-1.5">
-                            <Bug className="w-3.5 h-3.5 text-red-600" />
+                        <span className={cn("text-xs font-bold px-3 py-1 rounded-full shadow-2xs flex items-center gap-1.5 uppercase border", currentTypeOption.bg, currentTypeOption.color)}>
+                            <TypeIcon className={cn("w-3.5 h-3.5", currentTypeOption.color)} />
                             {issue?.issueId || 'ISSUE'}
                         </span>
                         {issue?.projectName && (
@@ -332,12 +447,12 @@ export function IssueViewModal({
                         )}
                     </div>
                     <div className="flex items-center space-x-2">
-                        {!isReadOnly && (
+                        {!isReadOnly && canDelete && (
                             <button
                                 type="button"
                                 onClick={() => setShowDeleteConfirm(true)}
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Delete Issue"
+                                title="Delete Issue (Owner/Admin only)"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -363,198 +478,114 @@ export function IssueViewModal({
                         <div className="px-6 pt-5 pb-3">
                             <input
                                 type="text"
-                                disabled={isReadOnly}
                                 value={formData.title}
                                 onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                className="w-full text-xl font-bold text-gray-900 border-b border-transparent hover:border-gray-200 focus:border-red-500 outline-none pb-1 bg-transparent transition"
-                                placeholder="Issue title..."
+                                disabled={isReadOnly}
+                                className="w-full text-lg font-bold text-gray-900 border-b border-transparent hover:border-gray-200 focus:border-red-500 focus:outline-none transition py-1 bg-transparent"
+                                placeholder="Issue Title..."
                             />
                         </div>
 
-                        {/* Interactive Attribute Ribbon */}
-                        <div className="px-6 py-2.5 border-y border-gray-100 bg-gray-50/50 flex flex-wrap items-center gap-3 text-xs">
-                            {/* Status Popover */}
-                            <div className="relative">
-                                <span className="text-gray-400 font-medium mr-1.5">Status:</span>
-                                <button
-                                    type="button"
+                        {/* Status, Priority & Issue Type Selectors with Dynamic Colors */}
+                        <div className="px-6 py-2.5 bg-gray-50/60 border-y border-gray-100 flex items-center flex-wrap gap-3">
+                            {/* Dynamic Status Dropdown */}
+                            <div className="flex items-center space-x-2">
+                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status:</span>
+                                <select
+                                    value={formData.statusId}
+                                    onChange={e => setFormData({ ...formData, statusId: e.target.value })}
                                     disabled={isReadOnly}
-                                    onClick={() => setShowStatusPop(!showStatusPop)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 rounded-md font-semibold text-gray-800 shadow-2xs hover:border-gray-300 transition cursor-pointer"
+                                    className="px-3 py-1.5 rounded-md text-xs font-bold tracking-wide uppercase border focus:outline-none transition-all cursor-pointer"
                                     style={{
-                                        borderLeftWidth: '3px',
-                                        borderLeftColor: currentStatus?.color || '#3b82f6',
+                                        backgroundColor: `${statusColor}18`,
+                                        color: statusColor,
+                                        borderColor: `${statusColor}40`,
                                     }}
                                 >
-                                    <span>{currentStatus?.name || 'Status'}</span>
-                                    <ChevronDown className="w-3 h-3 text-gray-400" />
-                                </button>
-
-                                {showStatusPop && (
-                                    <>
-                                        <div className="fixed inset-0 z-10" onClick={() => setShowStatusPop(false)} />
-                                        <div className="absolute z-20 top-full mt-1 left-0 w-56 bg-white border border-gray-200 rounded-lg shadow-xl p-2 space-y-1">
-                                            <div className="relative mb-2">
-                                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search status..."
-                                                    value={statusSearch}
-                                                    onChange={e => setStatusSearch(e.target.value)}
-                                                    className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
-                                                />
-                                            </div>
-                                            <div className="max-h-48 overflow-y-auto space-y-0.5">
-                                                {allStatuses
-                                                    .filter(s => s.name.toLowerCase().includes(statusSearch.toLowerCase()))
-                                                    .map(st => (
-                                                        <button
-                                                            key={st.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setFormData({ ...formData, statusId: st.id });
-                                                                setShowStatusPop(false);
-                                                            }}
-                                                            className={cn(
-                                                                'w-full px-2.5 py-1.5 text-left text-xs rounded-md flex items-center justify-between transition',
-                                                                formData.statusId === st.id ? 'bg-red-50 text-red-700 font-bold' : 'hover:bg-gray-50 text-gray-700'
-                                                            )}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: st.color }} />
-                                                                <span>{st.name}</span>
-                                                            </div>
-                                                            {formData.statusId === st.id && <Check className="w-3.5 h-3.5 text-red-600" />}
-                                                        </button>
-                                                    ))}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
+                                    {allStatuses.map(s => (
+                                        <option key={s.id} value={s.id} className="text-gray-900 bg-white font-medium uppercase">
+                                            {s.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
-                            {/* Type Popover */}
-                            <div className="relative">
-                                <span className="text-gray-400 font-medium mr-1.5">Type:</span>
-                                <button
-                                    type="button"
+                            {/* Dynamic Priority Dropdown */}
+                            <div className="flex items-center space-x-2">
+                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Priority:</span>
+                                <select
+                                    value={formData.priority}
+                                    onChange={e => setFormData({ ...formData, priority: parseInt(e.target.value) as IssuePriority })}
                                     disabled={isReadOnly}
-                                    onClick={() => setShowTypePop(!showTypePop)}
                                     className={cn(
-                                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold border text-xs transition shadow-2xs cursor-pointer',
-                                        currentTypeOpt.bg, currentTypeOpt.color
+                                        "px-3 py-1.5 border rounded-md text-xs font-bold transition-all cursor-pointer focus:outline-none",
+                                        currentPriority.bg, currentPriority.color
                                     )}
                                 >
-                                    <TypeIcon className="w-3.5 h-3.5" />
-                                    <span>{currentTypeOpt.label}</span>
-                                    <ChevronDown className="w-3 h-3 opacity-60" />
-                                </button>
-
-                                {showTypePop && (
-                                    <>
-                                        <div className="fixed inset-0 z-10" onClick={() => setShowTypePop(false)} />
-                                        <div className="absolute z-20 top-full mt-1 left-0 w-44 bg-white border border-gray-200 rounded-lg shadow-xl p-1.5 space-y-0.5">
-                                            {ISSUE_TYPE_OPTIONS.map(opt => {
-                                                const Icon = opt.icon;
-                                                return (
-                                                    <button
-                                                        key={opt.value}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setFormData({ ...formData, type: opt.value });
-                                                            setShowTypePop(false);
-                                                        }}
-                                                        className={cn(
-                                                            'w-full px-2.5 py-1.5 text-left text-xs rounded-md flex items-center justify-between transition',
-                                                            formData.type === opt.value ? 'bg-purple-50 text-purple-700 font-bold' : 'hover:bg-gray-50 text-gray-700'
-                                                        )}
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <Icon className={cn('w-3.5 h-3.5', opt.color)} />
-                                                            <span>{opt.label}</span>
-                                                        </div>
-                                                        {formData.type === opt.value && <Check className="w-3.5 h-3.5 text-purple-600" />}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </>
-                                )}
+                                    {PRIORITY_OPTIONS.map(p => (
+                                        <option key={p.value} value={p.value} className="text-gray-900 bg-white font-medium">
+                                            {p.icon} {p.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
-                            {/* Priority Popover */}
-                            <div className="relative">
-                                <span className="text-gray-400 font-medium mr-1.5">Priority:</span>
-                                <button
-                                    type="button"
+                            {/* Dynamic Issue Type Dropdown */}
+                            <div className="flex items-center space-x-2">
+                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Type:</span>
+                                <select
+                                    value={formData.type}
+                                    onChange={e => setFormData({ ...formData, type: e.target.value as IssueType })}
                                     disabled={isReadOnly}
-                                    onClick={() => setShowPrioPop(!showPrioPop)}
                                     className={cn(
-                                        'inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border rounded-md font-semibold text-xs shadow-2xs transition cursor-pointer',
-                                        currentPrioOpt.bg, currentPrioOpt.color
+                                        "px-3 py-1.5 border rounded-md text-xs font-bold uppercase transition-all cursor-pointer focus:outline-none",
+                                        currentTypeOption.bg, currentTypeOption.color
                                     )}
                                 >
-                                    <span>{currentPrioOpt.icon} {currentPrioOpt.label}</span>
-                                    <ChevronDown className="w-3 h-3 opacity-60" />
-                                </button>
-
-                                {showPrioPop && (
-                                    <>
-                                        <div className="fixed inset-0 z-10" onClick={() => setShowPrioPop(false)} />
-                                        <div className="absolute z-20 top-full mt-1 left-0 w-48 bg-white border border-gray-200 rounded-lg shadow-xl p-1.5 space-y-0.5">
-                                            {PRIORITY_OPTIONS.map(opt => (
-                                                <button
-                                                    key={opt.value}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setFormData({ ...formData, priority: opt.value });
-                                                        setShowPrioPop(false);
-                                                    }}
-                                                    className={cn(
-                                                        'w-full px-2.5 py-1.5 text-left text-xs rounded-md flex items-center justify-between transition',
-                                                        formData.priority === opt.value ? 'bg-red-50 font-bold' : 'hover:bg-gray-50 text-gray-700'
-                                                    )}
-                                                >
-                                                    <span className={opt.color}>{opt.icon} {opt.label}</span>
-                                                    {formData.priority === opt.value && <Check className="w-3.5 h-3.5 text-red-600" />}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
+                                    {ISSUE_TYPE_OPTIONS.map(t => (
+                                        <option key={t.value} value={t.value} className="text-gray-900 bg-white font-medium uppercase">
+                                            {t.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
                         {/* Navigation Tabs */}
-                        <div className="px-6 border-b border-gray-200 flex space-x-6 text-sm bg-white">
+                        <div className="px-6 border-b border-gray-200 flex space-x-6">
                             <button
+                                type="button"
                                 onClick={() => setActiveTab('details')}
                                 className={cn(
-                                    'py-3 font-medium border-b-2 transition text-xs tracking-wide uppercase',
+                                    'py-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5',
                                     activeTab === 'details'
-                                        ? 'border-red-600 text-red-600 font-bold'
+                                        ? 'border-red-600 text-red-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700'
                                 )}
                             >
-                                Overview
+                                <AlignLeft className="w-3.5 h-3.5" /> Details
                             </button>
+
                             <button
+                                type="button"
                                 onClick={() => setActiveTab('history')}
                                 className={cn(
-                                    'py-3 font-medium border-b-2 transition text-xs tracking-wide uppercase flex items-center gap-1.5',
+                                    'py-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5',
                                     activeTab === 'history'
-                                        ? 'border-red-600 text-red-600 font-bold'
+                                        ? 'border-red-600 text-red-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700'
                                 )}
                             >
-                                <History className="w-3.5 h-3.5" /> Status History ({issue.statusHistory?.length || 0})
+                                <History className="w-3.5 h-3.5" /> Status History
                             </button>
+
                             <button
+                                type="button"
                                 onClick={() => setActiveTab('attachments')}
                                 className={cn(
-                                    'py-3 font-medium border-b-2 transition text-xs tracking-wide uppercase flex items-center gap-1.5',
+                                    'py-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5',
                                     activeTab === 'attachments'
-                                        ? 'border-red-600 text-red-600 font-bold'
+                                        ? 'border-red-600 text-red-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700'
                                 )}
                             >
@@ -562,7 +593,7 @@ export function IssueViewModal({
                             </button>
                         </div>
 
-                        {/* Tab Contents */}
+                        {/* Tab Content Area */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
                             {activeTab === 'details' && (
                                 <>
@@ -788,7 +819,7 @@ export function IssueViewModal({
                                         </div>
                                     </div>
 
-                                    {/* Assignees Section - Styled to match CreateIssueModal */}
+                                    {/* Assignees Section */}
                                     <div>
                                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                                             <Users className="w-3.5 h-3.5 text-gray-400" /> Assignees
@@ -900,6 +931,58 @@ export function IssueViewModal({
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Attachments & Screenshots Quick Grid in Details Tab */}
+                                    {issue.attachments && issue.attachments.length > 0 && (
+                                        <div>
+                                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                <Paperclip className="w-4 h-4 text-indigo-500" /> Issue Attachments ({issue.attachments.length})
+                                            </h3>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                                {issue.attachments.map(att => {
+                                                    const lowerName = att.fileName.toLowerCase();
+                                                    const isImage = att.mimeType?.startsWith('image/') ||
+                                                        att.fileUrl.startsWith('data:image/') ||
+                                                        /\.(png|jpe?g|gif|webp|svg)$/i.test(lowerName);
+                                                    const isPdf = att.mimeType === 'application/pdf' || lowerName.endsWith('.pdf');
+                                                    const isExcel = att.mimeType?.includes('excel') || /\.(xlsx?|csv)$/i.test(lowerName);
+
+                                                    return (
+                                                        <div
+                                                            key={att.id}
+                                                            onClick={() => setPreviewAttachment({
+                                                                fileName: att.fileName,
+                                                                fileUrl: att.fileUrl,
+                                                                mimeType: att.mimeType,
+                                                                fileSize: att.fileSize,
+                                                            })}
+                                                            className="p-2.5 bg-gray-50/80 hover:bg-indigo-50/60 border border-gray-200 hover:border-indigo-300 rounded-lg transition cursor-pointer group flex items-center gap-2.5"
+                                                        >
+                                                            {isImage ? (
+                                                                <div className="w-8 h-8 rounded bg-purple-100 flex items-center justify-center shrink-0 overflow-hidden border border-purple-200">
+                                                                    <img src={att.fileUrl} alt={att.fileName} className="w-full h-full object-cover" />
+                                                                </div>
+                                                            ) : isPdf ? (
+                                                                <FileText className="w-6 h-6 text-red-500 shrink-0" />
+                                                            ) : isExcel ? (
+                                                                <FileSpreadsheet className="w-6 h-6 text-emerald-500 shrink-0" />
+                                                            ) : (
+                                                                <Paperclip className="w-6 h-6 text-indigo-500 shrink-0" />
+                                                            )}
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-xs font-semibold text-gray-800 group-hover:text-indigo-600 truncate" title={att.fileName}>
+                                                                    {att.fileName}
+                                                                </p>
+                                                                <span className="text-[10px] text-indigo-500 font-medium flex items-center gap-0.5 mt-0.5">
+                                                                    <Eye className="w-2.5 h-2.5" /> Click to view
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </>
                             )}
 
@@ -953,44 +1036,80 @@ export function IssueViewModal({
                                     )}
 
                                     <div className="space-y-2">
-                                        {issue.attachments?.map(att => (
-                                            <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/80 hover:bg-gray-100/80 rounded-lg border border-gray-200 transition shadow-2xs">
-                                                <div className="flex items-center gap-2 truncate">
-                                                    <Paperclip className="w-4 h-4 text-red-500 shrink-0" />
-                                                    <span className="text-xs font-medium text-gray-800 truncate">{att.fileName}</span>
-                                                    {att.fileSize && (
-                                                        <span className="text-[10px] text-gray-400 shrink-0">({(att.fileSize / 1024).toFixed(1)} KB)</span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-3 shrink-0">
-                                                    <a
-                                                        href={att.fileUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-xs text-red-600 font-semibold hover:underline"
-                                                    >
-                                                        View
-                                                    </a>
-                                                    {!isReadOnly && (
+                                        {issue.attachments?.map(att => {
+                                            const lowerName = att.fileName.toLowerCase();
+                                            const isImage = att.mimeType?.startsWith('image/') ||
+                                                att.fileUrl.startsWith('data:image/') ||
+                                                /\.(png|jpe?g|gif|webp|svg)$/i.test(lowerName);
+                                            const isPdf = att.mimeType === 'application/pdf' || lowerName.endsWith('.pdf');
+                                            const isExcel = att.mimeType?.includes('excel') || /\.(xlsx?|csv)$/i.test(lowerName);
+
+                                            return (
+                                                <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/80 hover:bg-gray-100/80 rounded-lg border border-gray-200 transition shadow-2xs">
+                                                    <div className="flex items-center gap-2.5 truncate flex-1 min-w-0">
+                                                        {isImage ? (
+                                                            <div className="w-8 h-8 rounded bg-purple-100 flex items-center justify-center shrink-0 overflow-hidden border border-purple-200">
+                                                                <img src={att.fileUrl} alt={att.fileName} className="w-full h-full object-cover" />
+                                                            </div>
+                                                        ) : isPdf ? (
+                                                            <FileText className="w-5 h-5 text-red-500 shrink-0" />
+                                                        ) : isExcel ? (
+                                                            <FileSpreadsheet className="w-5 h-5 text-emerald-500 shrink-0" />
+                                                        ) : (
+                                                            <Paperclip className="w-5 h-5 text-indigo-500 shrink-0" />
+                                                        )}
+                                                        <div className="flex flex-col truncate">
+                                                            <span className="text-xs font-semibold text-gray-800 truncate">{att.fileName}</span>
+                                                            {att.fileSize && (
+                                                                <span className="text-[10px] text-gray-400 shrink-0">({(att.fileSize / 1024).toFixed(1)} KB)</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 shrink-0">
                                                         <button
                                                             type="button"
-                                                            onClick={async () => {
-                                                                try {
-                                                                    await removeAttachmentMutation.mutateAsync({ issueId, attachmentId: att.id });
-                                                                    toast.success('Attachment deleted');
-                                                                } catch (err) {
-                                                                    toast.error('Failed to delete attachment');
-                                                                }
-                                                            }}
-                                                            className="text-gray-400 hover:text-red-600 transition"
-                                                            title="Delete attachment"
+                                                            onClick={() => setPreviewAttachment({
+                                                                fileName: att.fileName,
+                                                                fileUrl: att.fileUrl,
+                                                                mimeType: att.mimeType,
+                                                                fileSize: att.fileSize,
+                                                            })}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-md hover:bg-indigo-100 transition cursor-pointer"
                                                         >
-                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                            <Eye className="w-3.5 h-3.5" /> View
                                                         </button>
-                                                    )}
+                                                        <a
+                                                            href={att.fileUrl}
+                                                            download={att.fileName}
+                                                            className="p-1.5 text-gray-400 hover:text-gray-600 transition"
+                                                            title="Download file"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5" />
+                                                        </a>
+                                                        {!isReadOnly && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        if (issueId) {
+                                                                            await removeAttachmentMutation.mutateAsync({ issueId, attachmentId: att.id });
+                                                                            toast.success('Attachment deleted');
+                                                                        }
+                                                                    } catch (err) {
+                                                                        toast.error('Failed to delete attachment');
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 text-gray-400 hover:text-red-600 transition"
+                                                                title="Delete attachment"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                         {(!issue.attachments || issue.attachments.length === 0) && (
                                             <p className="text-xs text-gray-400 italic text-center py-4">No attachments uploaded yet.</p>
                                         )}
@@ -1060,6 +1179,12 @@ export function IssueViewModal({
                     </div>
                 </div>
             )}
+
+            {/* File Attachment Viewer Modal */}
+            <AttachmentPreviewModal
+                attachment={previewAttachment}
+                onClose={() => setPreviewAttachment(null)}
+            />
         </div>
     );
 }
