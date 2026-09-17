@@ -70,87 +70,108 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
     const isClientMode = mode === 'client';
 
     return (
-        <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div className="mom-print-overlay fixed inset-0 z-[10000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto print:bg-transparent print:backdrop-blur-none">
             {/* Print specific CSS */}
             <style jsx global>{`
                 @media print {
                     @page {
-                        size: portrait;
-                        margin: 10mm 10mm 10mm 10mm;
+                        size: A4 portrait;
+                        margin: 14mm 12mm;
                     }
                     html, body {
                         height: auto !important;
                         min-height: 0 !important;
                         overflow: visible !important;
                         background: white !important;
+                        background-color: white !important;
                         color: black !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
-                    body * {
-                        visibility: hidden !important;
+                    /* Hide everything that is not the MOM document or an ancestor of it.
+                       This prevents blank/black trailing pages from the modal overlay and app layout. */
+                    body *:not(#printable-mom-container):not(#printable-mom-container *):not(:has(#printable-mom-container)) {
+                        display: none !important;
                     }
-                    #printable-mom-container, #printable-mom-container * {
-                        visibility: visible !important;
-                    }
-                    /* Reset modal and flex container restrictions during print so multi-page flow isn't clipped */
-                    .fixed, .absolute, div, main, section {
+                    /* Flatten ancestors so they do not clip, pad, or paint dark backgrounds */
+                    body, body *:has(#printable-mom-container) {
+                        display: block !important;
                         position: static !important;
                         overflow: visible !important;
-                        max-height: none !important;
                         height: auto !important;
+                        max-height: none !important;
                         min-height: 0 !important;
-                        flex: none !important;
-                        transform: none !important;
-                        backdrop-filter: none !important;
-                        box-shadow: none !important;
-                    }
-                    #printable-mom-container {
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
-                        width: 100% !important; 
+                        width: auto !important;
                         max-width: none !important;
-                        padding: 0 !important;
                         margin: 0 !important;
-                        background: white !important;
-                        color: black !important;
+                        padding: 0 !important;
+                        background: transparent !important;
+                        background-color: transparent !important;
                         box-shadow: none !important;
                         border: none !important;
-                        min-height: 0 !important;
-                        height: auto !important;
-                        overflow: visible !important;
-                        display: block !important;
+                        border-radius: 0 !important;
+                        transform: none !important;
+                        backdrop-filter: none !important;
+                        flex: none !important;
+                        float: none !important;
                     }
                     .no-print {
                         display: none !important;
                     }
-                    table {
+                    #printable-mom-container {
+                        display: block !important;
+                        position: static !important;
+                        left: auto !important;
+                        top: auto !important;
+                        width: 100% !important;
+                        max-width: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
+                        background-color: white !important;
+                        color: black !important;
+                        box-shadow: none !important;
+                        border: none !important;
+                        border-radius: 0 !important;
+                        min-height: 0 !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                    }
+                    #printable-mom-container * {
+                        visibility: visible !important;
+                    }
+                    #printable-mom-container table {
                         width: 100% !important;
                         border-collapse: collapse !important;
                         page-break-inside: auto !important;
                         break-inside: auto !important;
+                        margin: 0 0 10px 0 !important;
                     }
-                    thead {
+                    #printable-mom-container thead {
                         display: table-header-group !important;
                     }
-                    tbody {
+                    #printable-mom-container tbody {
                         display: table-row-group !important;
                     }
-                    tr {
+                    #printable-mom-container tr {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
-                    td, th {
+                    #printable-mom-container td,
+                    #printable-mom-container th {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
+                        padding: 8px 10px !important;
+                        vertical-align: middle !important;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
                 }
             `}</style>
 
-            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="mom-print-shell bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh]">
                 {/* Header Modal Bar (Hidden during print) */}
                 <div className="no-print bg-[#091590] text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 relative pr-14">
                     <div className="flex items-center gap-3">
@@ -173,39 +194,12 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
 
                     {/* Format Toggle & Action Buttons */}
                     <div className="flex items-center gap-3 flex-wrap">
-                        {/* Mode Selector Toggle */}
-                        {/* <div className="flex items-center bg-white/10 p-1 rounded-xl border border-white/20">
-                            <button
-                                type="button"
-                                onClick={() => setMode('internal')}
-                                className={cn(
-                                    "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                                    !isClientMode ? "bg-white text-[#091590] shadow-sm" : "text-white/80 hover:text-white"
-                                )}
-                            >
-                                <FileText className="w-3.5 h-3.5" />
-                                <span>Internal</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setMode('client')}
-                                className={cn(
-                                    "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                                    isClientMode ? "bg-amber-400 text-gray-900 shadow-sm" : "text-white/80 hover:text-white"
-                                )}
-                            >
-                                <UserCheck className="w-3.5 h-3.5" />
-                                <span>Client</span>
-                            </button>
-                        </div> */}
-
                         <button
                             onClick={handlePrint}
                             className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-[#091590] hover:bg-blue-50 font-bold text-xs rounded-xl transition-all shadow-sm uppercase tracking-wider cursor-pointer"
                         >
                             <Printer className="w-4 h-4" />
                             Print
-                            {/* {isClientMode ? 'Client MOM' : 'Internal MOM'} */}
                         </button>
                         <button
                             onClick={() => exportMomToExcel(meeting)}
@@ -227,26 +221,26 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                 </div>
 
                 {/* Printable Document Body */}
-                <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+                <div className="mom-print-scroll flex-1 overflow-y-auto p-6 sm:p-8 pb-16 bg-gray-50/50 custom-scrollbar">
                     <div
                         id="printable-mom-container"
-                        className="bg-white p-6 print:p-0 rounded-xl border border-gray-300 print:border-none shadow-sm print:shadow-none max-w-4xl mx-auto space-y-4 text-black text-xs uppercase flex flex-col justify-between print:block print:min-h-0 min-h-[750px]"
+                        className="bg-white p-6 sm:p-8 print:p-0 rounded-xl border border-gray-300 print:border-none shadow-sm print:shadow-none max-w-4xl mx-auto space-y-4 text-black text-xs uppercase flex flex-col print:block print:min-h-0 print:mb-0 mb-8"
                     >
-                        <div className="space-y-4">
+                        <div className="space-y-4 print:space-y-3">
                             {/* Section 1: NO OF PEOPLE / LOCATION / DATE */}
                             <table className="w-full border-collapse border border-gray-800 text-center font-bold">
                                 <thead>
                                     <tr className="bg-[#404040] text-white">
-                                        <th className="border border-gray-800 py-2 px-3 w-1/4">NO OF PEOPLE</th>
-                                        <th className="border border-gray-800 py-2 px-3 w-1/2">LOCATION</th>
-                                        <th className="border border-gray-800 py-2 px-3 w-1/4">DATE</th>
+                                        <th className="border border-gray-800 py-2.5 px-3 w-1/4 align-middle">NO OF PEOPLE</th>
+                                        <th className="border border-gray-800 py-2.5 px-3 w-1/2 align-middle">LOCATION</th>
+                                        <th className="border border-gray-800 py-2.5 px-3 w-1/4 align-middle">DATE</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td className="border border-gray-800 py-2 px-3">{getNumberOfPeople(meeting)}</td>
-                                        <td className="border border-gray-800 py-2 px-3">{meeting.location || 'TESLEAD EQUIPMENTS PVT LTD ,COIMBATORE'}</td>
-                                        <td className="border border-gray-800 py-2 px-3">{formattedDate}</td>
+                                        <td className="border border-gray-800 py-3 px-3 align-middle">{getNumberOfPeople(meeting)}</td>
+                                        <td className="border border-gray-800 py-3 px-3 align-middle">{meeting.location || 'TESLEAD EQUIPMENTS PVT LTD ,COIMBATORE'}</td>
+                                        <td className="border border-gray-800 py-3 px-3 align-middle">{formattedDate}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -255,12 +249,12 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                             <table className="w-full border-collapse border border-gray-800 text-center font-bold">
                                 <thead>
                                     <tr className="bg-[#404040] text-white">
-                                        <th className="border border-gray-800 py-2 px-3">PURPOSE OF MEETING</th>
+                                        <th className="border border-gray-800 py-2.5 px-3 align-middle">PURPOSE OF MEETING</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td className="border border-gray-800 py-2 px-3">{meeting.purpose || 'DAILY INTERNAL MEETING'}</td>
+                                        <td className="border border-gray-800 py-3 px-3 align-middle">{meeting.purpose || 'DAILY INTERNAL MEETING'}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -269,12 +263,12 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                             <table className="w-full border-collapse border border-gray-800 text-center font-bold">
                                 <thead>
                                     <tr className="bg-[#404040] text-white">
-                                        <th className="border border-gray-800 py-2 px-3">ATTENDED BY</th>
+                                        <th className="border border-gray-800 py-2.5 px-3 align-middle">ATTENDED BY</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td className="border border-gray-800 py-2.5 px-3 leading-relaxed">
+                                        <td className="border border-gray-800 py-3 px-3 leading-relaxed align-middle">
                                             {meeting.attendedBy || 'N/A'}
                                         </td>
                                     </tr>
@@ -285,37 +279,37 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                             <table className="w-full border-collapse border border-gray-800">
                                 <thead>
                                     <tr className="bg-[#404040] text-white text-center font-bold">
-                                        <th className="border border-gray-800 py-2 px-2 w-12">SNO</th>
-                                        <th className="border border-gray-800 py-2 px-3 text-left">INSPECTION & DISCUSSION POINTS</th>
-                                        <th className="border border-gray-800 py-2 px-3 w-40">PROJECT</th>
-                                        {!isClientMode && <th className="border border-gray-800 py-2 px-3 w-44">ASSIGNED TO</th>}
-                                        {!isClientMode && <th className="border border-gray-800 py-2 px-2 w-28">STATUS</th>}
-                                        <th className="border border-gray-800 py-2 px-3 w-36">REMARKS</th>
+                                        <th className="border border-gray-800 py-2.5 px-2 w-12 align-middle">SNO</th>
+                                        <th className="border border-gray-800 py-2.5 px-3 text-left align-middle">INSPECTION & DISCUSSION POINTS</th>
+                                        <th className="border border-gray-800 py-2.5 px-3 w-40 align-middle">PROJECT</th>
+                                        {!isClientMode && <th className="border border-gray-800 py-2.5 px-3 w-44 align-middle">ASSIGNED TO</th>}
+                                        {!isClientMode && <th className="border border-gray-800 py-2.5 px-2 w-28 align-middle">STATUS</th>}
+                                        <th className="border border-gray-800 py-2.5 px-3 w-36 align-middle">REMARKS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {discussionRows.map((row: any, idx: number) => {
                                         const isPad = row.isPad;
                                         return (
-                                            <tr key={row.id || idx} className="text-gray-900 font-semibold h-10">
-                                                <td className="border border-gray-800 py-2 px-2 text-center font-bold">{idx + 1}</td>
-                                                <td className="border border-gray-800 py-2 px-3 text-left leading-normal whitespace-pre-wrap">
+                                            <tr key={row.id || idx} className="text-gray-900 font-semibold align-middle">
+                                                <td className="border border-gray-800 py-2.5 px-2 text-center font-bold align-middle">{idx + 1}</td>
+                                                <td className="border border-gray-800 py-2.5 px-3 text-left leading-normal whitespace-pre-wrap break-words align-middle">
                                                     {isPad ? '\u00A0' : (row.discussionPoints || '-')}
                                                 </td>
-                                                <td className="border border-gray-800 py-2 px-3 text-center font-semibold">
+                                                <td className="border border-gray-800 py-2.5 px-3 text-center font-semibold break-words align-middle">
                                                     {isPad ? '\u00A0' : (row.project || '-')}
                                                 </td>
                                                 {!isClientMode && (
-                                                    <td className="border border-gray-800 py-2 px-3 text-center">
+                                                    <td className="border border-gray-800 py-2.5 px-3 text-center break-words align-middle">
                                                         {isPad ? '\u00A0' : (row.user || '-')}
                                                     </td>
                                                 )}
                                                 {!isClientMode && (
-                                                    <td className="border border-gray-800 py-2 px-2 text-center font-bold">
+                                                    <td className="border border-gray-800 py-2.5 px-2 text-center font-bold align-middle">
                                                         {isPad ? '\u00A0' : (row.status || 'OPEN')}
                                                     </td>
                                                 )}
-                                                <td className="border border-gray-800 py-2 px-3 text-left">
+                                                <td className="border border-gray-800 py-2.5 px-3 text-left break-words align-middle">
                                                     {isPad ? '\u00A0' : (row.remarks || '')}
                                                 </td>
                                             </tr>
