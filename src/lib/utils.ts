@@ -1,5 +1,19 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { API_CONFIG } from './config';
+
+/**
+ * Get full file/attachment URL (prepends API_CONFIG.BASE_URL if relative path)
+ */
+export function getFileUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  const baseUrl = API_CONFIG.BASE_URL.replace(/\/$/, '');
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${baseUrl}${path}`;
+}
 
 /**
  * Utility function to merge Tailwind CSS classes with clsx

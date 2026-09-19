@@ -367,7 +367,7 @@ export default function MyIssuesPage() {
                             />
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        {/* <div className="flex items-center gap-2">
                             <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
 
                             <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
@@ -378,7 +378,7 @@ export default function MyIssuesPage() {
                                     <LayoutGrid className="w-4 h-4" />
                                 </button>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

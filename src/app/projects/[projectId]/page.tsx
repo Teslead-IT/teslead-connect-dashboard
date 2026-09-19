@@ -509,6 +509,7 @@ export default function ProjectDetailPage() {
                             isEditable={projectPermissions.canEditTask}
                             canCreateTask={projectPermissions.canCreateTask}
                             canDeleteTask={projectPermissions.canDeleteTask}
+                            canCreateIssue={projectPermissions.canCreateTask}
                             currentUserRole={project?.role}
                             searchQuery={searchQuery}
                             filterStatusName="Ready for testing"

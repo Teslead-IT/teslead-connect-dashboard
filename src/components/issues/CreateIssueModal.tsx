@@ -49,6 +49,12 @@ interface CreateIssueModalProps {
     projectName?: string;
     projectColor?: string | null;
     projectId: string;
+    /** Prefill phase / task list / task when creating from a task row */
+    initialValues?: {
+        phaseId?: string;
+        taskListId?: string;
+        taskId?: string;
+    };
 }
 
 const ISSUE_TYPE_OPTIONS: { value: IssueType; label: string; color: string; bg: string; icon: any }[] = [
@@ -86,6 +92,7 @@ export function CreateIssueModal({
     projectName,
     projectColor,
     projectId,
+    initialValues,
 }: CreateIssueModalProps) {
     const toast = useToast();
     const createStatusMutation = useCreateStatus(projectId);
@@ -152,9 +159,9 @@ export function CreateIssueModal({
                 severity: 'MEDIUM',
                 priority: 3,
                 statusId: defaultStatusId,
-                phaseId: '',
-                taskListId: '',
-                taskId: '',
+                phaseId: initialValues?.phaseId || '',
+                taskListId: initialValues?.taskListId || '',
+                taskId: initialValues?.taskId || '',
                 dueDate: '',
                 startDate: '',
                 assigneeIds: [],
@@ -172,8 +179,9 @@ export function CreateIssueModal({
             setTaskSearch('');
             setPhaseSearch('');
             setTaskListSearch('');
+            setAttachments([]);
         }
-    }, [isOpen, defaultStatusId]);
+    }, [isOpen, defaultStatusId, initialValues?.phaseId, initialValues?.taskListId, initialValues?.taskId]);
 
     const selectedPhase = phases.find(p => p.id === formData.phaseId);
     const availableTaskLists = selectedPhase?.taskLists || [];
@@ -765,7 +773,7 @@ export function CreateIssueModal({
                             </div>
 
                             {/* Supported Formats Banner */}
-                            <div className="mb-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
+                            {/* <div className="mb-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                                         <Info className="w-3.5 h-3.5 text-indigo-500" /> Supported File Formats
@@ -802,7 +810,7 @@ export function CreateIssueModal({
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
                             <div className="relative border-2 border-dashed border-gray-200 hover:border-indigo-400 bg-gray-50/50 hover:bg-indigo-50/30 rounded-lg p-3.5 transition text-center cursor-pointer group">
                                 <input
@@ -814,7 +822,7 @@ export function CreateIssueModal({
                                 />
                                 <Upload className="w-5 h-5 mx-auto text-gray-400 group-hover:text-indigo-500 transition mb-1" />
                                 <p className="text-xs font-semibold text-gray-700">Click or drag files here to attach</p>
-                                <p className="text-[10px] text-gray-400 mt-0.5">Supports Images, Documents, Spreadsheets, Logs & Archives up to 25MB</p>
+                                <p className="text-[10px] text-gray-400 mt-0.5">Max file size 25MB</p>
                             </div>
 
                             {attachments.length > 0 && (

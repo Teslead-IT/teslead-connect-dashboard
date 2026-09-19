@@ -207,11 +207,30 @@ export default function MeetingsPage() {
                                 font-weight: 800;
                                 box-shadow: 0 2px 4px rgba(9, 21, 144, 0.3);
                             }
+                            .custom-calendar .fc-daygrid-event-harness {
+                                max-width: 100% !important;
+                                overflow: hidden !important;
+                            }
                             .custom-calendar .fc-event {
                                 border-radius: 6px !important;
                                 border: none !important;
-                                padding: 2px 4px !important;
-                                margin: 2px !important;
+                                padding: 0 !important;
+                                margin: 2px 0 !important;
+                                background: transparent !important;
+                                box-shadow: none !important;
+                                max-width: 100% !important;
+                                overflow: hidden !important;
+                            }
+                            .custom-calendar .fc-event-main {
+                                padding: 0 !important;
+                                overflow: hidden !important;
+                                max-width: 100% !important;
+                                width: 100% !important;
+                            }
+                            .custom-calendar .fc-daygrid-event {
+                                max-width: 100% !important;
+                                overflow: hidden !important;
+                                white-space: nowrap !important;
                             }
                             .custom-calendar .fc-daygrid-more-link {
                                 font-size: 0.7rem !important;
@@ -245,12 +264,26 @@ export default function MeetingsPage() {
                             dayMaxEvents={3}
                             moreLinkContent={(args: any) => `+${args.num}  more [View All]`}
                             height="100%"
-                            eventContent={(eventInfo) => (
-                                <div className="flex items-center gap-1.5 px-2 py-1 cursor-pointer bg-blue-50 text-[#091590] rounded-md border-l-4 border-[#091590] shadow-sm hover:bg-blue-100 transition-colors">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#091590] animate-pulse"></div>
-                                    <span className="text-[10px] font-black truncate">{eventInfo.event.title}</span>
-                                </div>
-                            )}
+                            eventContent={(eventInfo) => {
+                                const fullTitle = eventInfo.event.title || 'Meeting';
+                                const purpose = eventInfo.event.extendedProps?.purpose;
+                                const location = eventInfo.event.extendedProps?.location;
+                                const tooltipText = [
+                                    fullTitle,
+                                    purpose ? `Purpose: ${purpose}` : null,
+                                    location ? `Location: ${location}` : null,
+                                ].filter(Boolean).join(' • ');
+
+                                return (
+                                    <div 
+                                        title={tooltipText}
+                                        className="flex items-center gap-1.5 px-2 py-1 cursor-pointer bg-blue-50 text-[#091590] rounded-md border-l-4 border-[#091590] shadow-sm hover:bg-blue-100 transition-colors w-full max-w-full min-w-0 overflow-hidden"
+                                    >
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#091590] animate-pulse flex-shrink-0"></div>
+                                        <span className="text-[10px] font-black truncate min-w-0 flex-1">{fullTitle}</span>
+                                    </div>
+                                );
+                            }}
                         />
                     </div>
                 ) : (

@@ -77,6 +77,12 @@ export interface StructuredTask {
         email: string;
         avatarUrl?: string;
     }>;
+    testers?: Array<{
+        id: string;
+        name: string;
+        email: string;
+        avatarUrl?: string;
+    }>;
     createdById?: string | null;
     createdBy?: {
         id: string;

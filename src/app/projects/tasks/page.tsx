@@ -406,6 +406,35 @@ export default function TasksPage() {
         );
     };
 
+    const TestersRenderer = (props: ICellRendererParams) => {
+        const testers = props.data?.testers || [];
+
+        if (testers.length === 0) {
+            return <div className="h-full flex items-center text-[10px] text-gray-400 italic">No testers</div>;
+        }
+
+        return (
+            <div className="h-full flex items-center gap-1">
+                {testers.slice(0, 3).map((t: any) => (
+                    <div
+                        key={t.id}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 bg-indigo-600 overflow-hidden"
+                        title={t.name}
+                    >
+                        {t.avatarUrl ? (
+                            <img src={t.avatarUrl} alt={t.name} className="w-full h-full object-cover" />
+                        ) : (
+                            t.name?.charAt(0) || '?'
+                        )}
+                    </div>
+                ))}
+                {testers.length > 3 && (
+                    <span className="text-[10px] text-gray-500 font-medium">+{testers.length - 3}</span>
+                )}
+            </div>
+        );
+    };
+
     const DateRenderer = (props: ICellRendererParams) => {
         const date = props.value;
         if (!date) return <div className="h-full flex items-center text-gray-300">-</div>;
@@ -514,6 +543,13 @@ export default function TasksPage() {
                 sortable: false,
             },
             {
+                field: 'testers',
+                headerName: 'TESTED BY',
+                width: 120,
+                cellRenderer: TestersRenderer,
+                sortable: false,
+            },
+            {
                 field: 'dueDate',
                 headerName: 'DUE',
                 width: 120,
@@ -576,7 +612,7 @@ export default function TasksPage() {
                             />
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        {/* <div className="flex items-center gap-2">
                             <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block" />
                             <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
                                 <div
@@ -586,7 +622,7 @@ export default function TasksPage() {
                                     <ListIcon className="w-4 h-4" />
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

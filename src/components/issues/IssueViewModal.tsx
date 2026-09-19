@@ -35,7 +35,7 @@ import {
     FileArchive,
     Info,
 } from 'lucide-react';
-import { cn, getAvatarColor, formatDate } from '@/lib/utils';
+import { cn, getAvatarColor, formatDate, getFileUrl } from '@/lib/utils';
 import type { Issue, IssueType, IssueSeverity, IssuePriority, UpdateIssuePayload } from '@/types/issue';
 import type { Task, WorkflowStage } from '@/types/task';
 import type { ProjectMember } from '@/types/project';
@@ -98,6 +98,7 @@ function AttachmentPreviewModal({
     if (!attachment) return null;
 
     const { fileName, fileUrl, mimeType, fileSize } = attachment;
+    const resolvedUrl = getFileUrl(fileUrl);
     const lowerName = fileName.toLowerCase();
 
     const isImage = mimeType?.startsWith('image/') ||
@@ -116,7 +117,7 @@ function AttachmentPreviewModal({
         mimeType?.includes('officedocument') ||
         /\.(docx?)$/i.test(lowerName);
 
-    const isHttpUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+    const isHttpUrl = resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://');
 
     return (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 animate-in fade-in duration-200">
@@ -140,7 +141,7 @@ function AttachmentPreviewModal({
 
                     <div className="flex items-center gap-2 shrink-0">
                         <a
-                            href={fileUrl}
+                            href={resolvedUrl}
                             download={fileName}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-2xs transition"
                             title="Download file"
@@ -149,7 +150,7 @@ function AttachmentPreviewModal({
                         </a>
 
                         <a
-                            href={fileUrl}
+                            href={resolvedUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-2xs transition"
@@ -172,19 +173,19 @@ function AttachmentPreviewModal({
                 <div className="flex-1 bg-gray-900/5 p-4 overflow-auto flex items-center justify-center min-h-[450px]">
                     {isImage ? (
                         <img
-                            src={fileUrl}
+                            src={resolvedUrl}
                             alt={fileName}
                             className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-md border border-gray-200"
                         />
                     ) : isPdf ? (
                         <iframe
-                            src={fileUrl}
+                            src={resolvedUrl}
                             className="w-full h-[75vh] rounded-lg border border-gray-200 bg-white"
                             title={fileName}
                         />
                     ) : (isExcel || isWordDoc) && isHttpUrl ? (
                         <iframe
-                            src={`https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`}
+                            src={`https://docs.google.com/gview?url=${encodeURIComponent(resolvedUrl)}&embedded=true`}
                             className="w-full h-[75vh] rounded-lg border border-gray-200 bg-white"
                             title={fileName}
                         />
@@ -201,7 +202,7 @@ function AttachmentPreviewModal({
                             </div>
                             <div className="pt-2 flex justify-center gap-3">
                                 <a
-                                    href={fileUrl}
+                                    href={resolvedUrl}
                                     download={fileName}
                                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-xs"
                                 >
@@ -948,6 +949,7 @@ export function IssueViewModal({
                                                         /\.(png|jpe?g|gif|webp|svg)$/i.test(lowerName);
                                                     const isPdf = att.mimeType === 'application/pdf' || lowerName.endsWith('.pdf');
                                                     const isExcel = att.mimeType?.includes('excel') || /\.(xlsx?|csv)$/i.test(lowerName);
+                                                    const resolvedUrl = getFileUrl(att.fileUrl);
 
                                                     return (
                                                         <div
@@ -962,7 +964,7 @@ export function IssueViewModal({
                                                         >
                                                             {isImage ? (
                                                                 <div className="w-8 h-8 rounded bg-purple-100 flex items-center justify-center shrink-0 overflow-hidden border border-purple-200">
-                                                                    <img src={att.fileUrl} alt={att.fileName} className="w-full h-full object-cover" />
+                                                                    <img src={resolvedUrl} alt={att.fileName} className="w-full h-full object-cover" />
                                                                 </div>
                                                             ) : isPdf ? (
                                                                 <FileText className="w-6 h-6 text-red-500 shrink-0" />
@@ -1086,13 +1088,14 @@ export function IssueViewModal({
                                                 /\.(png|jpe?g|gif|webp|svg)$/i.test(lowerName);
                                             const isPdf = att.mimeType === 'application/pdf' || lowerName.endsWith('.pdf');
                                             const isExcel = att.mimeType?.includes('excel') || /\.(xlsx?|csv)$/i.test(lowerName);
+                                            const resolvedUrl = getFileUrl(att.fileUrl);
 
                                             return (
                                                 <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/80 hover:bg-gray-100/80 rounded-lg border border-gray-200 transition shadow-2xs">
                                                     <div className="flex items-center gap-2.5 truncate flex-1 min-w-0">
                                                         {isImage ? (
                                                             <div className="w-8 h-8 rounded bg-purple-100 flex items-center justify-center shrink-0 overflow-hidden border border-purple-200">
-                                                                <img src={att.fileUrl} alt={att.fileName} className="w-full h-full object-cover" />
+                                                                <img src={resolvedUrl} alt={att.fileName} className="w-full h-full object-cover" />
                                                             </div>
                                                         ) : isPdf ? (
                                                             <FileText className="w-5 h-5 text-red-500 shrink-0" />
@@ -1123,7 +1126,7 @@ export function IssueViewModal({
                                                             <Eye className="w-3.5 h-3.5" /> View
                                                         </button>
                                                         <a
-                                                            href={att.fileUrl}
+                                                            href={resolvedUrl}
                                                             download={att.fileName}
                                                             className="p-1.5 text-gray-400 hover:text-gray-600 transition"
                                                             title="Download file"
