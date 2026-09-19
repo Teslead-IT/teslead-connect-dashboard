@@ -30,6 +30,7 @@ import {
     ClipboardCheck,
     UserCheck,
     Flame,
+    Plus,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import { Dialog } from '@/components/ui/Dialog';
@@ -37,12 +38,17 @@ import type { PhaseWithTaskLists } from '@/types/phase';
 import type { StructuredTask } from '@/types/phase';
 import type { CreateTaskPayload, TaskPriority, WorkflowStage, TaskType } from '@/types/task';
 import type { ProjectMember } from '@/types/project';
+import type { Issue } from '@/types/issue';
 
 import { useProject } from '@/hooks/use-projects';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
 import { useTimeEntries, useCreateTimeEntry } from '@/hooks/use-time-entries';
 import { useOrgSettings } from '@/hooks/use-org-settings';
 import { useToast } from '@/components/ui/Toast';
+import { useProjectIssues, useCreateIssue } from '@/hooks/use-issues';
+import { useProjectTasks } from '@/hooks/use-tasks';
+import { CreateIssueModal } from '@/components/issues/CreateIssueModal';
+import { IssueViewModal } from '@/components/issues/IssueViewModal';
 
 interface TaskViewModalProps {
     isOpen: boolean;
@@ -106,7 +112,7 @@ export function TaskViewModal({
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [contentTab, setContentTab] = useState<'details' | 'timesheets'>('details');
+    const [contentTab, setContentTab] = useState<'details' | 'timesheets' | 'issues'>('details');
 
     const { taskListGroups, allTasksFlat } = useMemo(() => {
         const allGroups: { phase: PhaseWithTaskLists; taskList: { id: string; name: string }; tasks: StructuredTask[] }[] = [];
@@ -347,6 +353,16 @@ export function TaskViewModal({
                                                 >
                                                     Timesheets
                                                 </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setContentTab('issues')}
+                                                    className={cn(
+                                                        'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                                                        contentTab === 'issues' ? 'bg-[#091590] text-white' : 'text-gray-600 hover:bg-gray-100'
+                                                    )}
+                                                >
+                                                    Issues
+                                                </button>
                                             </div>
                                             <div className="flex-1 overflow-auto">
                                                 {contentTab === 'details' && (
@@ -370,6 +386,20 @@ export function TaskViewModal({
                                                         projectId={projectId}
                                                         phaseId={activeGroup?.phase.id}
                                                         taskListId={activeTaskListId ?? undefined}
+                                                    />
+                                                )}
+                                                {contentTab === 'issues' && (
+                                                    <TaskIssuesTab
+                                                        taskId={activeTask.id}
+                                                        projectId={projectId}
+                                                        projectName={project?.name}
+                                                        projectColor={project?.color}
+                                                        phaseId={activeGroup?.phase.id}
+                                                        taskListId={activeTaskListId ?? undefined}
+                                                        phases={phases}
+                                                        workflow={workflow}
+                                                        members={members}
+                                                        canCreate={isEditable}
                                                     />
                                                 )}
                                             </div>
@@ -476,6 +506,171 @@ function ManualTimeEntryForm({
                 </button>
             </div>
         </form>
+    );
+}
+
+function TaskIssuesTab({
+    taskId,
+    projectId,
+    projectName,
+    projectColor,
+    phaseId,
+    taskListId,
+    phases,
+    workflow,
+    members = [],
+    canCreate = true,
+}: {
+    taskId: string;
+    projectId: string;
+    projectName?: string;
+    projectColor?: string | null;
+    phaseId?: string;
+    taskListId?: string;
+    phases: PhaseWithTaskLists[];
+    workflow: WorkflowStage[];
+    members?: ProjectMember[];
+    canCreate?: boolean;
+}) {
+    const { data: issues = [], isLoading } = useProjectIssues(projectId);
+    const { data: tasks = [] } = useProjectTasks(projectId);
+    const createIssueMutation = useCreateIssue(projectId);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+
+    const taskIssues = useMemo(() => {
+        return issues.filter((issue) =>
+            issue.taskId === taskId || issue.linkedTask?.id === taskId
+        );
+    }, [issues, taskId]);
+
+    if (isLoading) {
+        return (
+            <div className="p-6 flex items-center justify-center text-gray-400">
+                <div className="flex flex-col items-center gap-2">
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#091590]/30" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Loading...</span>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <div>
+                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Issues</h3>
+                    <p className="text-[9px] text-gray-400 mt-0.5">Issues linked to this task</p>
+                </div>
+                {canCreate && (
+                    <button
+                        type="button"
+                        onClick={() => setIsCreateOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-white uppercase tracking-wider bg-[#091590] rounded hover:bg-[#121033] transition-colors shadow-sm"
+                    >
+                        <Plus className="w-3 h-3" />
+                        Create Issue
+                    </button>
+                )}
+            </div>
+
+            {taskIssues.length === 0 ? (
+                <div className="py-12 text-center border-2 border-dashed border-gray-100 rounded-xl bg-gray-50/30">
+                    <Bug className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No data</p>
+                    <p className="text-[10px] text-gray-400 mt-2 max-w-[220px] mx-auto leading-relaxed">
+                        No issues have been reported for this task yet.
+                    </p>
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    {taskIssues.map((issue) => (
+                        <TaskIssueRow
+                            key={issue.id}
+                            issue={issue}
+                            onClick={() => setSelectedIssueId(issue.id)}
+                        />
+                    ))}
+                </div>
+            )}
+
+            <CreateIssueModal
+                isOpen={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+                onSubmit={async (data) => {
+                    await createIssueMutation.mutateAsync(data);
+                }}
+                workflow={workflow}
+                tasks={tasks}
+                members={members}
+                phases={phases}
+                projectName={projectName}
+                projectColor={projectColor}
+                projectId={projectId}
+                initialValues={{
+                    phaseId,
+                    taskListId,
+                    taskId,
+                }}
+            />
+
+            <IssueViewModal
+                issueId={selectedIssueId}
+                projectId={projectId}
+                isOpen={!!selectedIssueId}
+                onClose={() => setSelectedIssueId(null)}
+                workflow={workflow}
+                members={members}
+                tasks={tasks}
+                phases={phases}
+            />
+        </div>
+    );
+}
+
+function TaskIssueRow({ issue, onClick }: { issue: Issue; onClick: () => void }) {
+    const statusColor = issue.status?.color || '#6b7280';
+    const typeLabel = issue.type || 'OTHER';
+
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className="w-full flex items-center gap-3 px-4 py-3 border border-gray-100 bg-white shadow-sm hover:border-blue-200 hover:bg-slate-50/50 transition-all text-left rounded"
+        >
+            <div className="w-8 h-8 rounded-md bg-red-50 border border-red-100 flex items-center justify-center shrink-0">
+                <Bug className="w-4 h-4 text-red-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                    {issue.issueId && (
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider shrink-0">
+                            {issue.issueId}
+                        </span>
+                    )}
+                    <span className="text-xs font-bold text-gray-900 truncate">{issue.title}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                        {typeLabel}
+                    </span>
+                    {issue.severity && (
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-orange-50 text-orange-600">
+                            {issue.severity}
+                        </span>
+                    )}
+                </div>
+            </div>
+            <span
+                className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded"
+                style={{
+                    backgroundColor: `${statusColor}20`,
+                    color: statusColor,
+                }}
+            >
+                {issue.status?.name || 'Unknown'}
+            </span>
+        </button>
     );
 }
 
@@ -739,6 +934,12 @@ function TaskDetailsPanel({
                     <div className={cn(fieldClasses, "whitespace-pre-wrap")}>{task.description}</div>
                 </div>
             )}
+            {task.expectedOutput && (
+                <div>
+                    <label className={cn(labelClasses, "flex items-center gap-2 text-purple-600")}><ClipboardCheck className="w-3 h-3 text-purple-600" /> Expected Output</label>
+                    <div className={cn(fieldClasses, "whitespace-pre-wrap border-purple-200 bg-purple-50/30 text-purple-950 font-medium")}>{task.expectedOutput}</div>
+                </div>
+            )}
             <div>
                 <label className={labelClasses}>Status</label>
                 <div className={cn("inline-flex items-center gap-2 px-3 py-2 border bg-white", rounded)}>
@@ -785,6 +986,27 @@ function TaskDetailsPanel({
                                 {a.name || 'Unknown'}
                             </span>
                         ))
+                    )}
+                </div>
+            </div>
+            <div>
+                <label className={cn(labelClasses, "flex items-center gap-2")}><UserCheck className="w-3 h-3 text-indigo-500" /> Tested By</label>
+                <div className="flex flex-wrap gap-2">
+                    {(task.testers || []).length === 0 ? (
+                        <span className="text-xs text-gray-400">No testers</span>
+                    ) : (
+                        (task.testers || []).map((t: any) => {
+                            const name = t.name || t.user?.name || 'Unknown';
+                            const avatarUrl = t.avatarUrl || t.user?.avatarUrl;
+                            return (
+                                <span key={t.id || t.userId} className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-medium", rounded)}>
+                                    <span className={cn("w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold overflow-hidden", avatarUrl ? '' : getAvatarColor(name))}>
+                                        {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
+                                    </span>
+                                    {name}
+                                </span>
+                            );
+                        })
                     )}
                 </div>
             </div>
@@ -849,10 +1071,12 @@ function TaskEditForm({
     const [formData, setFormData] = useState<CreateTaskPayload>({
         title: task.title,
         description: task.description || '',
+        expectedOutput: task.expectedOutput || '',
         priority: task.priority as TaskPriority,
         statusId: task.status?.id || '',
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
         assigneeIds: task.assignees?.map((a: any) => a.userId || a.user?.id || a.id) || [],
+        testerIds: (task as any).testers?.map((t: any) => t.userId || t.user?.id || t.id) || [],
         parentId: task.parentId,
         type: (task as any).type || 'FEAT',
         taskListId,
@@ -860,6 +1084,8 @@ function TaskEditForm({
     });
     const [showAssigneePicker, setShowAssigneePicker] = useState(false);
     const [assigneeSearch, setAssigneeSearch] = useState('');
+    const [showTesterPicker, setShowTesterPicker] = useState(false);
+    const [testerSearch, setTesterSearch] = useState('');
 
     const allStatuses = useMemo(() => workflow.flatMap((s) => s.statuses.map((st) => ({ ...st, stageName: s.name }))), [workflow]);
     const currentPriority = PRIORITY_OPTIONS.find((p) => p.value === formData.priority) || PRIORITY_OPTIONS[2];
@@ -871,14 +1097,23 @@ function TaskEditForm({
     }, [members, assigneeSearch]);
     const selectedMembers = useMemo(() => members.filter((m) => formData.assigneeIds?.includes(m.user.id)), [members, formData.assigneeIds]);
 
+    const filteredTesterMembers = useMemo(() => {
+        if (!testerSearch.trim()) return members;
+        const q = testerSearch.toLowerCase();
+        return members.filter((m) => m.user.name.toLowerCase().includes(q) || m.user.email.toLowerCase().includes(q));
+    }, [members, testerSearch]);
+    const selectedTesters = useMemo(() => members.filter((m) => formData.testerIds?.includes(m.user.id)), [members, formData.testerIds]);
+
     useEffect(() => {
         setFormData({
             title: task.title,
             description: task.description || '',
+            expectedOutput: task.expectedOutput || '',
             priority: task.priority as TaskPriority,
             statusId: task.status?.id || '',
             dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
             assigneeIds: task.assignees?.map((a: any) => a.userId || a.user?.id || a.id) || [],
+            testerIds: (task as any).testers?.map((t: any) => t.userId || t.user?.id || t.id) || [],
             parentId: task.parentId,
             type: (task as any).type || 'FEAT',
             taskListId,
@@ -891,6 +1126,14 @@ function TaskEditForm({
             const current = prev.assigneeIds || [];
             const next = current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId];
             return { ...prev, assigneeIds: next };
+        });
+    };
+
+    const toggleTester = (userId: string) => {
+        setFormData((prev) => {
+            const current = prev.testerIds || [];
+            const next = current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId];
+            return { ...prev, testerIds: next };
         });
     };
 
@@ -921,6 +1164,11 @@ function TaskEditForm({
             <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Description</label>
                 <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className={cn(inputClass, "resize-none")} placeholder="Add details..." />
+            </div>
+
+            <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5"><ClipboardCheck className="w-3 h-3 inline mr-1 text-purple-500" />Expected Output</label>
+                <textarea value={formData.expectedOutput || ''} onChange={(e) => setFormData({ ...formData, expectedOutput: e.target.value })} rows={2} className={cn(inputClass, "resize-none")} placeholder="Add expected output criteria..." />
             </div>
 
             <div>
@@ -1012,6 +1260,58 @@ function TaskEditForm({
                                                 <div className="text-[10px] text-gray-400 truncate">{m.user.email}</div>
                                             </div>
                                             {isSelected && <Check className="w-4 h-4 text-[var(--primary)]" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5"><UserCheck className="w-3 h-3 inline mr-1 text-indigo-500" />Tested By</label>
+                {selectedTesters.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                        {selectedTesters.map((m) => (
+                            <span key={m.user.id} className={cn("inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 bg-indigo-50 border border-indigo-100 text-xs font-medium text-indigo-700", rounded)}>
+                                <span className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white", m.user.avatarUrl ? '' : getAvatarColor(m.user.name))}>
+                                    {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" /> : m.user.name.charAt(0).toUpperCase()}
+                                </span>
+                                {m.user.name}
+                                <button type="button" onClick={() => toggleTester(m.user.id)} className="ml-0.5 p-0.5 hover:bg-indigo-100 rounded-full transition-colors">
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                )}
+                <div className="relative">
+                    <button type="button" onClick={() => setShowTesterPicker(!showTesterPicker)} className={cn("w-full px-3 py-2 border border-dashed border-gray-200 text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2", rounded)}>
+                        <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
+                        {selectedTesters.length === 0 ? 'Select testers...' : 'Add more testers...'}
+                    </button>
+                    {showTesterPicker && (
+                        <div className={cn("absolute z-20 mt-1 w-full bg-white border border-gray-200 shadow-lg max-h-56 overflow-hidden", roundedMd)}>
+                            <div className="p-2 border-b border-gray-100">
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                                    <input type="text" placeholder="Search testers..." value={testerSearch} onChange={(e) => setTesterSearch(e.target.value)} className={cn("w-full pl-8 pr-3 py-1.5 text-xs border border-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 bg-gray-50", rounded)} />
+                                </div>
+                            </div>
+                            <div className="overflow-y-auto max-h-44">
+                                {filteredTesterMembers.map((m) => {
+                                    const isSelected = formData.testerIds?.includes(m.user.id);
+                                    return (
+                                        <button key={m.user.id} type="button" onClick={() => toggleTester(m.user.id)} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50", isSelected && "bg-indigo-50/50")}>
+                                            <span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white", m.user.avatarUrl ? '' : getAvatarColor(m.user.name))}>
+                                                {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" /> : m.user.name.charAt(0).toUpperCase()}
+                                            </span>
+                                            <div className="flex-1 min-w-0 text-left">
+                                                <div className="text-xs font-medium text-gray-800 truncate">{m.user.name}</div>
+                                                <div className="text-[10px] text-gray-400 truncate">{m.user.email}</div>
+                                            </div>
+                                            {isSelected && <Check className="w-4 h-4 text-indigo-600" />}
                                         </button>
                                     );
                                 })}

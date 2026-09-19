@@ -86,6 +86,24 @@ export default function OrganizationSettingsPage() {
     const { data: orgSettings, isLoading: orgSettingsLoading } = useOrgSettings();
     const { mutate: updateOrgSettings, isPending: isUpdatingOrgSettings } = useUpdateOrgSettings();
 
+    const [uploadPathInput, setUploadPathInput] = useState('uploads');
+
+    React.useEffect(() => {
+        if (orgSettings?.attachmentUploadPath) {
+            setUploadPathInput(orgSettings.attachmentUploadPath);
+        }
+    }, [orgSettings]);
+
+    const handleSaveSettings = () => {
+        updateOrgSettings(
+            { attachmentUploadPath: uploadPathInput },
+            {
+                onSuccess: () => toast.success('Organization storage path updated'),
+                onError: () => toast.error('Failed to update storage path'),
+            }
+        );
+    };
+
     const isOwner = activeOrgRole === 'OWNER';
     const isAdmin = activeOrgRole === 'ADMIN';
     const showProductivityTab = isOwner || isAdmin;
@@ -329,6 +347,48 @@ export default function OrganizationSettingsPage() {
                                     </p>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                ) : activeTab === 'productivity' ? (
+                    <div className="p-6 max-w-4xl space-y-6">
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-xs p-5 space-y-4">
+                            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                    <Settings className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-gray-900">File Attachment Storage Location</h3>
+                                    <p className="text-xs text-gray-500">Configure the server folder path where uploaded issue files and documents are stored on disk.</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                                        Server Attachment Folder Path
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={uploadPathInput}
+                                            onChange={(e) => setUploadPathInput(e.target.value)}
+                                            placeholder="uploads"
+                                            className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveSettings}
+                                            disabled={isUpdatingOrgSettings}
+                                            className="px-4 py-2 bg-[#091590] text-white rounded-lg text-xs font-semibold hover:bg-[#071170] transition-colors shadow-xs disabled:opacity-50"
+                                        >
+                                            {isUpdatingOrgSettings ? 'Saving...' : 'Save Storage Path'}
+                                        </button>
+                                    </div>
+                                    <p className="text-[11px] text-gray-400 mt-1.5">
+                                        Default folder is <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">uploads</code>. Absolute server disk paths (e.g. <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">/var/www/uploads</code>) are also fully supported.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ) : (

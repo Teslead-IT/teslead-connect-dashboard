@@ -13,6 +13,7 @@ export interface OrgSettings {
     enforceStrictProjectRole: boolean;
     lockTimesheetAfterApproval: boolean;
     autoSubmitTimesheet: boolean;
+    attachmentUploadPath?: string;
 }
 
 export type UpdateOrgSettingsPayload = Partial<OrgSettings>;

@@ -40,6 +40,23 @@ export interface TaskAssignee {
     taskId: string;
     name?: string;
     email?: string;
+    avatarUrl?: string;
+    user?: {
+        id: string;
+        name: string;
+        email: string;
+        avatarUrl?: string;
+    };
+}
+
+export interface TaskTester {
+    testedAt?: string;
+    id: string;
+    userId?: string;
+    taskId?: string;
+    name?: string;
+    email?: string;
+    avatarUrl?: string;
     user?: {
         id: string;
         name: string;
@@ -53,11 +70,16 @@ export interface Task {
     taskId: string;
     title: string;
     description?: string;
+    expectedOutput?: string | null;
+    phaseId?: string | null;
+    taskListId?: string | null;
     parentId: string | null;
     priority: TaskPriority;
     dueDate: string | null;
     assigneeIds: string[];
     assignees?: TaskAssignee[];
+    testerIds?: string[];
+    testers?: TaskTester[];
     status: TaskStatus;
     type: TaskType;
     startDate: string | null;
@@ -74,10 +96,12 @@ export interface Task {
 export interface CreateTaskPayload {
     title: string;
     description?: string;
+    expectedOutput?: string;
     parentId?: string | null;
     priority?: TaskPriority;
     dueDate?: string;
     assigneeIds?: string[];
+    testerIds?: string[];
     statusId: string;
     type?: TaskType;
     taskListId?: string;
@@ -90,9 +114,11 @@ export interface CreateTaskPayload {
 export interface UpdateTaskPayload {
     title?: string;
     description?: string;
+    expectedOutput?: string;
     priority?: TaskPriority;
     dueDate?: string;
     assigneeIds?: string[];
+    testerIds?: string[];
     statusId?: string;
     type?: TaskType;
     parentId?: string | null;
@@ -111,6 +137,14 @@ export interface TasksResponse {
 /** My Tasks API response - GET /tasks/my-tasks */
 export interface MyTaskAssignee {
     assignedAt: string;
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string;
+}
+
+export interface MyTaskTester {
+    testedAt?: string;
     id: string;
     name: string;
     email: string;
@@ -137,6 +171,7 @@ export interface MyTask {
     type?: TaskType | null;
     title: string;
     description?: string;
+    expectedOutput?: string | null;
     priority: number;
     order: number;
     dueDate: string | null;
@@ -150,6 +185,7 @@ export interface MyTask {
     taskListName?: string | null;
     status: MyTaskStatus;
     assignees: MyTaskAssignee[];
+    testers?: MyTaskTester[];
     tags: MyTaskTag[];
     startDate: string | null;
     completionPercentage: number;

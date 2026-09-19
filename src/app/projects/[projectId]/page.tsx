@@ -64,6 +64,7 @@ import { getProjectPermissions, type OrgRole, type ProjectRole } from '@/lib/per
 import { Tabs, TabItem } from '@/components/ui/Tabs';
 import PhaseTaskListTab from '@/components/phases/PhaseTaskListTab';
 import PhasesTab from '@/components/phases/PhasesTab';
+import { IssuesTab } from '@/components/issues/IssuesTab';
 import { ProjectSearchBox } from '@/components/projects/ProjectSearchBox';
 
 type ViewMode = 'board' | 'list';
@@ -508,9 +509,17 @@ export default function ProjectDetailPage() {
                             isEditable={projectPermissions.canEditTask}
                             canCreateTask={projectPermissions.canCreateTask}
                             canDeleteTask={projectPermissions.canDeleteTask}
+                            canCreateIssue={projectPermissions.canCreateTask}
                             currentUserRole={project?.role}
                             searchQuery={searchQuery}
                             filterStatusName="Ready for testing"
+                        />
+                    </div>
+                ) : activeTab === 'issues' ? (
+                    <div className="h-full p-2 overflow-y-auto">
+                        <IssuesTab
+                            projectId={projectId}
+                            canCreateIssue={projectPermissions.canCreateTask}
                         />
                     </div>
                 ) : (
