@@ -58,6 +58,7 @@ export interface StructuredTask {
     taskId: string;
     title: string;
     description?: string;
+    expectedOutput?: string | null;
     priority: number;
     order: number;
     dueDate: string | null;
@@ -71,6 +72,12 @@ export interface StructuredTask {
         color: string;
     };
     assignees: Array<{
+        id: string;
+        name: string;
+        email: string;
+        avatarUrl?: string;
+    }>;
+    testers?: Array<{
         id: string;
         name: string;
         email: string;

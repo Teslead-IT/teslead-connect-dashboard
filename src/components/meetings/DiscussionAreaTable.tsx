@@ -13,6 +13,7 @@ import {
     MessageSquare,
     Maximize2,
     Minimize2,
+    Save,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { meetingsApi, SuggestUserItem, SuggestProjectItem } from '@/services/meetings.service';
@@ -40,6 +41,9 @@ interface DiscussionAreaTableProps {
     currentUserName?: string;
     isFullScreen?: boolean;
     onExitFullScreen?: () => void;
+    onSave?: () => void;
+    isSaving?: boolean;
+    isNew?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -152,6 +156,9 @@ export function DiscussionAreaTable({
     currentUserName,
     isFullScreen = false,
     onExitFullScreen,
+    onSave,
+    isSaving = false,
+    isNew = false,
 }: DiscussionAreaTableProps) {
     const [rows, setRows] = useState<DiscussionRow[]>(() => parseInitialRows(content));
 
@@ -918,15 +925,38 @@ export function DiscussionAreaTable({
                                     <p className="text-[10px] text-gray-400">Full Screen View • Press ESC to exit</p>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => onExitFullScreen?.()}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-lg transition-colors cursor-pointer border border-gray-200"
-                                title="Exit Full Screen (ESC)"
-                            >
-                                <Minimize2 className="w-4 h-4 text-gray-700" />
-                                <span>Exit Full Screen</span>
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {!readOnly && onSave && (
+                                    <button
+                                        type="button"
+                                        onClick={onSave}
+                                        disabled={isSaving}
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#091590] hover:bg-[#071170] text-white font-bold text-xs rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title={isNew ? "Create Meeting" : "Save / Update Changes"}
+                                    >
+                                        {isSaving ? (
+                                            <>
+                                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <span>{isNew ? 'Creating...' : 'Saving...'}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="w-3.5 h-3.5" />
+                                                <span>{isNew ? 'Create' : 'Update'}</span>
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => onExitFullScreen?.()}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-lg transition-colors cursor-pointer border border-gray-200"
+                                    title="Exit Full Screen (ESC)"
+                                >
+                                    <Minimize2 className="w-4 h-4 text-gray-700" />
+                                    <span>Exit Full Screen</span>
+                                </button>
+                            </div>
                         </div>
                         {/* Table Content Container */}
                         <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
