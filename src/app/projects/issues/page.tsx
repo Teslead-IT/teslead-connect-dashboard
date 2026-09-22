@@ -9,12 +9,16 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { Bug, Search, ChevronDown, List as ListIcon, LayoutGrid } from 'lucide-react';
+import { Bug, Search, ChevronDown, Plus, List as ListIcon, LayoutGrid } from 'lucide-react';
 import { Loader } from '@/components/ui/Loader';
-import { useMyIssues, useUpdateIssue } from '@/hooks/use-issues';
-import { useProjectWorkflow } from '@/hooks/use-tasks';
-import { useProjectMembers } from '@/hooks/use-projects';
+import { useQueryClient } from '@tanstack/react-query';
+import { issueService } from '@/services/issues.service';
+import { useMyIssues, useUpdateIssue, useCreateIssue, issueKeys } from '@/hooks/use-issues';
+import { useProjectWorkflow, useProjectTasks } from '@/hooks/use-tasks';
+import { useProjectMembers, useProjects } from '@/hooks/use-projects';
+import { useStructuredPhases } from '@/hooks/use-phases';
 import { IssueViewModal } from '@/components/issues/IssueViewModal';
+import { CreateIssueModal } from '@/components/issues/CreateIssueModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn, formatDate } from '@/lib/utils';
 import type { Issue } from '@/types/issue';
@@ -80,10 +84,32 @@ function IssueStatusDropdownWrapper({ issue }: { issue: Issue }) {
 
 export default function MyIssuesPage() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(20);
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+    const { data: projectsData } = useProjects({ limit: 100 });
+    const projects = useMemo(() => projectsData?.data || [], [projectsData]);
+
+    const activeProjectId = useMemo(() => {
+        if (selectedProjectId) return selectedProjectId;
+        return projects[0]?.id || '';
+    }, [selectedProjectId, projects]);
+
+    const activeProject = useMemo(() => {
+        return projects.find((p: any) => p.id === activeProjectId) || projects[0];
+    }, [projects, activeProjectId]);
+
+    const { data: createWorkflow = [] } = useProjectWorkflow(activeProjectId);
+    const { data: createMembers = [] } = useProjectMembers(activeProjectId);
+    const { data: createPhases = [] } = useStructuredPhases(activeProjectId);
+    const { data: createTasks = [] } = useProjectTasks(activeProjectId);
+
+    const createIssueMutation = useCreateIssue(activeProjectId);
 
     const { data, isLoading } = useMyIssues({
         page,
@@ -367,18 +393,16 @@ export default function MyIssuesPage() {
                             />
                         </div>
 
-                        {/* <div className="flex items-center gap-2">
-                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
-
-                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
-                                <button className="p-1 rounded bg-white text-blue-600 shadow-xs" title="List View">
-                                    <ListIcon className="w-4 h-4" />
-                                </button>
-                                <button className="p-1 rounded text-gray-400 hover:text-gray-600" title="Kanban View">
-                                    <LayoutGrid className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div> */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsCreateModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-md shadow-xs transition-colors shrink-0 cursor-pointer"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Issue</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -520,6 +544,26 @@ export default function MyIssuesPage() {
                     </div>
                 )}
             </div>
+
+            {/* Create Issue Modal */}
+            <CreateIssueModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSubmit={async (payload, targetProjectId) => {
+                    const pId = targetProjectId || selectedProjectId;
+                    if (!pId) return;
+                    await issueService.createIssue(pId, payload);
+                    queryClient.invalidateQueries({ queryKey: issueKeys.all(pId) });
+                    queryClient.invalidateQueries({ queryKey: ['issues', 'my-issues'] });
+                }}
+                workflow={selectedProjectId ? createWorkflow : undefined}
+                tasks={selectedProjectId ? createTasks : undefined}
+                members={selectedProjectId ? createMembers : undefined}
+                phases={selectedProjectId ? createPhases : undefined}
+                projectId={selectedProjectId}
+                projectName={selectedProjectId ? activeProject?.name : undefined}
+                projectColor={selectedProjectId ? activeProject?.color : undefined}
+            />
 
             {/* View/Edit Issue Drawer Modal */}
             {selectedIssue && (

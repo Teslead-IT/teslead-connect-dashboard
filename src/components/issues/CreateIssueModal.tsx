@@ -29,26 +29,30 @@ import {
     FileSpreadsheet,
     FileArchive,
     Info,
+    Folder,
+    ChevronDown,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import type { IssueType, IssueSeverity, IssuePriority, CreateIssuePayload } from '@/types/issue';
 import type { Task, WorkflowStage } from '@/types/task';
-import type { ProjectMember } from '@/types/project';
+import type { ProjectMember, Project } from '@/types/project';
 import type { PhaseWithTaskLists } from '@/types/phase';
-import { useCreateStatus } from '@/hooks/use-tasks';
+import { useCreateStatus, useProjectWorkflow, useProjectTasks } from '@/hooks/use-tasks';
+import { useProjects, useProjectMembers } from '@/hooks/use-projects';
+import { useStructuredPhases } from '@/hooks/use-phases';
 import { useToast } from '@/components/ui/Toast';
 
 interface CreateIssueModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: CreateIssuePayload) => Promise<void>;
-    workflow: WorkflowStage[];
+    onSubmit: (data: CreateIssuePayload, targetProjectId?: string) => Promise<void>;
+    workflow?: WorkflowStage[];
     tasks?: Task[];
     members?: ProjectMember[];
     phases?: PhaseWithTaskLists[];
     projectName?: string;
     projectColor?: string | null;
-    projectId: string;
+    projectId?: string;
     /** Prefill phase / task list / task when creating from a task row */
     initialValues?: {
         phaseId?: string;
@@ -95,13 +99,50 @@ export function CreateIssueModal({
     initialValues,
 }: CreateIssueModalProps) {
     const toast = useToast();
-    const createStatusMutation = useCreateStatus(projectId);
+    const { data: projectsData } = useProjects({ limit: 100 });
+    const projects: Project[] = useMemo(() => projectsData?.data ?? [], [projectsData]);
+
+    const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
+    const prevIsOpenRef = React.useRef(false);
+
+    useEffect(() => {
+        // Only set initial project when modal transitions from closed to open
+        if (isOpen && !prevIsOpenRef.current) {
+            setSelectedProjectId(projectId || '');
+        }
+        prevIsOpenRef.current = isOpen;
+    }, [isOpen, projectId]);
+
+    const activeProject = useMemo(() => {
+        const idToFind = selectedProjectId || projectId;
+        if (!idToFind) return null;
+        return projects.find((p: any) => p.id === idToFind) || null;
+    }, [projects, selectedProjectId, projectId]);
+
+    const currentProjectId = selectedProjectId || activeProject?.id || projectId || '';
+    const currentProjectName = activeProject?.name || (currentProjectId ? projectName : '');
+    const currentProjectColor = activeProject?.color || (currentProjectId ? projectColor : null);
+
+    // Dynamically fetch project metadata if project changes or if props are omitted
+    const { data: fetchedWorkflow = [] } = useProjectWorkflow(currentProjectId);
+    const { data: fetchedPhases = [] } = useStructuredPhases(currentProjectId);
+    const { data: fetchedMembers = [] } = useProjectMembers(currentProjectId);
+    const { data: fetchedTasks = [] } = useProjectTasks(currentProjectId);
+
+    const activeWorkflow = (workflow && workflow.length > 0 && currentProjectId === projectId) ? workflow : fetchedWorkflow;
+    const activePhases = (phases && phases.length > 0 && currentProjectId === projectId) ? phases : fetchedPhases;
+    const activeMembers = (members && members.length > 0 && currentProjectId === projectId) ? members : fetchedMembers;
+    const activeTasks = (tasks && tasks.length > 0 && currentProjectId === projectId) ? tasks : fetchedTasks;
+
+    const createStatusMutation = useCreateStatus(currentProjectId);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Dropdown toggles & searches
+    const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+    const [projectSearch, setProjectSearch] = useState('');
     const [showPhaseDropdown, setShowPhaseDropdown] = useState(false);
     const [phaseSearch, setPhaseSearch] = useState('');
     const [showTaskListDropdown, setShowTaskListDropdown] = useState(false);
@@ -116,11 +157,21 @@ export function CreateIssueModal({
     const [showAssigneePicker, setShowAssigneePicker] = useState(false);
     const [assigneeSearch, setAssigneeSearch] = useState('');
 
+    const filteredProjects = useMemo(() => {
+        if (!projectSearch.trim()) return projects;
+        const q = projectSearch.toLowerCase();
+        return projects.filter((p: any) => {
+            const name = (p.name || p.projectName || '').toLowerCase();
+            const pid = (p.projectId || '').toLowerCase();
+            return name.includes(q) || pid.includes(q);
+        });
+    }, [projects, projectSearch]);
+
     const allStatuses = useMemo(() =>
-        workflow.flatMap(stage =>
+        activeWorkflow.flatMap(stage =>
             stage.statuses.map(status => ({ ...status, stageName: stage.name }))
         ),
-        [workflow]
+        [activeWorkflow]
     );
 
     const defaultStatusId = useMemo(() =>
@@ -183,18 +234,18 @@ export function CreateIssueModal({
         }
     }, [isOpen, defaultStatusId, initialValues?.phaseId, initialValues?.taskListId, initialValues?.taskId]);
 
-    const selectedPhase = phases.find(p => p.id === formData.phaseId);
+    const selectedPhase = activePhases.find(p => p.id === formData.phaseId);
     const availableTaskLists = selectedPhase?.taskLists || [];
 
     const selectedTask = useMemo(() =>
-        tasks.find(t => t.id === formData.taskId),
-        [tasks, formData.taskId]
+        activeTasks.find(t => t.id === formData.taskId),
+        [activeTasks, formData.taskId]
     );
 
     const filteredPhases = useMemo(() => {
-        if (!phaseSearch.trim()) return phases;
-        return phases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
-    }, [phases, phaseSearch]);
+        if (!phaseSearch.trim()) return activePhases;
+        return activePhases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
+    }, [activePhases, phaseSearch]);
 
     const filteredTaskLists = useMemo(() => {
         if (!taskListSearch.trim()) return availableTaskLists;
@@ -202,31 +253,31 @@ export function CreateIssueModal({
     }, [availableTaskLists, taskListSearch]);
 
     const filteredTasks = useMemo(() => {
-        return tasks.filter(t => {
+        return activeTasks.filter(t => {
             if (formData.phaseId && t.phaseId && t.phaseId !== formData.phaseId) return false;
             if (formData.taskListId && t.taskListId && t.taskListId !== formData.taskListId) return false;
             if (taskSearch.trim() && !t.title.toLowerCase().includes(taskSearch.toLowerCase())) return false;
             return true;
         });
-    }, [tasks, formData.phaseId, formData.taskListId, taskSearch]);
+    }, [activeTasks, formData.phaseId, formData.taskListId, taskSearch]);
 
     const filteredMembers = useMemo(() => {
-        if (!assigneeSearch.trim()) return members;
+        if (!assigneeSearch.trim()) return activeMembers;
         const q = assigneeSearch.toLowerCase();
-        return members.filter(m => {
+        return activeMembers.filter(m => {
             const user = m?.user || m;
             const name = user?.name || '';
             const email = user?.email || '';
             return name.toLowerCase().includes(q) || email.toLowerCase().includes(q);
         });
-    }, [members, assigneeSearch]);
+    }, [activeMembers, assigneeSearch]);
 
     const selectedMembers = useMemo(() =>
-        members.filter(m => {
+        activeMembers.filter(m => {
             const uid = m?.user?.id || m?.userId || m?.id;
             return uid && formData.assigneeIds?.includes(uid);
         }),
-        [members, formData.assigneeIds]
+        [activeMembers, formData.assigneeIds]
     );
 
     const currentStatus = allStatuses.find(s => s.id === formData.statusId);
@@ -238,7 +289,7 @@ export function CreateIssueModal({
             return;
         }
 
-        const t = tasks.find(item => item.id === taskId);
+        const t = activeTasks.find(item => item.id === taskId);
         if (!t) {
             setFormData(prev => ({ ...prev, taskId }));
             return;
@@ -298,8 +349,8 @@ export function CreateIssueModal({
     };
 
     const handleCreateCustomStatus = async () => {
-        if (!newStatusName.trim() || !workflow.length) return;
-        const firstStage = workflow[0];
+        if (!newStatusName.trim() || !activeWorkflow.length) return;
+        const firstStage = activeWorkflow[0];
         try {
             const newStatus = await createStatusMutation.mutateAsync({
                 stageId: firstStage.id,
@@ -320,6 +371,11 @@ export function CreateIssueModal({
         e.preventDefault();
         setSubmitted(true);
         setError(null);
+
+        if (!currentProjectId) {
+            setError('Project is required. Please select a project.');
+            return;
+        }
 
         if (!formData.title.trim()) {
             setError('Issue title is required.');
@@ -349,7 +405,7 @@ export function CreateIssueModal({
                 startDate: formData.startDate && formData.startDate.trim() !== '' ? formData.startDate : undefined,
                 attachments: attachments.length > 0 ? attachments : undefined,
             };
-            await onSubmit(payload);
+            await onSubmit(payload, currentProjectId);
             toast.success('Issue reported successfully');
             onClose();
         } catch (err: any) {
@@ -372,16 +428,16 @@ export function CreateIssueModal({
                         <h2 className="text-base font-bold text-gray-900">Report Issue</h2>
                     </div>
                     <div className="flex items-center gap-3">
-                        {projectName && (
+                        {currentProjectName && (
                             <span
                                 className="text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-tight shadow-xs transition-all"
                                 style={{
-                                    backgroundColor: projectColor ? `${projectColor}15` : '#f3f4f6',
-                                    color: projectColor || '#6b7280',
-                                    borderColor: projectColor ? `${projectColor}30` : '#e5e7eb'
+                                    backgroundColor: currentProjectColor ? `${currentProjectColor}15` : '#f3f4f6',
+                                    color: currentProjectColor || '#6b7280',
+                                    borderColor: currentProjectColor ? `${currentProjectColor}30` : '#e5e7eb'
                                 }}
                             >
-                                {projectName}
+                                {currentProjectName}
                             </span>
                         )}
                         <button
@@ -408,8 +464,105 @@ export function CreateIssueModal({
                         <div className="p-3.5 bg-gradient-to-br from-indigo-50/40 via-purple-50/30 to-blue-50/40 border border-indigo-100/80 rounded-lg space-y-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-xs font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
-                                    <Link2 className="w-4 h-4 text-indigo-600" /> Linked Task & Location
+                                    <Link2 className="w-4 h-4 text-indigo-600" /> Location & Linked Task
                                 </span>
+                            </div>
+
+                            {/* Project Selection */}
+                            <div className="relative">
+                                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                    <Folder className="w-3.5 h-3.5 text-indigo-500" /> Project <span className="text-red-500">*</span>
+                                </label>
+
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-xs font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-left flex items-center justify-between gap-2 uppercase cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2 truncate flex-1">
+                                            {currentProjectColor && (
+                                                <div
+                                                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                                                    style={{ backgroundColor: currentProjectColor }}
+                                                />
+                                            )}
+                                            <span className={cn("truncate font-bold", currentProjectName ? "text-gray-900" : "text-gray-400 font-medium")}>
+                                                {currentProjectName || "Select Project..."}
+                                            </span>
+                                        </div>
+                                        <ChevronDown className={cn("w-3.5 h-3.5 text-gray-400 transition-transform", showProjectDropdown && "rotate-180")} />
+                                    </button>
+
+                                    {showProjectDropdown && (
+                                        <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setShowProjectDropdown(false)} />
+                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                                {projects.length > 5 && (
+                                                    <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+                                                        <div className="relative">
+                                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                placeholder="Search projects..."
+                                                                value={projectSearch}
+                                                                onChange={(e) => setProjectSearch(e.target.value)}
+                                                                className="w-full pl-8 pr-3 py-1 border border-gray-200 rounded text-xs text-gray-900 bg-white focus:outline-none focus:border-indigo-500 font-medium"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div className="overflow-y-auto max-h-48 p-1">
+                                                    {filteredProjects.length === 0 ? (
+                                                        <div className="p-2 text-center text-xs text-gray-400">No projects found</div>
+                                                    ) : (
+                                                        filteredProjects.map((p: any) => {
+                                                            const pName = p.name || p.projectName || 'Project';
+                                                            const pColor = p.color || p.projectColor || '#3b82f6';
+                                                            const pCode = p.projectId ? `(${p.projectId})` : '';
+
+                                                            return (
+                                                                <button
+                                                                    key={p.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setSelectedProjectId(p.id);
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            phaseId: '',
+                                                                            taskListId: '',
+                                                                            taskId: '',
+                                                                            assigneeIds: [],
+                                                                        }));
+                                                                        setShowProjectDropdown(false);
+                                                                        setProjectSearch('');
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-full text-left px-3 py-2 rounded-md text-xs transition-colors flex items-center justify-between uppercase font-semibold cursor-pointer",
+                                                                        currentProjectId === p.id
+                                                                            ? "bg-indigo-50 text-indigo-700 font-bold"
+                                                                            : "hover:bg-gray-50 text-gray-800"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center gap-2 truncate flex-1">
+                                                                        <div
+                                                                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                                                                            style={{ backgroundColor: pColor }}
+                                                                        />
+                                                                        <span className="truncate font-semibold text-gray-900">{pName}</span>
+                                                                        {pCode && <span className="text-[10px] text-gray-400 font-normal shrink-0">{pCode}</span>}
+                                                                    </div>
+                                                                    {currentProjectId === p.id && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                                                                </button>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Phase & Task List Grid */}

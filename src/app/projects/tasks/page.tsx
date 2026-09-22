@@ -9,16 +9,18 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { List as ListIcon, Search, MoreVertical, ChevronDown } from 'lucide-react';
+import { List as ListIcon, Search, MoreVertical, ChevronDown, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
-import { useMyTasks, useUpdateTask, useProjectWorkflow } from '@/hooks/use-tasks';
+import { useMyTasks, useUpdateTask, useProjectWorkflow, taskKeys } from '@/hooks/use-tasks';
 import { useStructuredPhases } from '@/hooks/use-phases';
 import { useProjectMembers } from '@/hooks/use-projects';
 import { taskService } from '@/services/tasks.service';
 import { TaskViewModal } from '@/components/tasks/TaskViewModal';
 import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
+import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { useToast } from '@/components/ui/Toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import type { MyTask, MyTaskTag } from '@/types/task';
 
@@ -198,6 +200,8 @@ export default function TasksPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(20);
+    const queryClient = useQueryClient();
+    const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
     const [taskModalState, setTaskModalState] = useState<{
         isOpen: boolean;
         taskId: string | null;
@@ -485,15 +489,6 @@ export default function TasksPage() {
                 pinned: 'left',
                 cellRenderer: TaskNameRenderer,
                 cellStyle: { cursor: 'pointer' },
-                onCellClicked: (params) => {
-                    if (params.data) {
-                        setTaskModalState({
-                            isOpen: true,
-                            taskId: params.data.id,
-                            projectId: params.data.projectId,
-                        });
-                    }
-                },
             },
             {
                 field: 'projectName',
@@ -612,17 +607,14 @@ export default function TasksPage() {
                             />
                         </div>
 
-                        {/* <div className="flex items-center gap-2">
-                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block" />
-                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
-                                <div
-                                    className="p-1 rounded bg-white text-[var(--primary)] shadow-sm"
-                                    title="List View"
-                                >
-                                    <ListIcon className="w-4 h-4" />
-                                </div>
-                            </div>
-                        </div> */}
+                        <button
+                            type="button"
+                            onClick={() => setIsCreateTaskModalOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-md shadow-xs transition-colors shrink-0 cursor-pointer"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Task</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -815,6 +807,19 @@ export default function TasksPage() {
                     onTaskUpdated={() => refetch()}
                     onTaskDeleted={() => {
                         setTaskModalState({ isOpen: false, taskId: null, projectId: null });
+                        refetch();
+                    }}
+                />
+            )}
+            {isCreateTaskModalOpen && (
+                <CreateTaskModal
+                    isOpen={isCreateTaskModalOpen}
+                    onClose={() => setIsCreateTaskModalOpen(false)}
+                    onSubmit={async (payload, targetProjectId) => {
+                        if (!targetProjectId) return;
+                        await taskService.createTask(targetProjectId, payload);
+                        queryClient.invalidateQueries({ queryKey: taskKeys.all(targetProjectId) });
+                        queryClient.invalidateQueries({ queryKey: ['tasks', 'my-tasks'] });
                         refetch();
                     }}
                 />

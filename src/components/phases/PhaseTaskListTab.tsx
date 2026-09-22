@@ -1125,6 +1125,7 @@ export default function PhaseTaskListTab({
                         setContextMenu(null);
                     }}
                     onAddTask={() => { setCreateTaskModal({ isOpen: true, taskListId: contextMenu.row.taskListId!, phaseId: contextMenu.row.phaseId }); setContextMenu(null); }}
+                    onViewTask={() => { setTaskViewModal({ isOpen: true, selectedTaskId: contextMenu.row.taskId!, startInEditMode: false }); setContextMenu(null); }}
                     onEditTask={() => { setTaskViewModal({ isOpen: true, selectedTaskId: contextMenu.row.taskId!, startInEditMode: true }); setContextMenu(null); }}
                     onDeletePhase={() => { setDeleteDialog({ isOpen: true, type: 'phase', id: contextMenu.row.phaseId, name: contextMenu.row.name }); setContextMenu(null); }}
                     onDeleteTask={canDeleteTask ? () => { setDeleteDialog({ isOpen: true, type: 'task', id: contextMenu.row.taskId!, name: contextMenu.row.name }); setContextMenu(null); } : undefined}
@@ -1316,6 +1317,7 @@ function RowContextMenu({
     isEditable,
     onAddTaskList,
     onAddTask,
+    onViewTask,
     onEditTask,
     onDeletePhase,
     onDeleteTask,
@@ -1329,6 +1331,7 @@ function RowContextMenu({
     isEditable: boolean;
     onAddTaskList: () => void;
     onAddTask: () => void;
+    onViewTask?: () => void;
     onEditTask: () => void;
     onDeletePhase: () => void;
     onDeleteTask?: () => void;
@@ -1352,7 +1355,8 @@ function RowContextMenu({
                 )}
                 {(row.rowType === 'task' || row.rowType === 'subtask') && (
                     <>
-                        <button onClick={onEditTask} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Pencil className="w-4 h-4" />View / Edit</button>
+                        {onViewTask && <button onClick={onViewTask} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Eye className="w-4 h-4 text-blue-600" />View Task</button>}
+                        {isEditable && <button onClick={onEditTask} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Pencil className="w-4 h-4 text-gray-500" />Edit Task</button>}
                         {isEditable && onCreateSubtask && <button onClick={onCreateSubtask} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Plus className="w-4 h-4" />Add Subtask</button>}
                         {onCreateIssue && <button onClick={onCreateIssue} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Bug className="w-4 h-4 text-red-500" />Create Issue</button>}
                         {isEditable && onDeleteTask && <><div className="h-px bg-gray-100 my-1" /><button onClick={onDeleteTask} className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-red-600"><Trash2 className="w-4 h-4" />Delete Task</button></>}
@@ -1523,9 +1527,15 @@ function TaskNameCell(params: ICellRendererParams) {
 
             <span
                 className={cn(
-                    "text-xs truncate flex-1 min-w-0",
+                    "text-xs truncate flex-1 min-w-0 cursor-pointer hover:text-blue-600 transition-colors",
                     row.rowType === 'subtask' ? 'text-gray-500' : 'text-gray-800 font-medium'
                 )}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (row.taskId) {
+                        ctx.onViewTask?.(row.taskId);
+                    }
+                }}
                 title={row.name}
             >
                 {row.name.length > 60 ? row.name.substring(0, 60) + '...' : row.name}
