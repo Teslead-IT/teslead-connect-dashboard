@@ -20,10 +20,35 @@ interface ImportPreviousMeetingModalProps {
     }) => void;
 }
 
+function safeFormatYYYYMMDD(val?: string | Date | null): string {
+    if (!val) return '';
+    if (typeof val === 'string') {
+        const trimmed = val.trim();
+        const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (match) {
+            return match[1];
+        }
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 function getYesterdayDateStr(dateStr?: string): string {
-    const base = dateStr && !isNaN(Date.parse(dateStr)) ? new Date(dateStr + 'T00:00:00') : new Date();
-    base.setDate(base.getDate() - 1);
-    return base.toISOString().split('T')[0];
+    let baseDate: Date;
+    const formatted = safeFormatYYYYMMDD(dateStr);
+    if (formatted) {
+        const parts = formatted.split('-');
+        baseDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    } else {
+        const now = new Date();
+        baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+    baseDate.setDate(baseDate.getDate() - 1);
+    return safeFormatYYYYMMDD(baseDate);
 }
 
 export function ImportPreviousMeetingModal({
@@ -133,12 +158,18 @@ export function ImportPreviousMeetingModal({
     };
 
     const formattedTargetDate = targetDate
-        ? new Date(targetDate + 'T00:00:00').toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        })
+        ? (() => {
+            const formatted = safeFormatYYYYMMDD(targetDate);
+            if (!formatted) return targetDate;
+            const parts = formatted.split('-');
+            const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            return d.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+            });
+        })()
         : '';
 
     return (
