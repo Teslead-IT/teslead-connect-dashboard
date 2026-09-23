@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -9,16 +9,19 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { List as ListIcon, Search, MoreVertical, ChevronDown } from 'lucide-react';
+import { List as ListIcon, Search, MoreVertical, ChevronDown, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
-import { useMyTasks, useUpdateTask, useProjectWorkflow } from '@/hooks/use-tasks';
+import { useDebounce } from '@/hooks/use-debounce';
+import { useMyTasks, useUpdateTask, useProjectWorkflow, taskKeys } from '@/hooks/use-tasks';
 import { useStructuredPhases } from '@/hooks/use-phases';
 import { useProjectMembers } from '@/hooks/use-projects';
 import { taskService } from '@/services/tasks.service';
 import { TaskViewModal } from '@/components/tasks/TaskViewModal';
 import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
+import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { useToast } from '@/components/ui/Toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import type { MyTask, MyTaskTag } from '@/types/task';
 
@@ -195,9 +198,20 @@ function TaskModalWrapper({
 }
 
 export default function TasksPage() {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(20);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const pageParam = parseInt(searchParams.get('page') || '1');
+    const limitParam = parseInt(searchParams.get('limit') || '20');
+    const urlSearch = searchParams.get('q') || searchParams.get('search') || '';
+
+    const [page, setPage] = useState(pageParam);
+    const [limit, setLimit] = useState(limitParam);
+    const [searchQuery, setSearchQuery] = useState(urlSearch);
+    const debouncedSearch = useDebounce(searchQuery, 300);
+
+    const queryClient = useQueryClient();
+    const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
     const [taskModalState, setTaskModalState] = useState<{
         isOpen: boolean;
         taskId: string | null;
@@ -208,21 +222,59 @@ export default function TasksPage() {
         projectId: null,
     });
 
-    const { data: tasksData, isLoading, error, refetch } = useMyTasks({ page, limit });
+    // Sync state if URL query params change externally
+    useEffect(() => {
+        setPage(pageParam);
+    }, [pageParam]);
+
+    useEffect(() => {
+        setLimit(limitParam);
+    }, [limitParam]);
+
+    useEffect(() => {
+        setSearchQuery(urlSearch);
+    }, [urlSearch]);
+
+    // Push debounced search query to URL params & reset page to 1
+    useEffect(() => {
+        if (debouncedSearch !== urlSearch) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('page', '1');
+            setPage(1);
+            if (debouncedSearch) {
+                params.set('q', debouncedSearch);
+            } else {
+                params.delete('q');
+                params.delete('search');
+            }
+            router.push(`/projects/tasks?${params.toString()}`);
+        }
+    }, [debouncedSearch, urlSearch, searchParams, router]);
+
+    const { data: tasksData, isLoading, error, refetch } = useMyTasks({ page, limit, search: debouncedSearch });
     const tasks = tasksData?.data || [];
     const meta = tasksData?.meta;
-    const router = useRouter();
 
     const hasNextPage = meta ? meta.page < meta.totalPages : false;
 
-    const filteredTasks = useMemo(() => {
-        return tasks.filter(
-            (task) =>
-                task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                task.projectName.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [tasks, searchQuery]);
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', newPage.toString());
+        if (limit !== 20) params.set('limit', limit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
+        setPage(newPage);
+        router.push(`/projects/tasks?${params.toString()}`);
+    };
+
+    const handleLimitChange = (newLimit: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', '1');
+        params.set('limit', newLimit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
+        setLimit(newLimit);
+        setPage(1);
+        router.push(`/projects/tasks?${params.toString()}`);
+    };
 
     // Cell Renderers
     const TaskNameRenderer = (props: ICellRendererParams) => {
@@ -485,15 +537,6 @@ export default function TasksPage() {
                 pinned: 'left',
                 cellRenderer: TaskNameRenderer,
                 cellStyle: { cursor: 'pointer' },
-                onCellClicked: (params) => {
-                    if (params.data) {
-                        setTaskModalState({
-                            isOpen: true,
-                            taskId: params.data.id,
-                            projectId: params.data.projectId,
-                        });
-                    }
-                },
             },
             {
                 field: 'projectName',
@@ -593,7 +636,7 @@ export default function TasksPage() {
                             </button>
                             <h1 className="text-xl font-bold text-gray-900 tracking-tight">Tasks(Assigned to me)</h1>
                             <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
-                                {meta?.total ?? filteredTasks.length}
+                                {meta?.total ?? tasks.length}
                             </span>
                         </div>
                     </div>
@@ -612,17 +655,14 @@ export default function TasksPage() {
                             />
                         </div>
 
-                        {/* <div className="flex items-center gap-2">
-                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block" />
-                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
-                                <div
-                                    className="p-1 rounded bg-white text-[var(--primary)] shadow-sm"
-                                    title="List View"
-                                >
-                                    <ListIcon className="w-4 h-4" />
-                                </div>
-                            </div>
-                        </div> */}
+                        <button
+                            type="button"
+                            onClick={() => setIsCreateTaskModalOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-md shadow-xs transition-colors shrink-0 cursor-pointer"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Task</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -702,7 +742,7 @@ export default function TasksPage() {
                             `}</style>
                             <AgGridReact
                                 theme="legacy"
-                                rowData={filteredTasks}
+                                rowData={tasks}
                                 columnDefs={columnDefs}
                                 defaultColDef={defaultColDef}
                                 getRowId={(params) => params.data.id}
@@ -722,7 +762,7 @@ export default function TasksPage() {
                                 <Button
                                     variant="secondary"
                                     size="sm"
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    onClick={() => handlePageChange(Math.max(1, page - 1))}
                                     disabled={page === 1}
                                 >
                                     Previous
@@ -730,7 +770,7 @@ export default function TasksPage() {
                                 <Button
                                     variant="secondary"
                                     size="sm"
-                                    onClick={() => setPage((p) => p + 1)}
+                                    onClick={() => handlePageChange(page + 1)}
                                     disabled={!hasNextPage}
                                 >
                                     Next
@@ -741,7 +781,7 @@ export default function TasksPage() {
                                     <p className="text-xs text-gray-700">
                                         Showing{' '}
                                         <span className="font-medium">
-                                            {filteredTasks.length > 0 ? (page - 1) * limit + 1 : 0}
+                                            {tasks.length > 0 ? (page - 1) * limit + 1 : 0}
                                         </span>{' '}
                                         to{' '}
                                         <span className="font-medium">
@@ -754,10 +794,7 @@ export default function TasksPage() {
                                     <select
                                         className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
                                         value={limit}
-                                        onChange={(e) => {
-                                            setLimit(Number(e.target.value));
-                                            setPage(1);
-                                        }}
+                                        onChange={(e) => handleLimitChange(Number(e.target.value))}
                                     >
                                         <option value={20}>20 / page</option>
                                         <option value={50}>50 / page</option>
@@ -765,7 +802,7 @@ export default function TasksPage() {
                                     </select>
                                     <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                                         <button
-                                            onClick={() => setPage(1)}
+                                            onClick={() => handlePageChange(1)}
                                             disabled={page === 1}
                                             className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -773,7 +810,7 @@ export default function TasksPage() {
                                             <span aria-hidden="true">&laquo;</span>
                                         </button>
                                         <button
-                                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                            onClick={() => handlePageChange(Math.max(1, page - 1))}
                                             disabled={page === 1}
                                             className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -784,7 +821,7 @@ export default function TasksPage() {
                                             {page}
                                         </button>
                                         <button
-                                            onClick={() => setPage((p) => p + 1)}
+                                            onClick={() => handlePageChange(page + 1)}
                                             disabled={!hasNextPage}
                                             className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -792,7 +829,7 @@ export default function TasksPage() {
                                             <span aria-hidden="true">&rsaquo;</span>
                                         </button>
                                         <button
-                                            onClick={() => setPage(meta?.totalPages || 1)}
+                                            onClick={() => handlePageChange(meta?.totalPages || 1)}
                                             disabled={!meta?.totalPages || page === meta?.totalPages}
                                             className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -815,6 +852,19 @@ export default function TasksPage() {
                     onTaskUpdated={() => refetch()}
                     onTaskDeleted={() => {
                         setTaskModalState({ isOpen: false, taskId: null, projectId: null });
+                        refetch();
+                    }}
+                />
+            )}
+            {isCreateTaskModalOpen && (
+                <CreateTaskModal
+                    isOpen={isCreateTaskModalOpen}
+                    onClose={() => setIsCreateTaskModalOpen(false)}
+                    onSubmit={async (payload, targetProjectId) => {
+                        if (!targetProjectId) return;
+                        await taskService.createTask(targetProjectId, payload);
+                        queryClient.invalidateQueries({ queryKey: taskKeys.all(targetProjectId) });
+                        queryClient.invalidateQueries({ queryKey: ['tasks', 'my-tasks'] });
                         refetch();
                     }}
                 />
