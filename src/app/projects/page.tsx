@@ -39,6 +39,7 @@ import { Dropdown } from '@/components/ui/Dropdown';
 import { useOrganizationMembers } from '@/hooks/use-organization-members';
 import type { Project, Tag } from '@/types/project';
 import { getProjectPermissions, type OrgRole, type ProjectRole } from '@/lib/permissions';
+import { useDebounce } from '@/hooks/use-debounce';
 
 // ==================== TYPE DEFINITIONS ====================
 type ViewMode = 'list' | 'kanban';
@@ -65,15 +66,39 @@ export default function ProjectsPage() {
 
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
+    const urlSearch = searchParams.get('q') || searchParams.get('search') || '';
 
     const [viewMode, setViewMode] = useState<ViewMode>('list');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(urlSearch);
+    const debouncedSearch = useDebounce(searchQuery, 300);
+
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
 
+    // Sync state with URL search param if changed externally
+    useEffect(() => {
+        setSearchQuery(urlSearch);
+    }, [urlSearch]);
+
+    // Push debounced search query to URL params
+    useEffect(() => {
+        if (debouncedSearch !== urlSearch) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('page', '1');
+            if (debouncedSearch) {
+                params.set('q', debouncedSearch);
+            } else {
+                params.delete('q');
+                params.delete('search');
+            }
+            router.push(`/projects?${params.toString()}`);
+        }
+    }, [debouncedSearch, urlSearch, searchParams, router]);
+
     const { data: projectsData, isLoading: loading, error, refetch } = useProjects({
         page,
-        limit
+        limit,
+        search: debouncedSearch,
     });
 
     const projects = projectsData?.data || [];
@@ -96,16 +121,18 @@ export default function ProjectsPage() {
     const memberships = user?.memberships || [];
 
     const handlePageChange = (newPage: number) => {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(searchParams.toString());
         params.set('page', newPage.toString());
         if (limit !== 20) params.set('limit', limit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
         router.push(`/projects?${params.toString()}`);
     };
 
     const handleLimitChange = (newLimit: number) => {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(searchParams.toString());
         params.set('page', '1');
         params.set('limit', newLimit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
         router.push(`/projects?${params.toString()}`);
     };
 
@@ -188,19 +215,14 @@ export default function ProjectsPage() {
     const isCurrentOrgAdminOrOwner = activeOrgRole === 'OWNER' || activeOrgRole === 'ADMIN';
 
     const filteredProjects = useMemo(() => {
-        // Client-side filtering of current page
         return projects.filter(project => {
             // Defense-in-depth: If not Org Owner/Admin, hide projects where user has no role
             if (!isCurrentOrgAdminOrOwner && !project.role) {
                 return false;
             }
-
-            return (
-                project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
-            );
+            return true;
         });
-    }, [projects, searchQuery, isCurrentOrgAdminOrOwner]);
+    }, [projects, isCurrentOrgAdminOrOwner]);
 
     const handleUpdateProjectStatus = useCallback(async (projectId: string, newStatus: string) => {
         try {

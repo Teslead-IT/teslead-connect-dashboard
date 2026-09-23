@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -11,6 +11,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 import { Bug, Search, ChevronDown, Plus, List as ListIcon, LayoutGrid } from 'lucide-react';
 import { Loader } from '@/components/ui/Loader';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useQueryClient } from '@tanstack/react-query';
 import { issueService } from '@/services/issues.service';
 import { useMyIssues, useUpdateIssue, useCreateIssue, issueKeys } from '@/hooks/use-issues';
@@ -84,13 +85,50 @@ function IssueStatusDropdownWrapper({ issue }: { issue: Issue }) {
 
 export default function MyIssuesPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const pageParam = parseInt(searchParams.get('page') || '1');
+    const limitParam = parseInt(searchParams.get('limit') || '20');
+    const urlSearch = searchParams.get('q') || searchParams.get('search') || '';
+
+    const [page, setPage] = useState(pageParam);
+    const [limit, setLimit] = useState(limitParam);
+    const [searchQuery, setSearchQuery] = useState(urlSearch);
+    const debouncedSearch = useDebounce(searchQuery, 300);
+
     const queryClient = useQueryClient();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(20);
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+    // Sync state if URL query params change externally
+    useEffect(() => {
+        setPage(pageParam);
+    }, [pageParam]);
+
+    useEffect(() => {
+        setLimit(limitParam);
+    }, [limitParam]);
+
+    useEffect(() => {
+        setSearchQuery(urlSearch);
+    }, [urlSearch]);
+
+    // Push debounced search query to URL params & reset page to 1
+    useEffect(() => {
+        if (debouncedSearch !== urlSearch) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('page', '1');
+            setPage(1);
+            if (debouncedSearch) {
+                params.set('q', debouncedSearch);
+            } else {
+                params.delete('q');
+                params.delete('search');
+            }
+            router.push(`/projects/issues?${params.toString()}`);
+        }
+    }, [debouncedSearch, urlSearch, searchParams, router]);
 
     const { data: projectsData } = useProjects({ limit: 100 });
     const projects = useMemo(() => projectsData?.data || [], [projectsData]);
@@ -114,11 +152,30 @@ export default function MyIssuesPage() {
     const { data, isLoading } = useMyIssues({
         page,
         limit,
-        search: searchQuery,
+        search: debouncedSearch,
     });
 
     const issues = data?.data || [];
     const meta = data?.meta;
+
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', newPage.toString());
+        if (limit !== 20) params.set('limit', limit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
+        setPage(newPage);
+        router.push(`/projects/issues?${params.toString()}`);
+    };
+
+    const handleLimitChange = (newLimit: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', '1');
+        params.set('limit', newLimit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
+        setLimit(newLimit);
+        setPage(1);
+        router.push(`/projects/issues?${params.toString()}`);
+    };
 
     const { data: workflow = [] } = useProjectWorkflow(selectedIssue?.projectId || '');
     const { data: members = [] } = useProjectMembers(selectedIssue?.projectId || '');
@@ -385,10 +442,7 @@ export default function MyIssuesPage() {
                                 type="text"
                                 placeholder="Search..."
                                 value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    setPage(1);
-                                }}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all text-xs"
                             />
                         </div>
@@ -497,10 +551,7 @@ export default function MyIssuesPage() {
                                 <select
                                     className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 px-2 py-1 bg-white border"
                                     value={limit}
-                                    onChange={(e) => {
-                                        setLimit(Number(e.target.value));
-                                        setPage(1);
-                                    }}
+                                    onChange={(e) => handleLimitChange(Number(e.target.value))}
                                 >
                                     <option value={20}>20 / page</option>
                                     <option value={50}>50 / page</option>
@@ -508,14 +559,14 @@ export default function MyIssuesPage() {
                                 </select>
                                 <nav className="isolate inline-flex -space-x-px rounded-md shadow-2xs" aria-label="Pagination">
                                     <button
-                                        onClick={() => setPage(1)}
+                                        onClick={() => handlePageChange(1)}
                                         disabled={page === 1}
                                         className="relative inline-flex items-center rounded-l-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &laquo;
                                     </button>
                                     <button
-                                        onClick={() => setPage(Math.max(1, page - 1))}
+                                        onClick={() => handlePageChange(Math.max(1, page - 1))}
                                         disabled={page === 1}
                                         className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
@@ -525,14 +576,14 @@ export default function MyIssuesPage() {
                                         {page}
                                     </button>
                                     <button
-                                        onClick={() => setPage(page + 1)}
+                                        onClick={() => handlePageChange(page + 1)}
                                         disabled={page >= (meta?.totalPages || 1)}
                                         className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &rsaquo;
                                     </button>
                                     <button
-                                        onClick={() => setPage(meta?.totalPages || page + 1)}
+                                        onClick={() => handlePageChange(meta?.totalPages || page + 1)}
                                         disabled={page >= (meta?.totalPages || 1)}
                                         className="relative inline-flex items-center rounded-r-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >

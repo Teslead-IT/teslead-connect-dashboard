@@ -19,10 +19,11 @@ export const projectsApi = {
     /**
      * Get all projects for the current organization (org from header)
      */
-    async getAllProjects(params?: { email?: string; page?: number; limit?: number }): Promise<PaginatedProjectsResponse> {
+    async getAllProjects(params?: { email?: string; page?: number; limit?: number; search?: string }): Promise<PaginatedProjectsResponse> {
         const queryParams: Record<string, any> = {};
         if (params?.page) queryParams.page = params.page;
         if (params?.limit) queryParams.limit = params.limit;
+        if (params?.search) queryParams.search = params.search;
 
         const { data } = await apiClient.get<PaginatedProjectsResponse>('/projects', {
             params: queryParams

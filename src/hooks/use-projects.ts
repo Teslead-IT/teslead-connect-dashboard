@@ -18,11 +18,11 @@ export function useProjectMembers(projectId: string) {
     });
 }
 
-export function useProjects(params?: { page?: number; limit?: number }) {
+export function useProjects(params?: { page?: number; limit?: number; search?: string }) {
     const activeOrgId = useOrgStore((s) => s.activeOrgId);
 
     return useQuery({
-        queryKey: [...projectKeys.all(activeOrgId), params?.page, params?.limit],
+        queryKey: [...projectKeys.all(activeOrgId), params?.page, params?.limit, params?.search],
         queryFn: () => projectsApi.getAllProjects(params),
         enabled: activeOrgId !== null,
     });
