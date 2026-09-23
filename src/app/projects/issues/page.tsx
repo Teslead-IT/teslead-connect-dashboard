@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -9,12 +9,17 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { Bug, Search, ChevronDown, List as ListIcon, LayoutGrid } from 'lucide-react';
+import { Bug, Search, ChevronDown, Plus, List as ListIcon, LayoutGrid } from 'lucide-react';
 import { Loader } from '@/components/ui/Loader';
-import { useMyIssues, useUpdateIssue } from '@/hooks/use-issues';
-import { useProjectWorkflow } from '@/hooks/use-tasks';
-import { useProjectMembers } from '@/hooks/use-projects';
+import { useDebounce } from '@/hooks/use-debounce';
+import { useQueryClient } from '@tanstack/react-query';
+import { issueService } from '@/services/issues.service';
+import { useMyIssues, useUpdateIssue, useCreateIssue, issueKeys } from '@/hooks/use-issues';
+import { useProjectWorkflow, useProjectTasks } from '@/hooks/use-tasks';
+import { useProjectMembers, useProjects } from '@/hooks/use-projects';
+import { useStructuredPhases } from '@/hooks/use-phases';
 import { IssueViewModal } from '@/components/issues/IssueViewModal';
+import { CreateIssueModal } from '@/components/issues/CreateIssueModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn, formatDate } from '@/lib/utils';
 import type { Issue } from '@/types/issue';
@@ -80,19 +85,97 @@ function IssueStatusDropdownWrapper({ issue }: { issue: Issue }) {
 
 export default function MyIssuesPage() {
     const router = useRouter();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(20);
+    const searchParams = useSearchParams();
+
+    const pageParam = parseInt(searchParams.get('page') || '1');
+    const limitParam = parseInt(searchParams.get('limit') || '20');
+    const urlSearch = searchParams.get('q') || searchParams.get('search') || '';
+
+    const [page, setPage] = useState(pageParam);
+    const [limit, setLimit] = useState(limitParam);
+    const [searchQuery, setSearchQuery] = useState(urlSearch);
+    const debouncedSearch = useDebounce(searchQuery, 300);
+
+    const queryClient = useQueryClient();
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+    // Sync state if URL query params change externally
+    useEffect(() => {
+        setPage(pageParam);
+    }, [pageParam]);
+
+    useEffect(() => {
+        setLimit(limitParam);
+    }, [limitParam]);
+
+    useEffect(() => {
+        setSearchQuery(urlSearch);
+    }, [urlSearch]);
+
+    // Push debounced search query to URL params & reset page to 1
+    useEffect(() => {
+        if (debouncedSearch !== urlSearch) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('page', '1');
+            setPage(1);
+            if (debouncedSearch) {
+                params.set('q', debouncedSearch);
+            } else {
+                params.delete('q');
+                params.delete('search');
+            }
+            router.push(`/projects/issues?${params.toString()}`);
+        }
+    }, [debouncedSearch, urlSearch, searchParams, router]);
+
+    const { data: projectsData } = useProjects({ limit: 100 });
+    const projects = useMemo(() => projectsData?.data || [], [projectsData]);
+
+    const activeProjectId = useMemo(() => {
+        if (selectedProjectId) return selectedProjectId;
+        return projects[0]?.id || '';
+    }, [selectedProjectId, projects]);
+
+    const activeProject = useMemo(() => {
+        return projects.find((p: any) => p.id === activeProjectId) || projects[0];
+    }, [projects, activeProjectId]);
+
+    const { data: createWorkflow = [] } = useProjectWorkflow(activeProjectId);
+    const { data: createMembers = [] } = useProjectMembers(activeProjectId);
+    const { data: createPhases = [] } = useStructuredPhases(activeProjectId);
+    const { data: createTasks = [] } = useProjectTasks(activeProjectId);
+
+    const createIssueMutation = useCreateIssue(activeProjectId);
 
     const { data, isLoading } = useMyIssues({
         page,
         limit,
-        search: searchQuery,
+        search: debouncedSearch,
     });
 
     const issues = data?.data || [];
     const meta = data?.meta;
+
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', newPage.toString());
+        if (limit !== 20) params.set('limit', limit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
+        setPage(newPage);
+        router.push(`/projects/issues?${params.toString()}`);
+    };
+
+    const handleLimitChange = (newLimit: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', '1');
+        params.set('limit', newLimit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
+        setLimit(newLimit);
+        setPage(1);
+        router.push(`/projects/issues?${params.toString()}`);
+    };
 
     const { data: workflow = [] } = useProjectWorkflow(selectedIssue?.projectId || '');
     const { data: members = [] } = useProjectMembers(selectedIssue?.projectId || '');
@@ -359,26 +442,21 @@ export default function MyIssuesPage() {
                                 type="text"
                                 placeholder="Search..."
                                 value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    setPage(1);
-                                }}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all text-xs"
                             />
                         </div>
 
-                        {/* <div className="flex items-center gap-2">
-                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
-
-                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
-                                <button className="p-1 rounded bg-white text-blue-600 shadow-xs" title="List View">
-                                    <ListIcon className="w-4 h-4" />
-                                </button>
-                                <button className="p-1 rounded text-gray-400 hover:text-gray-600" title="Kanban View">
-                                    <LayoutGrid className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div> */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsCreateModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-md shadow-xs transition-colors shrink-0 cursor-pointer"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Issue</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -473,10 +551,7 @@ export default function MyIssuesPage() {
                                 <select
                                     className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 px-2 py-1 bg-white border"
                                     value={limit}
-                                    onChange={(e) => {
-                                        setLimit(Number(e.target.value));
-                                        setPage(1);
-                                    }}
+                                    onChange={(e) => handleLimitChange(Number(e.target.value))}
                                 >
                                     <option value={20}>20 / page</option>
                                     <option value={50}>50 / page</option>
@@ -484,14 +559,14 @@ export default function MyIssuesPage() {
                                 </select>
                                 <nav className="isolate inline-flex -space-x-px rounded-md shadow-2xs" aria-label="Pagination">
                                     <button
-                                        onClick={() => setPage(1)}
+                                        onClick={() => handlePageChange(1)}
                                         disabled={page === 1}
                                         className="relative inline-flex items-center rounded-l-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &laquo;
                                     </button>
                                     <button
-                                        onClick={() => setPage(Math.max(1, page - 1))}
+                                        onClick={() => handlePageChange(Math.max(1, page - 1))}
                                         disabled={page === 1}
                                         className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
@@ -501,14 +576,14 @@ export default function MyIssuesPage() {
                                         {page}
                                     </button>
                                     <button
-                                        onClick={() => setPage(page + 1)}
+                                        onClick={() => handlePageChange(page + 1)}
                                         disabled={page >= (meta?.totalPages || 1)}
                                         className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &rsaquo;
                                     </button>
                                     <button
-                                        onClick={() => setPage(meta?.totalPages || page + 1)}
+                                        onClick={() => handlePageChange(meta?.totalPages || page + 1)}
                                         disabled={page >= (meta?.totalPages || 1)}
                                         className="relative inline-flex items-center rounded-r-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
@@ -520,6 +595,26 @@ export default function MyIssuesPage() {
                     </div>
                 )}
             </div>
+
+            {/* Create Issue Modal */}
+            <CreateIssueModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSubmit={async (payload, targetProjectId) => {
+                    const pId = targetProjectId || selectedProjectId;
+                    if (!pId) return;
+                    await issueService.createIssue(pId, payload);
+                    queryClient.invalidateQueries({ queryKey: issueKeys.all(pId) });
+                    queryClient.invalidateQueries({ queryKey: ['issues', 'my-issues'] });
+                }}
+                workflow={selectedProjectId ? createWorkflow : undefined}
+                tasks={selectedProjectId ? createTasks : undefined}
+                members={selectedProjectId ? createMembers : undefined}
+                phases={selectedProjectId ? createPhases : undefined}
+                projectId={selectedProjectId}
+                projectName={selectedProjectId ? activeProject?.name : undefined}
+                projectColor={selectedProjectId ? activeProject?.color : undefined}
+            />
 
             {/* View/Edit Issue Drawer Modal */}
             {selectedIssue && (

@@ -1,18 +1,20 @@
 import { TaskPriority, CreateTaskPayload, Task, WorkflowStage, TaskType } from '@/types/task';
-import type { ProjectMember } from '@/types/project';
+import type { ProjectMember, Project } from '@/types/project';
 import type { PhaseWithTaskLists, TaskList } from '@/types/phase';
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Flag, Calendar, Users, AlignLeft, CheckCircle2, Layers, ListTodo, Search, Check, AlertCircle, Stars, Bug, Zap, RefreshCw, FlaskConical, FileText, Settings, ClipboardCheck, Flame, Tag } from 'lucide-react';
+import { X, Flag, Calendar, Users, AlignLeft, CheckCircle2, Layers, ListTodo, Search, Check, AlertCircle, Stars, Bug, Zap, RefreshCw, FlaskConical, FileText, Settings, ClipboardCheck, Flame, Tag, Folder, ChevronDown } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import { Plus, CheckCircle2 as CheckCircleIcon } from 'lucide-react';
-import { useCreateStatus } from '@/hooks/use-tasks';
+import { useCreateStatus, useProjectWorkflow } from '@/hooks/use-tasks';
+import { useProjects, useProjectMembers } from '@/hooks/use-projects';
+import { useStructuredPhases } from '@/hooks/use-phases';
 import { useToast } from '@/components/ui/Toast';
 
 interface CreateTaskModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: CreateTaskPayload) => Promise<void>;
-    workflow: WorkflowStage[];
+    onSubmit: (data: CreateTaskPayload, targetProjectId?: string) => Promise<void>;
+    workflow?: WorkflowStage[];
     parentTask?: Task | any | null;
     initialData?: Task | any;
     isReadOnly?: boolean;
@@ -22,7 +24,7 @@ interface CreateTaskModalProps {
     phases?: PhaseWithTaskLists[];
     projectName?: string;
     projectColor?: string | null;
-    projectId: string;
+    projectId?: string;
 }
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string; color: string; bg: string; icon: string }[] = [
@@ -49,7 +51,7 @@ export function CreateTaskModal({
     isOpen,
     onClose,
     onSubmit,
-    workflow,
+    workflow = [],
     parentTask,
     initialData,
     isReadOnly = false,
@@ -83,15 +85,59 @@ export function CreateTaskModal({
     const [statusSearch, setStatusSearch] = useState('');
     const [isCreatingStatus, setIsCreatingStatus] = useState(false);
     const [newStatusName, setNewStatusName] = useState('');
+    const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+    const [projectSearch, setProjectSearch] = useState('');
 
     const toast = useToast();
-    const createStatusMutation = useCreateStatus(projectId);
+
+    const { data: projectsData } = useProjects({ limit: 100 });
+    const projects: Project[] = useMemo(() => projectsData?.data ?? [], [projectsData]);
+
+    const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
+    const prevIsOpenRef = React.useRef(false);
+
+    useEffect(() => {
+        if (isOpen && !prevIsOpenRef.current) {
+            setSelectedProjectId(projectId || '');
+        }
+        prevIsOpenRef.current = isOpen;
+    }, [isOpen, projectId]);
+
+    const activeProject = useMemo(() => {
+        const idToFind = selectedProjectId || projectId;
+        if (!idToFind) return null;
+        return projects.find((p: any) => p.id === idToFind) || null;
+    }, [projects, selectedProjectId, projectId]);
+
+    const currentProjectId = selectedProjectId || activeProject?.id || projectId || '';
+    const currentProjectName = activeProject?.name || (currentProjectId ? projectName : '');
+    const currentProjectColor = activeProject?.color || (currentProjectId ? projectColor : null);
+
+    const { data: fetchedWorkflow = [] } = useProjectWorkflow(currentProjectId);
+    const { data: fetchedPhases = [] } = useStructuredPhases(currentProjectId);
+    const { data: fetchedMembers = [] } = useProjectMembers(currentProjectId);
+
+    const activeWorkflow = (workflow && workflow.length > 0 && currentProjectId === projectId) ? workflow : fetchedWorkflow;
+    const activePhases = (phases && phases.length > 0 && currentProjectId === projectId) ? phases : fetchedPhases;
+    const activeMembers = (members && members.length > 0 && currentProjectId === projectId) ? members : fetchedMembers;
+
+    const createStatusMutation = useCreateStatus(currentProjectId);
+
+    const filteredProjects = useMemo(() => {
+        if (!projectSearch.trim()) return projects;
+        const q = projectSearch.toLowerCase();
+        return projects.filter((p: any) => {
+            const name = (p.name || '').toLowerCase();
+            const pid = (p.projectId || '').toLowerCase();
+            return name.includes(q) || pid.includes(q);
+        });
+    }, [projects, projectSearch]);
 
     const allStatuses = useMemo(() =>
-        workflow.flatMap(stage =>
+        activeWorkflow.flatMap(stage =>
             stage.statuses.map(status => ({ ...status, stageName: stage.name }))
         ),
-        [workflow]
+        [activeWorkflow]
     );
 
     const defaultStatusId = useMemo(() =>
@@ -139,37 +185,37 @@ export function CreateTaskModal({
             setShowTesterPicker(false);
             setTesterSearch('');
         }
-    }, [isOpen, initialData, parentTask, workflow, taskListId, phaseId, defaultStatusId]);
+    }, [isOpen, initialData, parentTask, activeWorkflow, taskListId, phaseId, defaultStatusId]);
 
     const [showTesterPicker, setShowTesterPicker] = useState(false);
     const [testerSearch, setTesterSearch] = useState('');
 
     const filteredMembers = useMemo(() => {
-        if (!assigneeSearch.trim()) return members;
+        if (!assigneeSearch.trim()) return activeMembers;
         const q = assigneeSearch.toLowerCase();
-        return members.filter(m =>
+        return activeMembers.filter(m =>
             m.user.name.toLowerCase().includes(q) ||
             m.user.email.toLowerCase().includes(q)
         );
-    }, [members, assigneeSearch]);
+    }, [activeMembers, assigneeSearch]);
 
     const selectedMembers = useMemo(() =>
-        members.filter(m => formData.assigneeIds?.includes(m.user.id)),
-        [members, formData.assigneeIds]
+        activeMembers.filter(m => formData.assigneeIds?.includes(m.user.id)),
+        [activeMembers, formData.assigneeIds]
     );
 
     const filteredTesterMembers = useMemo(() => {
-        if (!testerSearch.trim()) return members;
+        if (!testerSearch.trim()) return activeMembers;
         const q = testerSearch.toLowerCase();
-        return members.filter(m =>
+        return activeMembers.filter(m =>
             m.user.name.toLowerCase().includes(q) ||
             m.user.email.toLowerCase().includes(q)
         );
-    }, [members, testerSearch]);
+    }, [activeMembers, testerSearch]);
 
     const selectedTesterMembers = useMemo(() =>
-        members.filter(m => formData.testerIds?.includes(m.user.id)),
-        [members, formData.testerIds]
+        activeMembers.filter(m => formData.testerIds?.includes(m.user.id)),
+        [activeMembers, formData.testerIds]
     );
 
     const toggleAssignee = (userId: string) => {
@@ -201,13 +247,18 @@ export function CreateTaskModal({
         setSubmitted(true);
         setError(null);
 
+        if (!currentProjectId) {
+            setError('Project is required. Please select a project.');
+            return;
+        }
+
         if (!formData.title.trim() || !formData.phaseId || !formData.taskListId) {
             return;
         }
 
         setIsSubmitting(true);
         try {
-            await onSubmit(formData);
+            await onSubmit(formData, currentProjectId);
         } catch {
             setError('Failed to save task. Please try again.');
         } finally {
@@ -215,7 +266,7 @@ export function CreateTaskModal({
         }
     };
 
-    const selectedPhase = phases.find(p => p.id === formData.phaseId);
+    const selectedPhase = activePhases.find(p => p.id === formData.phaseId);
     const availableTaskLists = selectedPhase?.taskLists || [];
 
     const [showPhaseDropdown, setShowPhaseDropdown] = useState(false);
@@ -224,9 +275,9 @@ export function CreateTaskModal({
     const [taskListSearch, setTaskListSearch] = useState('');
 
     const filteredPhases = useMemo(() => {
-        if (!phaseSearch.trim()) return phases;
-        return phases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
-    }, [phases, phaseSearch]);
+        if (!phaseSearch.trim()) return activePhases;
+        return activePhases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
+    }, [activePhases, phaseSearch]);
 
     const filteredTaskLists = useMemo(() => {
         if (!taskListSearch.trim()) return availableTaskLists;
@@ -289,19 +340,20 @@ export function CreateTaskModal({
                         )}
                     </div>
                     <div className="flex items-center gap-3">
-                        {projectName && (
+                        {currentProjectName && (
                             <span
                                 className="text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-tight shadow-sm transition-all"
                                 style={{
-                                    backgroundColor: projectColor ? `${projectColor}15` : '#f3f4f6',
-                                    color: projectColor || '#6b7280',
-                                    borderColor: projectColor ? `${projectColor}30` : '#e5e7eb'
+                                    backgroundColor: currentProjectColor ? `${currentProjectColor}15` : '#f3f4f6',
+                                    color: currentProjectColor || '#6b7280',
+                                    borderColor: currentProjectColor ? `${currentProjectColor}30` : '#e5e7eb'
                                 }}
                             >
-                                {projectName}
+                                {currentProjectName}
                             </span>
                         )}
                         <button
+                            type="button"
                             onClick={onClose}
                             className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
                         >
@@ -313,6 +365,112 @@ export function CreateTaskModal({
                 {/* Form Body */}
                 <div className="flex-1 overflow-y-auto">
                     <form className="p-5 space-y-5" onSubmit={handleSubmit}>
+                        {error && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-xs text-red-700">
+                                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        {/* Project Selection */}
+                        <div className="relative">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <Folder className="w-3.5 h-3.5 text-indigo-500" /> Project <span className="text-red-400">*</span>
+                            </label>
+
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    disabled={isReadOnly || !!projectId}
+                                    onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                                    className={cn(
+                                        "w-full px-3 py-2.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2 uppercase cursor-pointer",
+                                        submitted && !currentProjectId
+                                            ? "border-red-500 ring-red-500/10 focus:ring-red-500/20 focus:border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
+                                            : "border-gray-200 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]",
+                                        (isReadOnly || !!projectId) && "bg-gray-50 text-gray-500 cursor-default"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2 truncate flex-1">
+                                        {currentProjectColor && (
+                                            <div
+                                                className="w-2.5 h-2.5 rounded-full shrink-0"
+                                                style={{ backgroundColor: currentProjectColor }}
+                                            />
+                                        )}
+                                        <span className={cn("truncate font-bold", currentProjectName ? "text-gray-900" : "text-gray-400 font-medium")}>
+                                            {currentProjectName || "Select Project..."}
+                                        </span>
+                                    </div>
+                                    {!projectId && (
+                                        <ChevronDown className={cn("w-3.5 h-3.5 text-gray-400 transition-transform", showProjectDropdown && "rotate-180")} />
+                                    )}
+                                </button>
+
+                                {showProjectDropdown && !isReadOnly && !projectId && (
+                                    <>
+                                        <div className="fixed inset-0 z-10" onClick={() => setShowProjectDropdown(false)} />
+                                        <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                            {projects.length > 5 && (
+                                                <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            placeholder="Search projects..."
+                                                            value={projectSearch}
+                                                            onChange={(e) => setProjectSearch(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 bg-white"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="overflow-y-auto max-h-48 p-1">
+                                                {filteredProjects.length === 0 ? (
+                                                    <div className="p-2 text-center text-xs text-gray-400">No projects found</div>
+                                                ) : (
+                                                    filteredProjects.map((p: any) => {
+                                                        const pName = p.name || 'Project';
+                                                        const pColor = p.color || '#3b82f6';
+                                                        return (
+                                                            <button
+                                                                key={p.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedProjectId(p.id);
+                                                                    setFormData(prev => ({
+                                                                        ...prev,
+                                                                        phaseId: '',
+                                                                        taskListId: '',
+                                                                        assigneeIds: [],
+                                                                        testerIds: [],
+                                                                    }));
+                                                                    setShowProjectDropdown(false);
+                                                                    setProjectSearch('');
+                                                                }}
+                                                                className={cn(
+                                                                    "w-full text-left px-3 py-2 rounded-md text-xs transition-colors flex items-center justify-between uppercase font-semibold cursor-pointer",
+                                                                    currentProjectId === p.id
+                                                                        ? "bg-indigo-50 text-indigo-700 font-bold"
+                                                                        : "hover:bg-gray-50 text-gray-800"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-2 truncate">
+                                                                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: pColor }} />
+                                                                    <span className="truncate">{pName}</span>
+                                                                </div>
+                                                                {currentProjectId === p.id && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                                                            </button>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
                         {/* Phase & Task List Selection */}
                         <div className="grid grid-cols-2 gap-3">
                             {/* Phase Dropdown */}
