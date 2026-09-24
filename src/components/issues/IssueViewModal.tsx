@@ -875,8 +875,8 @@ export function IssueViewModal({
 
                                                 {showAssigneePop && (
                                                     <>
-                                                        <div className="fixed inset-0 z-10" onClick={() => setShowAssigneePop(false)} />
-                                                        <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
+                                                        <div className="fixed inset-0 z-20" onClick={() => setShowAssigneePop(false)} />
+                                                        <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
                                                             <div className="p-2 border-b border-gray-50 bg-gray-50/50">
                                                                 <div className="relative">
                                                                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />

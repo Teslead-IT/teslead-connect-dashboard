@@ -1662,8 +1662,15 @@ function ViewButtonCell(params: ICellRendererParams) {
     return (
         <div className="flex items-center h-full justify-center opacity-0 group-hover/task:opacity-100 transition-opacity gap-1.5">
             <button
-                onClick={() => ctx.onViewTask?.(row.taskId!)}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded hover:bg-indigo-100 transition-colors"
+                type="button"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (row.taskId) {
+                        ctx.onViewTask?.(row.taskId);
+                    }
+                }}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded hover:bg-indigo-100 transition-colors cursor-pointer select-none"
             >
                 <Eye className="w-3 h-3" />
                 View
