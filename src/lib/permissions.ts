@@ -107,20 +107,20 @@ export function getProjectPermissions(
     projectRole: ProjectRole,
     orgRole: OrgRole
 ): ProjectPermissions {
-    const isProjectOwner = project?.ownerId === userId;
+    const isProjectOwner = (project?.ownerId && userId ? project.ownerId === userId : false) || projectRole === 'OWNER';
     const isOrgOwner = orgRole === 'OWNER';
     const isOrgAdmin = orgRole === 'ADMIN';
     const isProjectAdmin = projectRole === 'ADMIN';
-    const isProjectMember = projectRole === 'MEMBER';
-    const isViewer = projectRole === 'VIEWER';
+    const isElevatedAdmin = isProjectOwner || isOrgOwner || isOrgAdmin || isProjectAdmin;
+    const isProjectMember = projectRole === 'MEMBER' || isElevatedAdmin;
 
-    // Backend: Create/Update task → ADMIN or MEMBER; Delete task → ADMIN only; Viewer → read-only
-    const canCreateTask = isProjectAdmin || isProjectMember;
-    const canEditTask = isProjectAdmin || isProjectMember;
-    const canDeleteTask = isProjectAdmin; // ADMIN only
+    // Backend: Create/Update task → ADMIN or MEMBER or OWNER; Delete task → ADMIN or OWNER; Viewer → read-only
+    const canCreateTask = isElevatedAdmin || isProjectMember;
+    const canEditTask = isElevatedAdmin || isProjectMember;
+    const canDeleteTask = isElevatedAdmin;
 
     // Admins (project or org) + project owner can manage workflow/settings/members
-    const canManage = isProjectAdmin || isProjectOwner || isOrgOwner || isOrgAdmin;
+    const canManage = isElevatedAdmin;
 
     return {
         canCreateTask,

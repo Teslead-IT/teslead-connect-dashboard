@@ -665,6 +665,7 @@ export default function ProjectsPage() {
                     access: projectData.access,
                     status: projectData.status,
                     tags: projectData.tags,
+                    phases: projectData.phases,
                 });
                 toast.success('Project created successfully', undefined, { id: toastId, soundEnabled: true });
             }
