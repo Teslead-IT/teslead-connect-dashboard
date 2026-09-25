@@ -81,11 +81,11 @@ function createEmptyRow(sno: number): DiscussionRow {
  */
 function parseInitialRows(content: any): DiscussionRow[] {
     if (!content) {
-        return [createEmptyRow(1)];
+        return [];
     }
 
     // New format: { type: 'discussionTable', rows: [...] }
-    if (typeof content === 'object' && content.rows && Array.isArray(content.rows) && content.rows.length > 0) {
+    if (typeof content === 'object' && content.rows && Array.isArray(content.rows)) {
         return content.rows.map((r: any, idx: number) => ({
             id: r.id || `row-${idx + 1}`,
             sno: idx + 1,
@@ -144,7 +144,7 @@ function parseInitialRows(content: any): DiscussionRow[] {
         }
     }
 
-    return [createEmptyRow(1)];
+    return [];
 }
 
 export function DiscussionAreaTable({
@@ -338,12 +338,12 @@ export function DiscussionAreaTable({
         updateRowsAndNotify(newRows);
     };
 
-    // Delete Row
+    // Delete Row with confirmation
     const handleDeleteRow = (index: number) => {
-        if (rows.length <= 1) {
-            // Keep at least one empty row
-            const resetRows = [createEmptyRow(1)];
-            updateRowsAndNotify(resetRows);
+        const targetRow = rows[index];
+        const rowNum = index + 1;
+        const label = targetRow?.discussionPoints ? `"${targetRow.discussionPoints.slice(0, 30)}..."` : `Row #${rowNum}`;
+        if (!window.confirm(`Are you sure you want to delete discussion point ${label}? This action cannot be undone.`)) {
             return;
         }
         const updated = rows.filter((_, i) => i !== index).map((r, idx) => ({ ...r, sno: idx + 1 }));
@@ -466,7 +466,26 @@ export function DiscussionAreaTable({
 
                     {/* Table Body */}
                     <tbody className="divide-y divide-gray-200 text-xs">
-                        {rows.map((row, index) => {
+                        {rows.length === 0 ? (
+                            <tr>
+                                <td colSpan={readOnly ? 6 : 7} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
+                                    <div className="flex flex-col items-center justify-center space-y-2">
+                                        <span>No discussion points added yet.</span>
+                                        {/* {!readOnly && (
+                                            <button
+                                                type="button"
+                                                onClick={handleAddRow}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#091590] border border-blue-200 hover:border-[#091590] font-bold text-xs rounded-lg transition-all shadow-2xs cursor-pointer"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />
+                                                <span>Add Discussion Point Row</span>
+                                            </button>
+                                        )} */}
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : (
+                            rows.map((row, index) => {
                             const isNewlyAddedRow = newlyAddedRowIds.has(row.id);
                             const canEditFullRow = !readOnly && (isOwner || isNewlyAddedRow);
                             const canEditStatusRemark = !readOnly && (isOwner || isAdmin || isMentionedInRow(row) || isNewlyAddedRow);
@@ -883,7 +902,7 @@ export function DiscussionAreaTable({
                                     )}
                                 </tr>
                             );
-                        })}
+                        }))}
                     </tbody>
                 </table>
             </div>
@@ -891,7 +910,7 @@ export function DiscussionAreaTable({
             {/* Bottom Footer */}
             <div className="p-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-shrink-0 z-10 gap-2">
                 <div className="flex items-center gap-2">
-                    {!readOnly && isOwner && (
+                    {!readOnly && (
                         <button
                             type="button"
                             onClick={handleAddRow}

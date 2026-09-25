@@ -137,6 +137,69 @@ interface PhaseTaskListTabProps {
     filterStatusName?: string;
 }
 
+function normalizeStr(str?: string | null): string {
+    return str ? str.trim().toLowerCase() : '';
+}
+
+function doesTaskOrChildrenMatch(
+    task: StructuredTask,
+    targetStatus?: string,
+    query?: string
+): boolean {
+    const statusMatch = !targetStatus || normalizeStr(task.status?.name) === targetStatus;
+    const queryMatch = !query ||
+        normalizeStr(task.title).includes(query) ||
+        normalizeStr(task.taskId).includes(query);
+
+    if (statusMatch && queryMatch) return true;
+
+    if (task.children && task.children.length > 0) {
+        return task.children.some(child => doesTaskOrChildrenMatch(child, targetStatus, query));
+    }
+
+    return false;
+}
+
+function doesTaskListHaveMatches(
+    taskList: TaskListWithTasks,
+    phaseName: string,
+    targetStatus?: string,
+    query?: string
+): boolean {
+    if (!targetStatus && !query) return true;
+
+    const queryMatchesPhase = !!query && normalizeStr(phaseName).includes(query);
+    const queryMatchesTaskList = !!query && normalizeStr(taskList.name).includes(query);
+
+    const effectiveQuery = (queryMatchesPhase || queryMatchesTaskList) ? undefined : query;
+
+    const tasks = taskList.tasks || [];
+    if (tasks.length === 0) {
+        if (!targetStatus && (queryMatchesPhase || queryMatchesTaskList)) return true;
+        return false;
+    }
+
+    return tasks.some(task => doesTaskOrChildrenMatch(task, targetStatus, effectiveQuery));
+}
+
+function doesPhaseHaveMatches(
+    phase: PhaseWithTaskLists,
+    targetStatus?: string,
+    query?: string
+): boolean {
+    if (!targetStatus && !query) return true;
+
+    const queryMatchesPhase = !!query && normalizeStr(phase.name).includes(query);
+
+    const taskLists = phase.taskLists || [];
+    if (taskLists.length === 0) {
+        if (!targetStatus && queryMatchesPhase) return true;
+        return false;
+    }
+
+    return taskLists.some(tl => doesTaskListHaveMatches(tl, phase.name, targetStatus, query));
+}
+
 function isAdmin(role?: ProjectRole): boolean {
     return role === 'ADMIN' || role === 'OWNER';
 }
@@ -265,10 +328,18 @@ export default function PhaseTaskListTab({
         const rows: FlatRow[] = [];
         if (!phases) return rows;
 
+        const targetStatus = filterStatusName?.trim().toLowerCase();
+        const query = searchQuery?.trim().toLowerCase();
+        const hasFilter = !!(targetStatus || query);
+
         const countTasks = (items: StructuredTask[]): number =>
             (items || []).reduce((s, t) => s + 1 + countTasks(t.children || []), 0);
 
         phases.forEach((phase) => {
+            if (hasFilter && !doesPhaseHaveMatches(phase, targetStatus, query)) {
+                return;
+            }
+
             const taskLists = phase.taskLists || [];
             const totalTasks = taskLists.reduce((sum, tl) => sum + countTasks(tl.tasks || []), 0);
             const isPhaseExpanded = expandedPhases.has(phase.id);
@@ -289,6 +360,10 @@ export default function PhaseTaskListTab({
 
             if (isPhaseExpanded) {
                 taskLists.forEach((taskList) => {
+                    if (hasFilter && !doesTaskListHaveMatches(taskList, phase.name, targetStatus, query)) {
+                        return;
+                    }
+
                     const tasks = taskList.tasks || [];
                     const isTaskListExpanded = expandedTaskLists.has(taskList.id);
                     const taskCount = countTasks(tasks);
@@ -307,8 +382,16 @@ export default function PhaseTaskListTab({
                     });
 
                     if (isTaskListExpanded) {
+                        const queryMatchesPhase = !!query && normalizeStr(phase.name).includes(query);
+                        const queryMatchesTaskList = !!query && normalizeStr(taskList.name).includes(query);
+                        const effectiveQuery = (queryMatchesPhase || queryMatchesTaskList) ? undefined : query;
+
                         const addRows = (items: StructuredTask[], parentLevel: number) => {
                             (items || []).forEach((task) => {
+                                if (hasFilter && !doesTaskOrChildrenMatch(task, targetStatus, effectiveQuery)) {
+                                    return;
+                                }
+
                                 const children = task.children || [];
                                 const isTaskExpanded = expandedTasks.has(task.id);
 
@@ -351,51 +434,9 @@ export default function PhaseTaskListTab({
         });
 
         return rows;
-    }, [phases, expandedPhases, expandedTaskLists, expandedTasks, isEditable]);
+    }, [phases, expandedPhases, expandedTaskLists, expandedTasks, isEditable, searchQuery, filterStatusName]);
 
-    const filteredFlatRows = useMemo(() => {
-        let rows = flatRows;
-
-        if (filterStatusName) {
-            const targetStatus = filterStatusName.trim().toLowerCase();
-            const matchingIds = new Set<string>();
-
-            flatRows.forEach((r) => {
-                if (r.status?.name && r.status.name.trim().toLowerCase() === targetStatus) {
-                    matchingIds.add(r.rowId);
-                }
-            });
-
-            const idsToInclude = new Set<string>(matchingIds);
-            flatRows.forEach((r) => {
-                if (r.rowType === 'tasklist' && flatRows.some((x) => x.taskListId === r.taskListId && matchingIds.has(x.rowId))) {
-                    idsToInclude.add(r.rowId);
-                }
-            });
-            flatRows.forEach((r) => {
-                if (r.rowType === 'phase' && flatRows.some((x) => x.phaseId === r.phaseId && idsToInclude.has(x.rowId))) {
-                    idsToInclude.add(r.rowId);
-                }
-            });
-
-            rows = flatRows.filter((r) => idsToInclude.has(r.rowId));
-        }
-
-        if (!searchQuery.trim()) return rows;
-        const q = searchQuery.trim().toLowerCase();
-        const matches = (name: string) => name.toLowerCase().includes(q);
-        const ids = new Set<string>();
-        rows.forEach((r) => { if (matches(r.name)) ids.add(r.rowId); });
-        rows.forEach((r) => {
-            if (r.rowType === 'tasklist' && rows.some((x) => x.taskListId === r.taskListId && ids.has(x.rowId)))
-                ids.add(r.rowId);
-        });
-        rows.forEach((r) => {
-            if (r.rowType === 'phase' && rows.some((x) => x.phaseId === r.phaseId && ids.has(x.rowId)))
-                ids.add(r.rowId);
-        });
-        return rows.filter((r) => ids.has(r.rowId));
-    }, [flatRows, searchQuery, filterStatusName]);
+    const filteredFlatRows = flatRows;
 
     // Force AG Grid to completely redraw rows when the data or expansion state changes.
     // This ensures icons and indentation are always in sync with the current state.
@@ -1379,7 +1420,10 @@ function TaskNameCell(params: ICellRendererParams) {
     // ---- PHASE ROW ----
     if (row.rowType === 'phase') {
         return (
-            <div className="flex items-center h-full w-full px-2 pr-3 group/phase">
+            <div
+                className="flex items-center h-full w-full px-2 pr-3 group/phase cursor-pointer select-none"
+                onClick={() => { if (row.hasChildren) ctx.togglePhase(row.phaseId); }}
+            >
                 {row.hasChildren ? (
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.togglePhase(row.phaseId); }}
@@ -1426,7 +1470,11 @@ function TaskNameCell(params: ICellRendererParams) {
     if (row.rowType === 'tasklist') {
         const indent = row.level * 24 + 8;
         return (
-            <div className="flex items-center h-full w-full pr-3 group/tl" style={{ paddingLeft: `${indent}px` }}>
+            <div
+                className="flex items-center h-full w-full pr-3 group/tl cursor-pointer select-none"
+                style={{ paddingLeft: `${indent}px` }}
+                onClick={() => { if (row.hasChildren) ctx.toggleTaskList(row.taskListId!); }}
+            >
                 {row.hasChildren ? (
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.toggleTaskList(row.taskListId!); }}
