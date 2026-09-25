@@ -210,21 +210,31 @@ export function CreateIssueModal({
 
     useEffect(() => {
         if (isOpen) {
+            const initialTask = initialValues?.taskId ? activeTasks.find(t => t.id === initialValues.taskId) : null;
+            let taskAssignees: string[] = [];
+            if (initialTask) {
+                if (Array.isArray(initialTask.assigneeIds) && initialTask.assigneeIds.length > 0) {
+                    taskAssignees = initialTask.assigneeIds;
+                } else if (Array.isArray((initialTask as any).assignees) && (initialTask as any).assignees.length > 0) {
+                    taskAssignees = (initialTask as any).assignees.map((a: any) => a.userId || a.id).filter(Boolean);
+                }
+            }
+
             setFormData({
                 title: '',
                 description: '',
-                expectedOutput: '',
+                expectedOutput: initialTask?.expectedOutput || '',
                 actualOutput: '',
                 type: 'BUG',
                 severity: 'MEDIUM',
                 priority: 3,
                 statusId: defaultStatusId,
-                phaseId: initialValues?.phaseId || '',
-                taskListId: initialValues?.taskListId || '',
+                phaseId: initialValues?.phaseId || initialTask?.phaseId || '',
+                taskListId: initialValues?.taskListId || initialTask?.taskListId || '',
                 taskId: initialValues?.taskId || '',
                 dueDate: '',
                 startDate: '',
-                assigneeIds: [],
+                assigneeIds: taskAssignees,
                 tagIds: [],
             });
             setError(null);
@@ -241,7 +251,7 @@ export function CreateIssueModal({
             setTaskListSearch('');
             setAttachments([]);
         }
-    }, [isOpen, defaultStatusId, initialValues?.phaseId, initialValues?.taskListId, initialValues?.taskId]);
+    }, [isOpen, defaultStatusId, initialValues?.phaseId, initialValues?.taskListId, initialValues?.taskId, activeTasks]);
 
     const selectedPhase = activePhases.find(p => p.id === formData.phaseId);
     const availableTaskLists = selectedPhase?.taskLists || [];
@@ -292,6 +302,23 @@ export function CreateIssueModal({
     const currentStatus = allStatuses.find(s => s.id === formData.statusId);
     const currentPriority = PRIORITY_OPTIONS.find(p => p.value === formData.priority) || PRIORITY_OPTIONS[2];
 
+    useEffect(() => {
+        if (formData.taskId && activeTasks.length > 0) {
+            const t = activeTasks.find(item => item.id === formData.taskId);
+            if (t && t.expectedOutput) {
+                setFormData(prev => {
+                    if (!prev.expectedOutput) {
+                        return {
+                            ...prev,
+                            expectedOutput: t.expectedOutput || '',
+                        };
+                    }
+                    return prev;
+                });
+            }
+        }
+    }, [formData.taskId, activeTasks]);
+
     const handleTaskSelect = (taskId: string) => {
         if (!taskId) {
             setFormData(prev => ({ ...prev, taskId: '' }));
@@ -318,9 +345,7 @@ export function CreateIssueModal({
             taskId: t.id,
             phaseId: t.phaseId || prev.phaseId,
             taskListId: t.taskListId || prev.taskListId,
-            expectedOutput: t.expectedOutput !== undefined && t.expectedOutput !== null && t.expectedOutput !== ''
-                ? t.expectedOutput
-                : prev.expectedOutput,
+            expectedOutput: t.expectedOutput || prev.expectedOutput || '',
             assigneeIds: taskAssigneeIds.length > 0 ? taskAssigneeIds : prev.assigneeIds,
         }));
     };

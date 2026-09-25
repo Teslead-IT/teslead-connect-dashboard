@@ -24,7 +24,7 @@ import { useToast } from '@/components/ui/Toast';
 import { cn, formatDate } from '@/lib/utils';
 import type { Issue } from '@/types/issue';
 
-function IssueStatusDropdownWrapper({ issue }: { issue: Issue }) {
+function IssueStatusDropdownWrapper({ issue, onInteraction }: { issue: Issue; onInteraction?: () => void }) {
     const { data: workflow = [] } = useProjectWorkflow(issue.projectId);
     const updateIssueMutation = useUpdateIssue(issue.projectId);
     const toast = useToast();
@@ -42,6 +42,7 @@ function IssueStatusDropdownWrapper({ issue }: { issue: Issue }) {
 
     const handleStatusChange = async (newStatusId: string) => {
         if (newStatusId === localStatusId) return;
+        onInteraction?.();
         setLocalStatusId(newStatusId);
         try {
             await updateIssueMutation.mutateAsync({ issueId: issue.id, data: { statusId: newStatusId } });
@@ -55,10 +56,34 @@ function IssueStatusDropdownWrapper({ issue }: { issue: Issue }) {
     const color = selectedStatus?.color || '#ef4444';
 
     return (
-        <div className="h-full w-full flex items-center relative" onClick={(e) => e.stopPropagation()}>
+        <div
+            className="h-full w-full flex items-center relative"
+            onClick={(e) => {
+                e.stopPropagation();
+                onInteraction?.();
+            }}
+            onMouseDown={(e) => {
+                e.stopPropagation();
+                onInteraction?.();
+            }}
+        >
             <select
                 value={localStatusId}
-                onChange={(e) => handleStatusChange(e.target.value)}
+                onChange={(e) => {
+                    onInteraction?.();
+                    handleStatusChange(e.target.value);
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onInteraction?.();
+                }}
+                onMouseDown={(e) => {
+                    e.stopPropagation();
+                    onInteraction?.();
+                }}
+                onFocus={() => {
+                    onInteraction?.();
+                }}
                 className="w-full h-full px-2 text-[10px] font-bold tracking-wide uppercase text-center border-0 appearance-none cursor-pointer outline-none transition-all hover:brightness-95"
                 style={{
                     backgroundColor: `${color}20`,
@@ -100,6 +125,11 @@ export default function MyIssuesPage() {
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+    const lastStatusInteractionRef = React.useRef<number>(0);
+
+    const markStatusInteraction = React.useCallback(() => {
+        lastStatusInteractionRef.current = Date.now();
+    }, []);
 
     // Sync state if URL query params change externally
     useEffect(() => {
@@ -382,7 +412,7 @@ export default function MyIssuesPage() {
             width: 140,
             cellRenderer: (params: ICellRendererParams<Issue>) => {
                 if (!params.data || !params.data.status) return null;
-                return <IssueStatusDropdownWrapper issue={params.data} />;
+                return <IssueStatusDropdownWrapper issue={params.data} onInteraction={markStatusInteraction} />;
             },
         },
         {
@@ -410,7 +440,7 @@ export default function MyIssuesPage() {
             width: 120,
             cellRenderer: DateRenderer,
         },
-    ], []);
+    ], [markStatusInteraction]);
 
     const defaultColDef = useMemo(() => ({
         sortable: true,
@@ -533,6 +563,9 @@ export default function MyIssuesPage() {
                                 suppressPaginationPanel={true}
                                 animateRows={true}
                                 onRowClicked={(event) => {
+                                    if (Date.now() - lastStatusInteractionRef.current < 1000) return;
+                                    if ((event as any).colDef?.field === 'status' || (event as any).column?.getColId?.() === 'status') return;
+                                    if ((event.event?.target as HTMLElement)?.closest?.('select') || (event.event?.target as HTMLElement)?.closest?.('[col-id="status"]')) return;
                                     if (event.data) {
                                         setSelectedIssue(event.data);
                                     }

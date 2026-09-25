@@ -25,7 +25,17 @@ interface IssuesTabProps {
     canCreateIssue?: boolean;
 }
 
-function IssueStatusDropdown({ issueId, projectId, currentStatus }: { issueId: string; projectId: string; currentStatus: any }) {
+function IssueStatusDropdown({
+    issueId,
+    projectId,
+    currentStatus,
+    onInteraction,
+}: {
+    issueId: string;
+    projectId: string;
+    currentStatus: any;
+    onInteraction?: () => void;
+}) {
     const { data: workflow = [] } = useProjectWorkflow(projectId);
     const updateIssueMutation = useUpdateIssue(projectId);
     const toast = useToast();
@@ -43,6 +53,7 @@ function IssueStatusDropdown({ issueId, projectId, currentStatus }: { issueId: s
 
     const handleStatusChange = async (newStatusId: string) => {
         if (newStatusId === localStatusId) return;
+        onInteraction?.();
         setLocalStatusId(newStatusId);
         try {
             await updateIssueMutation.mutateAsync({ issueId, data: { statusId: newStatusId } });
@@ -56,10 +67,34 @@ function IssueStatusDropdown({ issueId, projectId, currentStatus }: { issueId: s
     const color = selectedStatus?.color || '#ef4444';
 
     return (
-        <div className="h-full w-full flex items-center relative" onClick={(e) => e.stopPropagation()}>
+        <div
+            className="h-full w-full flex items-center relative"
+            onClick={(e) => {
+                e.stopPropagation();
+                onInteraction?.();
+            }}
+            onMouseDown={(e) => {
+                e.stopPropagation();
+                onInteraction?.();
+            }}
+        >
             <select
                 value={localStatusId}
-                onChange={(e) => handleStatusChange(e.target.value)}
+                onChange={(e) => {
+                    onInteraction?.();
+                    handleStatusChange(e.target.value);
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onInteraction?.();
+                }}
+                onMouseDown={(e) => {
+                    e.stopPropagation();
+                    onInteraction?.();
+                }}
+                onFocus={() => {
+                    onInteraction?.();
+                }}
                 className="w-full h-full px-2 text-[10px] font-bold tracking-wide uppercase text-center border-0 appearance-none cursor-pointer outline-none transition-all hover:brightness-95"
                 style={{
                     backgroundColor: `${color}20`,
@@ -90,6 +125,11 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
     const [limit, setLimit] = useState(20);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+    const lastStatusInteractionRef = React.useRef<number>(0);
+
+    const markStatusInteraction = React.useCallback(() => {
+        lastStatusInteractionRef.current = Date.now();
+    }, []);
 
     const { data: issues = [], isLoading } = useProjectIssues(projectId);
     const { data: workflow = [] } = useProjectWorkflow(projectId);
@@ -284,6 +324,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                         issueId={params.data.id}
                         projectId={projectId}
                         currentStatus={params.data.status}
+                        onInteraction={markStatusInteraction}
                     />
                 );
             },
@@ -313,7 +354,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             width: 120,
             cellRenderer: DateRenderer,
         },
-    ], [projectId]);
+    ], [projectId, markStatusInteraction]);
 
     const defaultColDef = useMemo(() => ({
         sortable: true,
@@ -452,6 +493,9 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                 suppressPaginationPanel={true}
                                 animateRows={true}
                                 onRowClicked={(event) => {
+                                    if (Date.now() - lastStatusInteractionRef.current < 1000) return;
+                                    if ((event as any).colDef?.field === 'status' || (event as any).column?.getColId?.() === 'status') return;
+                                    if ((event.event?.target as HTMLElement)?.closest?.('select') || (event.event?.target as HTMLElement)?.closest?.('[col-id="status"]')) return;
                                     if (event.data) {
                                         setSelectedIssueId(event.data.id);
                                     }

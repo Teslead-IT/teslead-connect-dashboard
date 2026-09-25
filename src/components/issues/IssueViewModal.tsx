@@ -35,7 +35,7 @@ import {
     FileArchive,
     Info,
 } from 'lucide-react';
-import { cn, getAvatarColor, formatDate, getFileUrl } from '@/lib/utils';
+import { cn, getAvatarColor, formatDate, getFileUrl, downloadFile } from '@/lib/utils';
 import type { Issue, IssueType, IssueSeverity, IssuePriority, UpdateIssuePayload } from '@/types/issue';
 import type { Task, WorkflowStage } from '@/types/task';
 import type { ProjectMember } from '@/types/project';
@@ -140,14 +140,14 @@ function AttachmentPreviewModal({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                        <a
-                            href={resolvedUrl}
-                            download={fileName}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-2xs transition"
+                        <button
+                            type="button"
+                            onClick={() => downloadFile(fileUrl, fileName)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-2xs transition cursor-pointer"
                             title="Download file"
                         >
                             <Download className="w-3.5 h-3.5 text-gray-500" /> Download
-                        </a>
+                        </button>
 
                         <a
                             href={resolvedUrl}
@@ -201,13 +201,13 @@ function AttachmentPreviewModal({
                                 </p>
                             </div>
                             <div className="pt-2 flex justify-center gap-3">
-                                <a
-                                    href={resolvedUrl}
-                                    download={fileName}
-                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-xs"
+                                <button
+                                    type="button"
+                                    onClick={() => downloadFile(fileUrl, fileName)}
+                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-xs cursor-pointer"
                                 >
                                     <Download className="w-4 h-4" /> Download File
-                                </a>
+                                </button>
                             </div>
                         </div>
                     )}
@@ -381,6 +381,7 @@ export function IssueViewModal({
                 },
             });
             toast.success('Issue updated successfully');
+            onClose();
         } catch (err: any) {
             toast.error('Failed to update issue', err.message);
         }
@@ -1125,14 +1126,14 @@ export function IssueViewModal({
                                                         >
                                                             <Eye className="w-3.5 h-3.5" /> View
                                                         </button>
-                                                        <a
-                                                            href={resolvedUrl}
-                                                            download={att.fileName}
-                                                            className="p-1.5 text-gray-400 hover:text-gray-600 transition"
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => downloadFile(att.fileUrl, att.fileName)}
+                                                            className="p-1.5 text-gray-400 hover:text-gray-600 transition cursor-pointer"
                                                             title="Download file"
                                                         >
                                                             <Download className="w-3.5 h-3.5" />
-                                                        </a>
+                                                        </button>
                                                         {!isReadOnly && (
                                                             <button
                                                                 type="button"
