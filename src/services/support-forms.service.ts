@@ -42,16 +42,16 @@ export interface SupportForm {
 
 export interface CreateSupportFormPayload {
     projectName: string;
-    projectId?: string;
-    projectStartDate?: string;
-    projectCompletionDate?: string;
+    projectId?: string | null;
+    projectStartDate?: string | null;
+    projectCompletionDate?: string | null;
     items?: Array<{
         sNo?: number;
         purpose: string;
         supportMode: SupportMode;
         supportedBy: string;
-        startDate?: string;
-        endDate?: string;
+        startDate?: string | null;
+        endDate?: string | null;
     }>;
 }
 

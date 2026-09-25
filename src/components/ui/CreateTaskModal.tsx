@@ -47,18 +47,20 @@ const TASK_TYPE_OPTIONS: { value: TaskType; label: string; color: string; bg: st
     { value: 'HOT', label: 'Hotfix', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', icon: Flame },
 ];
 
+const EMPTY_ARRAY: any[] = [];
+
 export function CreateTaskModal({
     isOpen,
     onClose,
     onSubmit,
-    workflow = [],
+    workflow = EMPTY_ARRAY,
     parentTask,
     initialData,
     isReadOnly = false,
     taskListId,
     phaseId,
-    members = [],
-    phases = [],
+    members = EMPTY_ARRAY,
+    phases = EMPTY_ARRAY,
     projectName,
     projectColor,
     projectId,
@@ -91,7 +93,7 @@ export function CreateTaskModal({
     const toast = useToast();
 
     const { data: projectsData } = useProjects({ limit: 100 });
-    const projects: Project[] = useMemo(() => projectsData?.data ?? [], [projectsData]);
+    const projects: Project[] = useMemo(() => projectsData?.data ?? EMPTY_ARRAY, [projectsData]);
 
     const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
     const prevIsOpenRef = React.useRef(false);
@@ -113,9 +115,9 @@ export function CreateTaskModal({
     const currentProjectName = activeProject?.name || (currentProjectId ? projectName : '');
     const currentProjectColor = activeProject?.color || (currentProjectId ? projectColor : null);
 
-    const { data: fetchedWorkflow = [] } = useProjectWorkflow(currentProjectId);
-    const { data: fetchedPhases = [] } = useStructuredPhases(currentProjectId);
-    const { data: fetchedMembers = [] } = useProjectMembers(currentProjectId);
+    const { data: fetchedWorkflow = EMPTY_ARRAY } = useProjectWorkflow(currentProjectId);
+    const { data: fetchedPhases = EMPTY_ARRAY } = useStructuredPhases(currentProjectId);
+    const { data: fetchedMembers = EMPTY_ARRAY } = useProjectMembers(currentProjectId);
 
     const activeWorkflow = (workflow && workflow.length > 0 && currentProjectId === projectId) ? workflow : fetchedWorkflow;
     const activePhases = (phases && phases.length > 0 && currentProjectId === projectId) ? phases : fetchedPhases;
@@ -134,8 +136,8 @@ export function CreateTaskModal({
     }, [projects, projectSearch]);
 
     const allStatuses = useMemo(() =>
-        activeWorkflow.flatMap(stage =>
-            stage.statuses.map(status => ({ ...status, stageName: stage.name }))
+        activeWorkflow.flatMap((stage: any) =>
+            stage.statuses.map((status: any) => ({ ...status, stageName: stage.name }))
         ),
         [activeWorkflow]
     );
@@ -185,7 +187,13 @@ export function CreateTaskModal({
             setShowTesterPicker(false);
             setTesterSearch('');
         }
-    }, [isOpen, initialData, parentTask, activeWorkflow, taskListId, phaseId, defaultStatusId]);
+    }, [isOpen, initialData, parentTask?.id, taskListId, phaseId]);
+
+    useEffect(() => {
+        if (isOpen && defaultStatusId && !formData.statusId) {
+            setFormData(prev => prev.statusId ? prev : { ...prev, statusId: defaultStatusId });
+        }
+    }, [isOpen, defaultStatusId, formData.statusId]);
 
     const [showTesterPicker, setShowTesterPicker] = useState(false);
     const [testerSearch, setTesterSearch] = useState('');
@@ -281,7 +289,7 @@ export function CreateTaskModal({
 
     const filteredTaskLists = useMemo(() => {
         if (!taskListSearch.trim()) return availableTaskLists;
-        return availableTaskLists.filter(tl => tl.name.toLowerCase().includes(taskListSearch.toLowerCase()));
+        return availableTaskLists.filter((tl: any) => tl.name.toLowerCase().includes(taskListSearch.toLowerCase()));
     }, [availableTaskLists, taskListSearch]);
 
     const isFormValid = !!(formData.title.trim() && formData.phaseId && formData.taskListId);
@@ -580,7 +588,7 @@ export function CreateTaskModal({
                                         )}
                                     >
                                         <span className="truncate flex-1">
-                                            {availableTaskLists.find(tl => tl.id === formData.taskListId)?.name || "Select Task List"}
+                                            {availableTaskLists.find((tl: any) => tl.id === formData.taskListId)?.name || "Select Task List"}
                                         </span>
                                         <ListTodo className={cn("w-3.5 h-3.5 text-gray-400 transition-transform", showTaskListDropdown && "rotate-180")} />
                                     </button>
@@ -606,7 +614,7 @@ export function CreateTaskModal({
                                                     {filteredTaskLists.length === 0 ? (
                                                         <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No task lists found</div>
                                                     ) : (
-                                                        filteredTaskLists.map((tl) => (
+                                                        filteredTaskLists.map((tl: any) => (
                                                             <button
                                                                 key={tl.id}
                                                                 type="button"

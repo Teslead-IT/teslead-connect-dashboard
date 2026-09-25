@@ -459,11 +459,11 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
             if (mode === 'create') {
                 await createMutation.mutateAsync({
                     projectName,
-                    projectId: projectId || undefined,
-                    projectStartDate: projectStartDate ? new Date(projectStartDate).toISOString() : undefined,
+                    projectId: projectId || null,
+                    projectStartDate: projectStartDate ? new Date(projectStartDate).toISOString() : null,
                     projectCompletionDate: projectCompletionDate
                         ? new Date(projectCompletionDate).toISOString()
-                        : undefined,
+                        : null,
                     items: validItems,
                 });
             } else if (mode === 'edit' && supportFormId) {
@@ -471,13 +471,13 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                     id: supportFormId,
                     payload: {
                         projectName,
-                        projectId: projectId || undefined,
+                        projectId: projectId || null,
                         projectStartDate: projectStartDate
                             ? new Date(projectStartDate).toISOString()
-                            : undefined,
+                            : null,
                         projectCompletionDate: projectCompletionDate
                             ? new Date(projectCompletionDate).toISOString()
-                            : undefined,
+                            : null,
                         items: validItems,
                     },
                 });
@@ -736,14 +736,16 @@ export const SupportFormModal: React.FC<SupportFormModalProps> = ({
                                                     ))}
                                                 </select>
                                             )}
-                                            <input
-                                                type="text"
-                                                placeholder="Enter Project Name *"
-                                                value={projectName}
-                                                onChange={(e) => setProjectName(e.target.value)}
-                                                required
-                                                className="w-full text-xs font-semibold border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] text-gray-900 bg-white"
-                                            />
+                                            {!projectId && (
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter Project Name *"
+                                                    value={projectName}
+                                                    onChange={(e) => setProjectName(e.target.value)}
+                                                    required
+                                                    className="w-full text-xs font-semibold border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#091590] text-gray-900 bg-white"
+                                                />
+                                            )}
                                         </div>
                                     </div>
 
