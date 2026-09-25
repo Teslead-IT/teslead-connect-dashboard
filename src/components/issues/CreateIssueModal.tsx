@@ -31,6 +31,7 @@ import {
     Info,
     Folder,
     ChevronDown,
+    Eye,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import type { IssueType, IssueSeverity, IssuePriority, CreateIssuePayload } from '@/types/issue';
@@ -198,6 +199,14 @@ export function CreateIssueModal({
     });
 
     const [attachments, setAttachments] = useState<Array<{ fileName: string; fileUrl: string; mimeType?: string; fileSize?: number }>>([]);
+    const [previewModalImage, setPreviewModalImage] = useState<{ url: string; name: string } | null>(null);
+
+    const isImageFile = (fileName: string, mimeType?: string, fileUrl?: string): boolean => {
+        if (mimeType?.startsWith('image/')) return true;
+        if (fileUrl?.startsWith('data:image/')) return true;
+        const ext = fileName.toLowerCase().split('.').pop();
+        return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext || '');
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -1086,24 +1095,54 @@ export function CreateIssueModal({
 
                             {attachments.length > 0 && (
                                 <div className="mt-2 space-y-1.5">
-                                    {attachments.map((att, idx) => (
-                                        <div key={idx} className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs">
-                                            <div className="flex items-center gap-2 truncate">
-                                                <Paperclip className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                                <span className="truncate font-medium text-gray-800">{att.fileName}</span>
-                                                {att.fileSize && (
-                                                    <span className="text-[10px] text-gray-400 shrink-0">({(att.fileSize / 1024).toFixed(1)} KB)</span>
-                                                )}
+                                    {attachments.map((att, idx) => {
+                                        const isImg = isImageFile(att.fileName, att.mimeType, att.fileUrl);
+                                        return (
+                                            <div key={idx} className="flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs hover:border-indigo-200 transition">
+                                                <div className="flex items-center gap-2.5 truncate min-w-0">
+                                                    {isImg ? (
+                                                        <div
+                                                            className="relative w-8 h-8 rounded border border-gray-200 bg-slate-900/5 shrink-0 overflow-hidden cursor-pointer group/thumb shadow-2xs"
+                                                            onClick={() => setPreviewModalImage({ url: att.fileUrl, name: att.fileName })}
+                                                            title="Click to view image preview"
+                                                        >
+                                                            <img src={att.fileUrl} alt={att.fileName} className="w-full h-full object-cover transition-transform duration-200 group-hover/thumb:scale-110" />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <Eye className="w-3.5 h-3.5 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <Paperclip className="w-4 h-4 text-indigo-500 shrink-0" />
+                                                    )}
+                                                    <span className="truncate font-medium text-gray-800">{att.fileName}</span>
+                                                    {att.fileSize && (
+                                                        <span className="text-[10px] text-gray-400 shrink-0">({(att.fileSize / 1024).toFixed(1)} KB)</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                                    {isImg && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setPreviewModalImage({ url: att.fileUrl, name: att.fileName })}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-md transition-colors cursor-pointer"
+                                                            title="View image preview"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5" />
+                                                            <span>View</span>
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                                        className="text-gray-400 hover:text-red-600 transition p-1.5 rounded-md hover:bg-red-50 cursor-pointer"
+                                                        title="Remove attachment"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
-                                                className="text-gray-400 hover:text-red-600 transition p-1"
-                                            >
-                                                <X className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -1283,6 +1322,40 @@ export function CreateIssueModal({
                     </form>
                 </div>
             </div>
+
+            {/* Image Preview Lightbox Modal */}
+            {previewModalImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn"
+                    onClick={() => setPreviewModalImage(null)}
+                >
+                    <div
+                        className="relative bg-white rounded-xl max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-gray-200 w-full"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                            <div className="flex items-center gap-2 truncate pr-4">
+                                <FileImage className="w-4 h-4 text-indigo-600 shrink-0" />
+                                <span className="font-bold text-xs text-gray-800 truncate">{previewModalImage.name}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setPreviewModalImage(null)}
+                                className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-4 bg-slate-900/5 flex items-center justify-center overflow-auto max-h-[calc(90vh-60px)]">
+                            <img
+                                src={previewModalImage.url}
+                                alt={previewModalImage.name}
+                                className="max-w-full max-h-[75vh] object-contain rounded shadow-md"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
