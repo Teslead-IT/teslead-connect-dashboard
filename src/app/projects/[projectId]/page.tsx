@@ -79,8 +79,7 @@ const TAB_ITEMS: TabItem[] = [
     { id: 'phases', label: 'Phases' },
     { id: 'testing', label: 'Testing' },
     { id: 'time-logs', label: 'Time Logs' },
-    { id: 'issues', label: 'Issues' },
-    { id: 'timesheet', label: 'Timesheet' },
+    { id: 'issues', label: 'Issues' }
 ];
 
 const PRIORITY_COLORS = {
