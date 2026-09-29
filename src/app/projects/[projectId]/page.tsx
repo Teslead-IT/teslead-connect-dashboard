@@ -105,7 +105,6 @@ const STATUS_COLORS: Record<string, string> = {
     ON_HOLD: 'bg-amber-100 text-amber-700 border-amber-200',
     REVIEW: 'bg-indigo-100 text-indigo-700 border-indigo-200',
     TESTING: 'bg-purple-100 text-purple-700 border-purple-200',
-    TESTING_IN_PROGRESS: 'bg-pink-100 text-pink-700 border-pink-200',
     COMPLETED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     CANCELLED: 'bg-rose-100 text-rose-700 border-rose-200',
     BLOCKED: 'bg-red-100 text-red-700 border-red-200',

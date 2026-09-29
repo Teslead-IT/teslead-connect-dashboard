@@ -52,7 +52,6 @@ const PROJECT_STATUS_OPTIONS = [
     { value: 'ON_HOLD', label: 'On Hold', color: 'bg-amber-100 text-amber-700 border-amber-200', dotColor: '#f59e0b' },
     { value: 'REVIEW', label: 'Review', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', dotColor: '#6366f1' },
     { value: 'TESTING', label: 'Testing', color: 'bg-purple-100 text-purple-700 border-purple-200', dotColor: '#a855f7' },
-    { value: 'TESTING_IN_PROGRESS', label: 'Testing In-Progress', color: 'bg-pink-100 text-pink-700 border-pink-200', dotColor: '#d946ef' },
     { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dotColor: '#10b981' },
     { value: 'CANCELLED', label: 'Cancelled', color: 'bg-rose-100 text-rose-700 border-rose-200', dotColor: '#f43f5e' },
     { value: 'BLOCKED', label: 'Blocked', color: 'bg-red-100 text-red-700 border-red-200', dotColor: '#ef4444' },
