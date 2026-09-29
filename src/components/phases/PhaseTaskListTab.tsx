@@ -50,7 +50,7 @@ import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
 import { CreateTaskListModal } from './CreateTaskListModal';
 import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
 import {
     useStructuredPhases,
@@ -146,7 +146,8 @@ function doesTaskOrChildrenMatch(
     targetStatus?: string,
     query?: string
 ): boolean {
-    const statusMatch = !targetStatus || normalizeStr(task.status?.name) === targetStatus;
+    const sName = normalizeStr(task.status?.name);
+    const statusMatch = !targetStatus || sName === targetStatus || (targetStatus.includes('testing') && sName.includes('testing'));
     const queryMatch = !query ||
         normalizeStr(task.title).includes(query) ||
         normalizeStr(task.taskId).includes(query);
@@ -1241,7 +1242,10 @@ function TasksBoardView({
         let tasks = allTasks;
         if (filterStatusName) {
             const targetStatus = filterStatusName.trim().toLowerCase();
-            tasks = tasks.filter((t: any) => t.status?.name?.trim().toLowerCase() === targetStatus);
+            tasks = tasks.filter((t: any) => {
+                const sName = t.status?.name?.trim().toLowerCase() || '';
+                return sName === targetStatus || (targetStatus.includes('testing') && sName.includes('testing'));
+            });
         }
         if (!searchQuery.trim()) return tasks;
         const q = searchQuery.trim().toLowerCase();
@@ -1834,7 +1838,7 @@ function StatusCell(params: ICellRendererParams) {
         }
     };
 
-    const color = selectedStatus?.color || '#64748b';
+    const color = getTaskStatusHexColor(selectedStatus?.name, selectedStatus?.color);
     const statusStyle = {
         backgroundColor: `${color}15`,
         color,
@@ -1892,7 +1896,7 @@ function StatusCell(params: ICellRendererParams) {
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {allStatuses.map((opt: any) => {
                                     const isSelected = opt.id === localStatusId;
-                                    const optColor = opt.color || '#64748b';
+                                    const optColor = getTaskStatusHexColor(opt.name, opt.color);
                                     return (
                                         <button
                                             key={opt.id}

@@ -22,7 +22,7 @@ import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { useToast } from '@/components/ui/Toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
+import { cn, getTaskStatusHexColor } from '@/lib/utils';
 import type { MyTask, MyTaskTag } from '@/types/task';
 
 // Priority labels (1=highest, 5=lowest)
@@ -101,7 +101,7 @@ function StatusDropdown({
         await performStatusUpdate(newStatusId);
     };
 
-    const color = selectedStatus?.color || '#64748b';
+    const color = getTaskStatusHexColor(selectedStatus?.name, selectedStatus?.color);
 
     return (
         <div className="h-full w-full flex items-center relative group" onClick={(e) => e.stopPropagation()}>

@@ -32,7 +32,7 @@ import {
     Pencil,
     Trash2,
 } from 'lucide-react';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
 // import { projectsApi } from '@/services/projects.service'; // Removed
 // import { taskService, workflowService } from '@/services/tasks.service'; // Removed
@@ -105,6 +105,7 @@ const STATUS_COLORS: Record<string, string> = {
     ON_HOLD: 'bg-amber-100 text-amber-700 border-amber-200',
     REVIEW: 'bg-indigo-100 text-indigo-700 border-indigo-200',
     TESTING: 'bg-purple-100 text-purple-700 border-purple-200',
+    TESTING_IN_PROGRESS: 'bg-pink-100 text-pink-700 border-pink-200',
     COMPLETED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     CANCELLED: 'bg-rose-100 text-rose-700 border-rose-200',
     BLOCKED: 'bg-red-100 text-red-700 border-red-200',
@@ -737,7 +738,7 @@ const StatusRenderer = (props: ICellRendererParams) => {
 
     const currentStatus = allStatuses.find((s: any) => s.id === task.status.id);
     const statusName = currentStatus?.name || task.status.name || 'Unknown';
-    const statusColor = currentStatus?.color || '#64748b';
+    const statusColor = getTaskStatusHexColor(statusName, currentStatus?.color || task.status?.color);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -823,7 +824,7 @@ const StatusRenderer = (props: ICellRendererParams) => {
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {allStatuses.map((opt: any) => {
                                     const isSelected = opt.id === task.status.id;
-                                    const optColor = opt.color || '#64748b';
+                                    const optColor = getTaskStatusHexColor(opt.name, opt.color);
                                     return (
                                         <button
                                             key={opt.id}

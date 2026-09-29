@@ -31,6 +31,7 @@ export interface TaskStatus {
     id: string;
     name: string;
     stageName: string;
+    color?: string;
 }
 
 export interface TaskAssignee {

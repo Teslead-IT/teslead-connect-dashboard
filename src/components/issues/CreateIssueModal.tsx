@@ -33,7 +33,7 @@ import {
     ChevronDown,
     Eye,
 } from 'lucide-react';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import type { IssueType, IssueSeverity, IssuePriority, CreateIssuePayload } from '@/types/issue';
 import type { Task, WorkflowStage } from '@/types/task';
 import type { ProjectMember, Project } from '@/types/project';
@@ -389,7 +389,7 @@ export function CreateIssueModal({
             const newStatus = await createStatusMutation.mutateAsync({
                 stageId: firstStage.id,
                 name: newStatusName.trim(),
-                color: '#ef4444',
+                color: getTaskStatusHexColor(newStatusName.trim(), '#ef4444'),
             });
             setFormData(prev => ({ ...prev, statusId: newStatus.id }));
             setIsCreatingStatus(false);
@@ -1234,7 +1234,7 @@ export function CreateIssueModal({
                                                                 )}
                                                             >
                                                                 <div className="flex items-center gap-2 truncate">
-                                                                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
+                                                                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getTaskStatusHexColor(status.name, status.color) }} />
                                                                     <span className="truncate">{status.name}</span>
                                                                 </div>
                                                                 {formData.statusId === status.id && <Check className="w-3.5 h-3.5 text-indigo-600" />}
