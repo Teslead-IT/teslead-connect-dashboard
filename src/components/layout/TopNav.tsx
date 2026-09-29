@@ -126,7 +126,7 @@ export function TopNav() {
             <div className="h-full px-6 flex items-center justify-between gap-6">
                 {/* Search Bar & Sticky Title */}
                 <div className="flex-1 flex items-center gap-4 group">
-                    <div className="relative w-30 transition-all duration-300 focus-within:w-64">
+                    <div className="hidden relative w-30 transition-all duration-300 focus-within:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#091590] transition-colors" />
                         <input
                             type="text"

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { projectsApi } from '@/services/projects.service';
 import { useOrgStore } from '@/stores/orgStore';
 
@@ -25,6 +25,7 @@ export function useProjects(params?: { page?: number; limit?: number; search?: s
         queryKey: [...projectKeys.all(activeOrgId), params?.page, params?.limit, params?.search],
         queryFn: () => projectsApi.getAllProjects(params),
         enabled: activeOrgId !== null,
+        placeholderData: keepPreviousData,
     });
 }
 
