@@ -125,11 +125,9 @@ export const SupportFormsTable: React.FC<SupportFormsTableProps> = ({
                 <span className="font-bold text-gray-900 hover:text-[#091590] transition-colors leading-tight">
                     {form.projectName}
                 </span>
-                {form.project?.name && (
-                    <span className="text-[10px] font-semibold text-gray-400 leading-tight">
-                        Linked: {form.project.name}
-                    </span>
-                )}
+                {/* <span className="text-[10px] font-semibold text-gray-400 leading-tight">
+                    Linked: {form.project?.name || '-'}
+                </span> */}
             </div>
         );
     };

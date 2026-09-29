@@ -26,6 +26,8 @@ import {
     Search,
     Bell,
     Calendar,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,7 +46,7 @@ const MOCK_TASKS = [
 
 // ==================== WIDGET COMPONENTS ====================
 
-const CardHeader = ({ title, icon: Icon }: { title: string, icon: any }) => (
+const CardHeader = ({ title, icon: Icon, action }: { title: string, icon: any, action?: React.ReactNode }) => (
     <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between cursor-default bg-gray-50/50">
         <div className="flex items-center gap-2">
             <div className="p-1 bg-blue-50 rounded text-[#091590]">
@@ -53,6 +55,7 @@ const CardHeader = ({ title, icon: Icon }: { title: string, icon: any }) => (
             <h3 className="font-bold text-gray-900 text-[12px] uppercase tracking-wider">{title}</h3>
         </div>
         <div className="flex items-center gap-2">
+            {action}
             <button className="p-1 hover:bg-gray-100 rounded text-gray-400">
                 <GripVertical className="w-3.5 h-3.5 cursor-grab active:cursor-grabbing" />
             </button>
@@ -81,6 +84,23 @@ export default function DashboardPage() {
 
     const data = viewMode === 'org' ? orgData : myData;
     const isLoading = viewMode === 'org' ? orgLoading : myLoading;
+
+    const [projectPage, setProjectPage] = useState(1);
+    const ITEMS_PER_PAGE = 6;
+
+    const totalProjects = data?.projectPulse?.length || 0;
+    const totalProjectPages = Math.ceil(totalProjects / ITEMS_PER_PAGE) || 1;
+
+    React.useEffect(() => {
+        setProjectPage(1);
+    }, [viewMode]);
+
+    const paginatedProjects = useMemo(() => {
+        if (!data?.projectPulse) return [];
+        const validPage = Math.min(projectPage, totalProjectPages);
+        const start = (validPage - 1) * ITEMS_PER_PAGE;
+        return data.projectPulse.slice(start, start + ITEMS_PER_PAGE);
+    }, [data?.projectPulse, projectPage, totalProjectPages]);
 
     const formattedWorkload = useMemo(() => {
         if (!data?.workloadActivity) return [];
@@ -199,16 +219,44 @@ export default function DashboardPage() {
         ),
         projects: (
             <div key="projects" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <CardHeader title="Project Pulse" icon={BarChart3} />
-                <div className="p-4 space-y-4">
+                <CardHeader
+                    title="Project Pulse"
+                    icon={BarChart3}
+                    action={
+                        totalProjectPages > 1 ? (
+                            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-md px-1 py-0.5 shadow-2xs">
+                                <button
+                                    onClick={() => setProjectPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={projectPage === 1}
+                                    className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
+                                    title="Previous page"
+                                >
+                                    <ChevronLeft className="w-3.5 h-3.5" />
+                                </button>
+                                {/* <span className="text-[10px] font-bold text-gray-500 px-1 select-none">
+                                    {projectPage}/{totalProjectPages}
+                                </span> */}
+                                <button
+                                    onClick={() => setProjectPage((prev) => Math.min(totalProjectPages, prev + 1))}
+                                    disabled={projectPage >= totalProjectPages}
+                                    className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
+                                    title="Next page"
+                                >
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        ) : null
+                    }
+                />
+                <div className="h-[350px] p-4 space-y-4 overflow-y-auto custom-scrollbar">
                     {!data?.projectPulse || data.projectPulse.length === 0 ? (
-                        <div className="w-full h-[160px] flex flex-col items-center justify-center text-gray-400">
+                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
                             <BarChart3 className="w-6 h-6 mb-2 opacity-20" />
                             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300">No projects yet</span>
                         </div>
                     ) : (
-                        data.projectPulse.map((p, i) => (
-                            <div key={i} className="space-y-1.5">
+                        paginatedProjects.map((p, i) => (
+                            <div key={p.id || p.name || i} className="space-y-1.5">
                                 <div className="flex justify-between items-end">
                                     <div>
                                         <p className="text-[12px] font-bold text-gray-900 leading-none">{p.name}</p>
@@ -218,9 +266,10 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
                                     <motion.div
+                                        key={`${projectPage}-${p.id || p.name || i}`}
                                         initial={{ width: 0 }}
                                         animate={{ width: `${p.completionPercentage}%` }}
-                                        transition={{ duration: 1, delay: i * 0.1 }}
+                                        transition={{ duration: 0.8, delay: i * 0.05 }}
                                         className="h-full bg-[#091590] rounded-full"
                                     />
                                 </div>

@@ -31,6 +31,7 @@ import {
     Info,
     Folder,
     ChevronDown,
+    Eye,
 } from 'lucide-react';
 import { cn, getAvatarColor } from '@/lib/utils';
 import type { IssueType, IssueSeverity, IssuePriority, CreateIssuePayload } from '@/types/issue';
@@ -198,24 +199,42 @@ export function CreateIssueModal({
     });
 
     const [attachments, setAttachments] = useState<Array<{ fileName: string; fileUrl: string; mimeType?: string; fileSize?: number }>>([]);
+    const [previewModalImage, setPreviewModalImage] = useState<{ url: string; name: string } | null>(null);
+
+    const isImageFile = (fileName: string, mimeType?: string, fileUrl?: string): boolean => {
+        if (mimeType?.startsWith('image/')) return true;
+        if (fileUrl?.startsWith('data:image/')) return true;
+        const ext = fileName.toLowerCase().split('.').pop();
+        return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext || '');
+    };
 
     useEffect(() => {
         if (isOpen) {
+            const initialTask = initialValues?.taskId ? activeTasks.find(t => t.id === initialValues.taskId) : null;
+            let taskAssignees: string[] = [];
+            if (initialTask) {
+                if (Array.isArray(initialTask.assigneeIds) && initialTask.assigneeIds.length > 0) {
+                    taskAssignees = initialTask.assigneeIds;
+                } else if (Array.isArray((initialTask as any).assignees) && (initialTask as any).assignees.length > 0) {
+                    taskAssignees = (initialTask as any).assignees.map((a: any) => a.userId || a.id).filter(Boolean);
+                }
+            }
+
             setFormData({
                 title: '',
                 description: '',
-                expectedOutput: '',
+                expectedOutput: initialTask?.expectedOutput || '',
                 actualOutput: '',
                 type: 'BUG',
                 severity: 'MEDIUM',
                 priority: 3,
                 statusId: defaultStatusId,
-                phaseId: initialValues?.phaseId || '',
-                taskListId: initialValues?.taskListId || '',
+                phaseId: initialValues?.phaseId || initialTask?.phaseId || '',
+                taskListId: initialValues?.taskListId || initialTask?.taskListId || '',
                 taskId: initialValues?.taskId || '',
                 dueDate: '',
                 startDate: '',
-                assigneeIds: [],
+                assigneeIds: taskAssignees,
                 tagIds: [],
             });
             setError(null);
@@ -232,7 +251,7 @@ export function CreateIssueModal({
             setTaskListSearch('');
             setAttachments([]);
         }
-    }, [isOpen, defaultStatusId, initialValues?.phaseId, initialValues?.taskListId, initialValues?.taskId]);
+    }, [isOpen, defaultStatusId, initialValues?.phaseId, initialValues?.taskListId, initialValues?.taskId, activeTasks]);
 
     const selectedPhase = activePhases.find(p => p.id === formData.phaseId);
     const availableTaskLists = selectedPhase?.taskLists || [];
@@ -283,6 +302,23 @@ export function CreateIssueModal({
     const currentStatus = allStatuses.find(s => s.id === formData.statusId);
     const currentPriority = PRIORITY_OPTIONS.find(p => p.value === formData.priority) || PRIORITY_OPTIONS[2];
 
+    useEffect(() => {
+        if (formData.taskId && activeTasks.length > 0) {
+            const t = activeTasks.find(item => item.id === formData.taskId);
+            if (t && t.expectedOutput) {
+                setFormData(prev => {
+                    if (!prev.expectedOutput) {
+                        return {
+                            ...prev,
+                            expectedOutput: t.expectedOutput || '',
+                        };
+                    }
+                    return prev;
+                });
+            }
+        }
+    }, [formData.taskId, activeTasks]);
+
     const handleTaskSelect = (taskId: string) => {
         if (!taskId) {
             setFormData(prev => ({ ...prev, taskId: '' }));
@@ -309,9 +345,7 @@ export function CreateIssueModal({
             taskId: t.id,
             phaseId: t.phaseId || prev.phaseId,
             taskListId: t.taskListId || prev.taskListId,
-            expectedOutput: t.expectedOutput !== undefined && t.expectedOutput !== null && t.expectedOutput !== ''
-                ? t.expectedOutput
-                : prev.expectedOutput,
+            expectedOutput: t.expectedOutput || prev.expectedOutput || '',
             assigneeIds: taskAssigneeIds.length > 0 ? taskAssigneeIds : prev.assigneeIds,
         }));
     };
@@ -871,6 +905,112 @@ export function CreateIssueModal({
                             </div>
                         </div>
 
+                        {/* Assignees */}
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <Users className="w-3 h-3 text-gray-400" /> Assignees
+                            </label>
+
+                            {selectedMembers.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {selectedMembers.map((m) => {
+                                        const user = m?.user || m;
+                                        const uid = user?.id || m?.userId || m?.id;
+                                        const name = user?.name || user?.email || 'User';
+                                        return (
+                                            <span
+                                                key={uid}
+                                                className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-medium text-indigo-700"
+                                            >
+                                                <div
+                                                    className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0", getAvatarColor(name))}
+                                                >
+                                                    {user?.avatarUrl ? (
+                                                        <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        name.charAt(0).toUpperCase()
+                                                    )}
+                                                </div>
+                                                {name}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleAssignee(uid)}
+                                                    className="ml-0.5 p-0.5 hover:bg-indigo-100 rounded-full transition-colors"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAssigneePicker(!showAssigneePicker)}
+                                    className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                >
+                                    <Users className="w-3.5 h-3.5" />
+                                    {selectedMembers.length === 0 ? 'Click to assign team members...' : 'Add more...'}
+                                </button>
+
+                                {showAssigneePicker && (
+                                    <>
+                                        <div className="fixed inset-0 z-20" onClick={() => setShowAssigneePicker(false)} />
+                                        <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
+                                            <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                <div className="relative">
+                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                    <input
+                                                        autoFocus
+                                                        type="text"
+                                                        placeholder="Search members..."
+                                                        value={assigneeSearch}
+                                                        onChange={(e) => setAssigneeSearch(e.target.value)}
+                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="overflow-y-auto custom-scrollbar flex-1">
+                                                {filteredMembers.map((m) => {
+                                                    const user = m?.user || m;
+                                                    const uid = user?.id || m?.userId || m?.id;
+                                                    const name = user?.name || user?.email || 'User';
+                                                    const isAssigned = formData.assigneeIds?.includes(uid);
+                                                    return (
+                                                        <button
+                                                            key={uid}
+                                                            type="button"
+                                                            onClick={() => toggleAssignee(uid)}
+                                                            className={cn(
+                                                                "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 transition-colors flex items-center justify-between gap-2",
+                                                                isAssigned ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-2 truncate">
+                                                                <div
+                                                                    className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0", getAvatarColor(name))}
+                                                                >
+                                                                    {user?.avatarUrl ? (
+                                                                        <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        name.charAt(0).toUpperCase()
+                                                                    )}
+                                                                </div>
+                                                                <span className="truncate">{name}</span>
+                                                            </div>
+                                                            {isAssigned && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Description */}
                         <div>
                             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
@@ -980,24 +1120,54 @@ export function CreateIssueModal({
 
                             {attachments.length > 0 && (
                                 <div className="mt-2 space-y-1.5">
-                                    {attachments.map((att, idx) => (
-                                        <div key={idx} className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs">
-                                            <div className="flex items-center gap-2 truncate">
-                                                <Paperclip className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                                <span className="truncate font-medium text-gray-800">{att.fileName}</span>
-                                                {att.fileSize && (
-                                                    <span className="text-[10px] text-gray-400 shrink-0">({(att.fileSize / 1024).toFixed(1)} KB)</span>
-                                                )}
+                                    {attachments.map((att, idx) => {
+                                        const isImg = isImageFile(att.fileName, att.mimeType, att.fileUrl);
+                                        return (
+                                            <div key={idx} className="flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs hover:border-indigo-200 transition">
+                                                <div className="flex items-center gap-2.5 truncate min-w-0">
+                                                    {isImg ? (
+                                                        <div
+                                                            className="relative w-8 h-8 rounded border border-gray-200 bg-slate-900/5 shrink-0 overflow-hidden cursor-pointer group/thumb shadow-2xs"
+                                                            onClick={() => setPreviewModalImage({ url: att.fileUrl, name: att.fileName })}
+                                                            title="Click to view image preview"
+                                                        >
+                                                            <img src={att.fileUrl} alt={att.fileName} className="w-full h-full object-cover transition-transform duration-200 group-hover/thumb:scale-110" />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <Eye className="w-3.5 h-3.5 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <Paperclip className="w-4 h-4 text-indigo-500 shrink-0" />
+                                                    )}
+                                                    <span className="truncate font-medium text-gray-800">{att.fileName}</span>
+                                                    {att.fileSize && (
+                                                        <span className="text-[10px] text-gray-400 shrink-0">({(att.fileSize / 1024).toFixed(1)} KB)</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                                    {isImg && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setPreviewModalImage({ url: att.fileUrl, name: att.fileName })}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-md transition-colors cursor-pointer"
+                                                            title="View image preview"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5" />
+                                                            <span>View</span>
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                                        className="text-gray-400 hover:text-red-600 transition p-1.5 rounded-md hover:bg-red-50 cursor-pointer"
+                                                        title="Remove attachment"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
-                                                className="text-gray-400 hover:text-red-600 transition p-1"
-                                            >
-                                                <X className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -1032,8 +1202,8 @@ export function CreateIssueModal({
 
                                     {showStatusDropdown && (
                                         <>
-                                            <div className="fixed inset-0 z-10" onClick={() => setShowStatusDropdown(false)} />
-                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-64 overflow-hidden flex flex-col">
+                                            <div className="fixed inset-0 z-20" onClick={() => setShowStatusDropdown(false)} />
+                                            <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-64 overflow-hidden flex flex-col">
                                                 <div className="p-2 border-b border-gray-50 bg-gray-50/50">
                                                     <div className="relative">
                                                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -1157,112 +1327,6 @@ export function CreateIssueModal({
                             </div>
                         </div>
 
-                        {/* Assignees */}
-                        <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                                <Users className="w-3 h-3 text-gray-400" /> Assignees
-                            </label>
-
-                            {selectedMembers.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                    {selectedMembers.map((m) => {
-                                        const user = m?.user || m;
-                                        const uid = user?.id || m?.userId || m?.id;
-                                        const name = user?.name || user?.email || 'User';
-                                        return (
-                                            <span
-                                                key={uid}
-                                                className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-medium text-indigo-700"
-                                            >
-                                                <div
-                                                    className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0", getAvatarColor(name))}
-                                                >
-                                                    {user?.avatarUrl ? (
-                                                        <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        name.charAt(0).toUpperCase()
-                                                    )}
-                                                </div>
-                                                {name}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleAssignee(uid)}
-                                                    className="ml-0.5 p-0.5 hover:bg-indigo-100 rounded-full transition-colors"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                </button>
-                                            </span>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            <div className="relative">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAssigneePicker(!showAssigneePicker)}
-                                    className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
-                                >
-                                    <Users className="w-3.5 h-3.5" />
-                                    {selectedMembers.length === 0 ? 'Click to assign team members...' : 'Add more...'}
-                                </button>
-
-                                {showAssigneePicker && (
-                                    <>
-                                        <div className="fixed inset-0 z-10" onClick={() => setShowAssigneePicker(false)} />
-                                        <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
-                                            <div className="p-2 border-b border-gray-50 bg-gray-50/50">
-                                                <div className="relative">
-                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                                                    <input
-                                                        autoFocus
-                                                        type="text"
-                                                        placeholder="Search members..."
-                                                        value={assigneeSearch}
-                                                        onChange={(e) => setAssigneeSearch(e.target.value)}
-                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="overflow-y-auto custom-scrollbar flex-1">
-                                                {filteredMembers.map((m) => {
-                                                    const user = m?.user || m;
-                                                    const uid = user?.id || m?.userId || m?.id;
-                                                    const name = user?.name || user?.email || 'User';
-                                                    const isAssigned = formData.assigneeIds?.includes(uid);
-                                                    return (
-                                                        <button
-                                                            key={uid}
-                                                            type="button"
-                                                            onClick={() => toggleAssignee(uid)}
-                                                            className={cn(
-                                                                "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 transition-colors flex items-center justify-between gap-2",
-                                                                isAssigned ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700"
-                                                            )}
-                                                        >
-                                                            <div className="flex items-center gap-2 truncate">
-                                                                <div
-                                                                    className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0", getAvatarColor(name))}
-                                                                >
-                                                                    {user?.avatarUrl ? (
-                                                                        <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                                    ) : (
-                                                                        name.charAt(0).toUpperCase()
-                                                                    )}
-                                                                </div>
-                                                                <span className="truncate">{name}</span>
-                                                            </div>
-                                                            {isAssigned && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
                         {/* Buttons Footer */}
                         <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
                             <button
@@ -1283,6 +1347,40 @@ export function CreateIssueModal({
                     </form>
                 </div>
             </div>
+
+            {/* Image Preview Lightbox Modal */}
+            {previewModalImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn"
+                    onClick={() => setPreviewModalImage(null)}
+                >
+                    <div
+                        className="relative bg-white rounded-xl max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-gray-200 w-full"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                            <div className="flex items-center gap-2 truncate pr-4">
+                                <FileImage className="w-4 h-4 text-indigo-600 shrink-0" />
+                                <span className="font-bold text-xs text-gray-800 truncate">{previewModalImage.name}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setPreviewModalImage(null)}
+                                className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-4 bg-slate-900/5 flex items-center justify-center overflow-auto max-h-[calc(90vh-60px)]">
+                            <img
+                                src={previewModalImage.url}
+                                alt={previewModalImage.name}
+                                className="max-w-full max-h-[75vh] object-contain rounded shadow-md"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

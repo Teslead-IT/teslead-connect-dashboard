@@ -114,8 +114,8 @@ export function TaskViewModal({
     const [error, setError] = useState<string | null>(null);
     const [contentTab, setContentTab] = useState<'details' | 'timesheets' | 'issues'>('details');
 
-    const { taskListGroups, allTasksFlat } = useMemo(() => {
-        const allGroups: { phase: PhaseWithTaskLists; taskList: { id: string; name: string }; tasks: StructuredTask[] }[] = [];
+    const { allGroups, allTasksFlat } = useMemo(() => {
+        const groups: { phase: PhaseWithTaskLists; taskList: { id: string; name: string }; tasks: StructuredTask[] }[] = [];
         phases.forEach((phase) => {
             (phase.taskLists || []).forEach((taskList) => {
                 const tasks = taskList.tasks || [];
@@ -123,28 +123,32 @@ export function TaskViewModal({
                     items.flatMap((t) => [t, ...flattenTasks(t.children || [])]);
                 const allTasks = flattenTasks(tasks);
                 if (allTasks.length > 0) {
-                    allGroups.push({ phase, taskList, tasks: allTasks });
+                    groups.push({ phase, taskList, tasks: allTasks });
                 }
             });
         });
-        const allFlat = allGroups.flatMap((g) => g.tasks);
-        const taskIdForPhase = activeTaskId || selectedTaskId;
-        const phaseId = taskIdForPhase ? allGroups.find((g) => g.tasks.some((t) => t.id === taskIdForPhase))?.phase.id ?? null : null;
-        const groups = phaseId ? allGroups.filter((g) => g.phase.id === phaseId) : allGroups;
-        return { taskListGroups: groups, allTasksFlat: groups.flatMap((g) => g.tasks) };
-    }, [phases, activeTaskId, selectedTaskId]);
-    const activeTask = useMemo(() => allTasksFlat.find((t) => t.id === activeTaskId), [allTasksFlat, activeTaskId]);
+        const allFlat = groups.flatMap((g) => g.tasks);
+        return { allGroups: groups, allTasksFlat: allFlat };
+    }, [phases]);
+
+    const targetTaskId = activeTaskId || selectedTaskId;
+    const activeTask = useMemo(() => allTasksFlat.find((t) => t.id === targetTaskId), [allTasksFlat, targetTaskId]);
 
     const activeGroup = useMemo(() => {
-        if (!activeTaskId) return null;
-        return taskListGroups.find((g) => g.tasks.some((t) => t.id === activeTaskId));
-    }, [activeTaskId, taskListGroups]);
+        if (!targetTaskId) return null;
+        return allGroups.find((g) => g.tasks.some((t) => t.id === targetTaskId));
+    }, [targetTaskId, allGroups]);
+
+    const taskListGroups = useMemo(() => {
+        const phaseId = activeGroup?.phase.id;
+        return phaseId ? allGroups.filter((g) => g.phase.id === phaseId) : allGroups;
+    }, [allGroups, activeGroup]);
 
     const activeTaskListId = activeGroup?.taskList.id ?? null;
 
     useEffect(() => {
         if (isOpen) {
-            setActiveTaskId(selectedTaskId);
+            setActiveTaskId(selectedTaskId || null);
             setIsEditMode(!!startInEditMode);
             setContentTab('details');
             setError(null);
@@ -152,10 +156,10 @@ export function TaskViewModal({
     }, [isOpen, selectedTaskId, startInEditMode]);
 
     useEffect(() => {
-        if (!activeTaskId && allTasksFlat.length > 0 && isOpen) {
+        if (!activeTaskId && !selectedTaskId && allTasksFlat.length > 0 && isOpen) {
             setActiveTaskId(allTasksFlat[0].id);
         }
-    }, [allTasksFlat, activeTaskId, isOpen]);
+    }, [allTasksFlat, activeTaskId, selectedTaskId, isOpen]);
 
     const getHeaderTitle = (): string => {
         if (activeTask) return activeTask.title || 'Untitled Task';
@@ -1240,31 +1244,34 @@ function TaskEditForm({
                         {selectedMembers.length === 0 ? 'Assign team members...' : 'Add more...'}
                     </button>
                     {showAssigneePicker && (
-                        <div className={cn("absolute z-20 mt-1 w-full bg-white border border-gray-200 shadow-lg max-h-56 overflow-hidden", roundedMd)}>
-                            <div className="p-2 border-b border-gray-100">
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
-                                    <input type="text" placeholder="Search..." value={assigneeSearch} onChange={(e) => setAssigneeSearch(e.target.value)} className={cn("w-full pl-8 pr-3 py-1.5 text-xs border border-gray-100 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 bg-gray-50", rounded)} />
+                        <>
+                            <div className="fixed inset-0 z-20" onClick={() => setShowAssigneePicker(false)} />
+                            <div className={cn("absolute z-30 bottom-full mb-1 w-full bg-white border border-gray-200 shadow-xl max-h-56 overflow-hidden", roundedMd)}>
+                                <div className="p-2 border-b border-gray-100">
+                                    <div className="relative">
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                                        <input type="text" placeholder="Search..." value={assigneeSearch} onChange={(e) => setAssigneeSearch(e.target.value)} className={cn("w-full pl-8 pr-3 py-1.5 text-xs border border-gray-100 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 bg-gray-50", rounded)} />
+                                    </div>
+                                </div>
+                                <div className="overflow-y-auto max-h-44">
+                                    {filteredMembers.map((m) => {
+                                        const isSelected = formData.assigneeIds?.includes(m.user.id);
+                                        return (
+                                            <button key={m.user.id} type="button" onClick={() => toggleAssignee(m.user.id)} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50", isSelected && "bg-blue-50/50")}>
+                                                <span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white", m.user.avatarUrl ? '' : getAvatarColor(m.user.name))}>
+                                                    {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" /> : m.user.name.charAt(0).toUpperCase()}
+                                                </span>
+                                                <div className="flex-1 min-w-0 text-left">
+                                                    <div className="text-xs font-medium text-gray-800 truncate">{m.user.name}</div>
+                                                    <div className="text-[10px] text-gray-400 truncate">{m.user.email}</div>
+                                                </div>
+                                                {isSelected && <Check className="w-4 h-4 text-[var(--primary)]" />}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
-                            <div className="overflow-y-auto max-h-44">
-                                {filteredMembers.map((m) => {
-                                    const isSelected = formData.assigneeIds?.includes(m.user.id);
-                                    return (
-                                        <button key={m.user.id} type="button" onClick={() => toggleAssignee(m.user.id)} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50", isSelected && "bg-blue-50/50")}>
-                                            <span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white", m.user.avatarUrl ? '' : getAvatarColor(m.user.name))}>
-                                                {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" /> : m.user.name.charAt(0).toUpperCase()}
-                                            </span>
-                                            <div className="flex-1 min-w-0 text-left">
-                                                <div className="text-xs font-medium text-gray-800 truncate">{m.user.name}</div>
-                                                <div className="text-[10px] text-gray-400 truncate">{m.user.email}</div>
-                                            </div>
-                                            {isSelected && <Check className="w-4 h-4 text-[var(--primary)]" />}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
@@ -1292,18 +1299,20 @@ function TaskEditForm({
                         {selectedTesters.length === 0 ? 'Select testers...' : 'Add more testers...'}
                     </button>
                     {showTesterPicker && (
-                        <div className={cn("absolute z-20 mt-1 w-full bg-white border border-gray-200 shadow-lg max-h-56 overflow-hidden", roundedMd)}>
-                            <div className="p-2 border-b border-gray-100">
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
-                                    <input type="text" placeholder="Search testers..." value={testerSearch} onChange={(e) => setTesterSearch(e.target.value)} className={cn("w-full pl-8 pr-3 py-1.5 text-xs border border-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 bg-gray-50", rounded)} />
+                        <>
+                            <div className="fixed inset-0 z-20" onClick={() => setShowTesterPicker(false)} />
+                            <div className={cn("absolute z-30 bottom-full mb-1 w-full bg-white border border-gray-200 shadow-xl max-h-56 overflow-hidden", roundedMd)}>
+                                <div className="p-2 border-b border-gray-100">
+                                    <div className="relative">
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                                        <input type="text" placeholder="Search testers..." value={testerSearch} onChange={(e) => setTesterSearch(e.target.value)} className={cn("w-full pl-8 pr-3 py-1.5 text-xs border border-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 bg-gray-50", rounded)} />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="overflow-y-auto max-h-44">
-                                {filteredTesterMembers.map((m) => {
-                                    const isSelected = formData.testerIds?.includes(m.user.id);
-                                    return (
-                                        <button key={m.user.id} type="button" onClick={() => toggleTester(m.user.id)} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50", isSelected && "bg-indigo-50/50")}>
+                                <div className="overflow-y-auto max-h-44">
+                                    {filteredTesterMembers.map((m) => {
+                                        const isSelected = formData.testerIds?.includes(m.user.id);
+                                        return (
+                                            <button key={m.user.id} type="button" onClick={() => toggleTester(m.user.id)} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50", isSelected && "bg-indigo-50/50")}>
                                             <span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white", m.user.avatarUrl ? '' : getAvatarColor(m.user.name))}>
                                                 {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" /> : m.user.name.charAt(0).toUpperCase()}
                                             </span>
@@ -1315,8 +1324,9 @@ function TaskEditForm({
                                         </button>
                                     );
                                 })}
+                                </div>
                             </div>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>

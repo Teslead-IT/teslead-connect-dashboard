@@ -199,6 +199,7 @@ function TaskModalWrapper({
 
 export default function TasksPage() {
     const router = useRouter();
+    const toast = useToast();
     const searchParams = useSearchParams();
 
     const pageParam = parseInt(searchParams.get('page') || '1');
@@ -862,10 +863,19 @@ export default function TasksPage() {
                     onClose={() => setIsCreateTaskModalOpen(false)}
                     onSubmit={async (payload, targetProjectId) => {
                         if (!targetProjectId) return;
-                        await taskService.createTask(targetProjectId, payload);
-                        queryClient.invalidateQueries({ queryKey: taskKeys.all(targetProjectId) });
-                        queryClient.invalidateQueries({ queryKey: ['tasks', 'my-tasks'] });
-                        refetch();
+                        const tid = toast.loading('Creating task...');
+                        try {
+                            await taskService.createTask(targetProjectId, payload);
+                            toast.success('Task created successfully', undefined, { id: tid });
+                            queryClient.invalidateQueries({ queryKey: taskKeys.all(targetProjectId) });
+                            queryClient.invalidateQueries({ queryKey: ['tasks', 'my-tasks'] });
+                            refetch();
+                            setIsCreateTaskModalOpen(false);
+                        } catch (error: any) {
+                            const msg = error?.response?.data?.message || error?.message || 'Failed to create task';
+                            toast.error('Failed to create task', Array.isArray(msg) ? msg.join(', ') : msg, { id: tid });
+                            throw error;
+                        }
                     }}
                 />
             )}

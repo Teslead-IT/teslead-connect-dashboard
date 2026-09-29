@@ -16,6 +16,91 @@ export function getFileUrl(url: string | null | undefined): string {
 }
 
 /**
+ * Triggers a force download for a file URL rather than opening in a new browser tab.
+ */
+export async function downloadFile(fileUrl: string | null | undefined, fileName: string): Promise<void> {
+  if (!fileUrl) return;
+  const resolved = getFileUrl(fileUrl);
+  const cleanName = fileName || 'download';
+
+  // 1. Data URLs can be downloaded directly
+  if (resolved.startsWith('data:')) {
+    const link = document.createElement('a');
+    link.href = resolved;
+    link.download = cleanName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return;
+  }
+
+  // 2. Fetch blob & trigger blob URL download (Same-Origin blob: URL prevents navigation)
+  try {
+    const response = await fetch(resolved, { mode: 'cors' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = cleanName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
+    return;
+  } catch (err) {
+    console.warn('Direct fetch failed for file download, attempting canvas/img fallback:', err);
+  }
+
+  // 3. Offscreen canvas fallback for image files if fetch is blocked
+  const isImage = /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(resolved) || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(cleanName);
+  if (isImage) {
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject('No canvas context');
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => reject('Image load failed');
+        img.src = resolved;
+      });
+
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = cleanName.endsWith('.png') ? cleanName : `${cleanName}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    } catch (err) {
+      console.warn('Canvas image download fallback failed:', err);
+    }
+  }
+
+  // 4. Hidden iframe fallback to prevent full-page navigation
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = resolved;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 60000);
+  } catch {
+    window.open(resolved, '_blank');
+  }
+}
+
+/**
  * Utility function to merge Tailwind CSS classes with clsx
  */
 export function cn(...inputs: ClassValue[]) {
