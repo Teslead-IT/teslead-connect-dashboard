@@ -756,11 +756,11 @@ export default function ProjectsPage() {
             </div>
 
             <div className="flex-1 overflow-hidden p-0 bg-white">
-                {loading ? (
+                {loading && !projectsData ? (
                     <div className="flex flex-col items-center justify-center h-full space-y-4">
                         <Loader />
                     </div>
-                ) : error ? (
+                ) : error && !projectsData ? (
                     <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto text-center space-y-4">
                         <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-2">
                             <MoreVertical className="w-6 h-6 text-red-500" />
