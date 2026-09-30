@@ -83,7 +83,6 @@ export interface Task {
     testers?: TaskTester[];
     status: TaskStatus;
     type: TaskType;
-    startDate: string | null;
     startDateTime?: string | null;
     completionPercentage: number;
     tags?: Array<{
@@ -108,7 +107,6 @@ export interface CreateTaskPayload {
     type?: TaskType;
     taskListId?: string;
     phaseId?: string;
-    startDate?: string;
     startDateTime?: string;
     completionPercentage?: number;
     tagIds?: string[];
@@ -125,7 +123,6 @@ export interface UpdateTaskPayload {
     statusId?: string;
     type?: TaskType;
     parentId?: string | null;
-    startDate?: string;
     startDateTime?: string;
     completionPercentage?: number;
     tagIds?: string[];
@@ -191,7 +188,6 @@ export interface MyTask {
     assignees: MyTaskAssignee[];
     testers?: MyTaskTester[];
     tags: MyTaskTag[];
-    startDate: string | null;
     startDateTime?: string | null;
     completionPercentage: number;
     createdAt: string;

@@ -599,6 +599,32 @@ export default function TasksPage() {
         );
     };
 
+    const DateTimeRenderer = (props: ICellRendererParams) => {
+        const date = props.value;
+        if (!date) return <div className="h-full flex items-center text-gray-300">-</div>;
+
+        const targetDate = new Date(date);
+        if (Number.isNaN(targetDate.getTime())) {
+            return <div className="h-full flex items-center text-gray-300">-</div>;
+        }
+
+        const formatted = targetDate.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+
+        return (
+            <div className="h-full flex items-center">
+                <span className="text-[11px] font-medium text-gray-600" title={formatted}>
+                    {formatted}
+                </span>
+            </div>
+        );
+    };
+
     const columnDefs: ColDef[] = useMemo(
         () => [
             {
@@ -685,6 +711,12 @@ export default function TasksPage() {
                 width: 120,
                 cellRenderer: TestersRenderer,
                 sortable: false,
+            },
+            {
+                field: 'startDateTime',
+                headerName: 'START',
+                width: 160,
+                cellRenderer: DateTimeRenderer,
             },
             {
                 field: 'dueDate',

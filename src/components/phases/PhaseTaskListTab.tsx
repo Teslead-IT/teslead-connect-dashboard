@@ -107,6 +107,7 @@ interface FlatRow {
     testers?: Array<{ id: string; name: string; email: string; avatarUrl?: string }>;
     tags?: Array<{ id: string; name: string; color: string }>;
     startDate?: string | null;
+    startDateTime?: string | null;
     dueDate?: string | null;
     priority?: number;
     type?: TaskType;
@@ -444,7 +445,7 @@ export default function PhaseTaskListTab({
                                     createdBy: (task as any).createdBy || null,
                                     testers: task.testers || (task as any).testers,
                                     tags: task.tags,
-                                    startDate: null,
+                                    startDateTime: task.startDateTime ?? null,
                                     dueDate: task.dueDate,
                                     priority: task.priority,
                                     type: task.type,
@@ -759,9 +760,9 @@ export default function PhaseTaskListTab({
         },
         {
             headerName: 'Start Date',
-            field: 'startDate',
-            width: 120,
-            cellRenderer: DateCell,
+            field: 'startDateTime',
+            width: 150,
+            cellRenderer: DateTimeCell,
             cellClass: '!p-0',
         },
         {
@@ -2251,6 +2252,35 @@ function DateCell(params: ICellRendererParams) {
     return (
         <div className="flex items-center h-full px-2">
             <span className={cn('text-[11px] font-medium', isPast ? 'text-red-500' : 'text-gray-600')}>
+                {formatted}
+            </span>
+        </div>
+    );
+}
+
+function DateTimeCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
+
+    const dateStr = params.value || row.startDateTime;
+    if (!dateStr) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) {
+        return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+    }
+
+    const formatted = d.toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    return (
+        <div className="flex items-center h-full px-2">
+            <span className="text-[11px] font-medium text-gray-600" title={formatted}>
                 {formatted}
             </span>
         </div>
