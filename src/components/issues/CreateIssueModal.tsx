@@ -157,6 +157,8 @@ export function CreateIssueModal({
     const [newStatusName, setNewStatusName] = useState('');
     const [showAssigneePicker, setShowAssigneePicker] = useState(false);
     const [assigneeSearch, setAssigneeSearch] = useState('');
+    const [showTesterPicker, setShowTesterPicker] = useState(false);
+    const [testerSearch, setTesterSearch] = useState('');
 
     const filteredProjects = useMemo(() => {
         if (!projectSearch.trim()) return projects;
@@ -195,6 +197,7 @@ export function CreateIssueModal({
         dueDate: '',
         startDate: '',
         assigneeIds: [],
+        testerIds: [],
         tagIds: [],
     });
 
@@ -212,11 +215,18 @@ export function CreateIssueModal({
         if (isOpen) {
             const initialTask = initialValues?.taskId ? activeTasks.find(t => t.id === initialValues.taskId) : null;
             let taskAssignees: string[] = [];
+            let taskTesters: string[] = [];
             if (initialTask) {
                 if (Array.isArray(initialTask.assigneeIds) && initialTask.assigneeIds.length > 0) {
                     taskAssignees = initialTask.assigneeIds;
                 } else if (Array.isArray((initialTask as any).assignees) && (initialTask as any).assignees.length > 0) {
                     taskAssignees = (initialTask as any).assignees.map((a: any) => a.userId || a.id).filter(Boolean);
+                }
+
+                if (Array.isArray((initialTask as any).testerIds) && (initialTask as any).testerIds.length > 0) {
+                    taskTesters = (initialTask as any).testerIds;
+                } else if (Array.isArray((initialTask as any).testers) && (initialTask as any).testers.length > 0) {
+                    taskTesters = (initialTask as any).testers.map((t: any) => t.userId || t.user?.id || t.id).filter(Boolean);
                 }
             }
 
@@ -235,6 +245,7 @@ export function CreateIssueModal({
                 dueDate: '',
                 startDate: '',
                 assigneeIds: taskAssignees,
+                testerIds: taskTesters,
                 tagIds: [],
             });
             setError(null);
@@ -244,11 +255,14 @@ export function CreateIssueModal({
             setShowTaskDropdown(false);
             setShowStatusDropdown(false);
             setShowAssigneePicker(false);
+            setShowTesterPicker(false);
             setIsCreatingStatus(false);
             setNewStatusName('');
             setTaskSearch('');
             setPhaseSearch('');
             setTaskListSearch('');
+            setAssigneeSearch('');
+            setTesterSearch('');
             setAttachments([]);
         }
     }, [isOpen, defaultStatusId, initialValues?.phaseId, initialValues?.taskListId, initialValues?.taskId, activeTasks]);
@@ -299,6 +313,25 @@ export function CreateIssueModal({
         [activeMembers, formData.assigneeIds]
     );
 
+    const filteredTesterMembers = useMemo(() => {
+        if (!testerSearch.trim()) return activeMembers;
+        const q = testerSearch.toLowerCase();
+        return activeMembers.filter(m => {
+            const user = m?.user || m;
+            const name = user?.name || '';
+            const email = user?.email || '';
+            return name.toLowerCase().includes(q) || email.toLowerCase().includes(q);
+        });
+    }, [activeMembers, testerSearch]);
+
+    const selectedTesterMembers = useMemo(() =>
+        activeMembers.filter(m => {
+            const uid = m?.user?.id || m?.userId || m?.id;
+            return uid && formData.testerIds?.includes(uid);
+        }),
+        [activeMembers, formData.testerIds]
+    );
+
     const currentStatus = allStatuses.find(s => s.id === formData.statusId);
     const currentPriority = PRIORITY_OPTIONS.find(p => p.value === formData.priority) || PRIORITY_OPTIONS[2];
 
@@ -332,11 +365,20 @@ export function CreateIssueModal({
         }
 
         let taskAssigneeIds: string[] = [];
+        let taskTesterIds: string[] = [];
         if (Array.isArray(t.assigneeIds) && t.assigneeIds.length > 0) {
             taskAssigneeIds = t.assigneeIds;
         } else if (Array.isArray((t as any).assignees) && (t as any).assignees.length > 0) {
             taskAssigneeIds = (t as any).assignees
                 .map((a: any) => a.userId || a.id)
+                .filter(Boolean);
+        }
+
+        if (Array.isArray((t as any).testerIds) && (t as any).testerIds.length > 0) {
+            taskTesterIds = (t as any).testerIds;
+        } else if (Array.isArray((t as any).testers) && (t as any).testers.length > 0) {
+            taskTesterIds = (t as any).testers
+                .map((x: any) => x.userId || x.user?.id || x.id)
                 .filter(Boolean);
         }
 
@@ -347,6 +389,7 @@ export function CreateIssueModal({
             taskListId: t.taskListId || prev.taskListId,
             expectedOutput: t.expectedOutput || prev.expectedOutput || '',
             assigneeIds: taskAssigneeIds.length > 0 ? taskAssigneeIds : prev.assigneeIds,
+            testerIds: taskTesterIds.length > 0 ? taskTesterIds : prev.testerIds,
         }));
     };
 
@@ -357,6 +400,16 @@ export function CreateIssueModal({
                 ? current.filter(id => id !== userId)
                 : [...current, userId];
             return { ...prev, assigneeIds: next };
+        });
+    };
+
+    const toggleTester = (userId: string) => {
+        setFormData(prev => {
+            const current = prev.testerIds || [];
+            const next = current.includes(userId)
+                ? current.filter(id => id !== userId)
+                : [...current, userId];
+            return { ...prev, testerIds: next };
         });
     };
 
@@ -905,109 +958,218 @@ export function CreateIssueModal({
                             </div>
                         </div>
 
-                        {/* Assignees */}
-                        <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                                <Users className="w-3 h-3 text-gray-400" /> Assignees
-                            </label>
+                        {/* Assignees and Tested By in Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Assignees */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                    <Users className="w-3 h-3 text-gray-400" /> Assignees
+                                </label>
 
-                            {selectedMembers.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                    {selectedMembers.map((m) => {
-                                        const user = m?.user || m;
-                                        const uid = user?.id || m?.userId || m?.id;
-                                        const name = user?.name || user?.email || 'User';
-                                        return (
-                                            <span
-                                                key={uid}
-                                                className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-medium text-indigo-700"
-                                            >
-                                                <div
-                                                    className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0", getAvatarColor(name))}
+                                {selectedMembers.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                        {selectedMembers.map((m) => {
+                                            const user = m?.user || m;
+                                            const uid = user?.id || m?.userId || m?.id;
+                                            const name = user?.name || user?.email || 'User';
+                                            return (
+                                                <span
+                                                    key={uid}
+                                                    className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-medium text-indigo-700"
                                                 >
-                                                    {user?.avatarUrl ? (
-                                                        <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        name.charAt(0).toUpperCase()
-                                                    )}
-                                                </div>
-                                                {name}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleAssignee(uid)}
-                                                    className="ml-0.5 p-0.5 hover:bg-indigo-100 rounded-full transition-colors"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                </button>
-                                            </span>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            <div className="relative">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAssigneePicker(!showAssigneePicker)}
-                                    className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
-                                >
-                                    <Users className="w-3.5 h-3.5" />
-                                    {selectedMembers.length === 0 ? 'Click to assign team members...' : 'Add more...'}
-                                </button>
-
-                                {showAssigneePicker && (
-                                    <>
-                                        <div className="fixed inset-0 z-20" onClick={() => setShowAssigneePicker(false)} />
-                                        <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
-                                            <div className="p-2 border-b border-gray-50 bg-gray-50/50">
-                                                <div className="relative">
-                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                                                    <input
-                                                        autoFocus
-                                                        type="text"
-                                                        placeholder="Search members..."
-                                                        value={assigneeSearch}
-                                                        onChange={(e) => setAssigneeSearch(e.target.value)}
-                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="overflow-y-auto custom-scrollbar flex-1">
-                                                {filteredMembers.map((m) => {
-                                                    const user = m?.user || m;
-                                                    const uid = user?.id || m?.userId || m?.id;
-                                                    const name = user?.name || user?.email || 'User';
-                                                    const isAssigned = formData.assigneeIds?.includes(uid);
-                                                    return (
-                                                        <button
-                                                            key={uid}
-                                                            type="button"
-                                                            onClick={() => toggleAssignee(uid)}
-                                                            className={cn(
-                                                                "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 transition-colors flex items-center justify-between gap-2",
-                                                                isAssigned ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700"
-                                                            )}
-                                                        >
-                                                            <div className="flex items-center gap-2 truncate">
-                                                                <div
-                                                                    className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0", getAvatarColor(name))}
-                                                                >
-                                                                    {user?.avatarUrl ? (
-                                                                        <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                                    ) : (
-                                                                        name.charAt(0).toUpperCase()
-                                                                    )}
-                                                                </div>
-                                                                <span className="truncate">{name}</span>
-                                                            </div>
-                                                            {isAssigned && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </>
+                                                    <div
+                                                        className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0", getAvatarColor(name))}
+                                                    >
+                                                        {user?.avatarUrl ? (
+                                                            <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            name.charAt(0).toUpperCase()
+                                                        )}
+                                                    </div>
+                                                    {name}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleAssignee(uid)}
+                                                        className="ml-0.5 p-0.5 hover:bg-indigo-100 rounded-full transition-colors"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
                                 )}
+
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAssigneePicker(!showAssigneePicker)}
+                                        className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                    >
+                                        <Users className="w-3.5 h-3.5" />
+                                        {selectedMembers.length === 0 ? 'Click to assign team members...' : 'Add more...'}
+                                    </button>
+
+                                    {showAssigneePicker && (
+                                        <>
+                                            <div className="fixed inset-0 z-20" onClick={() => setShowAssigneePicker(false)} />
+                                            <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
+                                                <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            placeholder="Search members..."
+                                                            value={assigneeSearch}
+                                                            onChange={(e) => setAssigneeSearch(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="overflow-y-auto custom-scrollbar flex-1">
+                                                    {filteredMembers.map((m) => {
+                                                        const user = m?.user || m;
+                                                        const uid = user?.id || m?.userId || m?.id;
+                                                        const name = user?.name || user?.email || 'User';
+                                                        const isAssigned = formData.assigneeIds?.includes(uid);
+                                                        return (
+                                                            <button
+                                                                key={uid}
+                                                                type="button"
+                                                                onClick={() => toggleAssignee(uid)}
+                                                                className={cn(
+                                                                    "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 transition-colors flex items-center justify-between gap-2",
+                                                                    isAssigned ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-2 truncate">
+                                                                    <div
+                                                                        className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0", getAvatarColor(name))}
+                                                                    >
+                                                                        {user?.avatarUrl ? (
+                                                                            <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                                        ) : (
+                                                                            name.charAt(0).toUpperCase()
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="truncate">{name}</span>
+                                                                </div>
+                                                                {isAssigned && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Tested By (Testers) */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                    <Eye className="w-3 h-3 text-indigo-500" /> Tested By
+                                </label>
+
+                                {selectedTesterMembers.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                        {selectedTesterMembers.map((m) => {
+                                            const user = m?.user || m;
+                                            const uid = user?.id || m?.userId || m?.id;
+                                            const name = user?.name || user?.email || 'User';
+                                            return (
+                                                <span
+                                                    key={uid}
+                                                    className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-purple-50 border border-purple-100 text-xs font-medium text-purple-700"
+                                                >
+                                                    <div
+                                                        className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0 bg-indigo-600")}
+                                                    >
+                                                        {user?.avatarUrl ? (
+                                                            <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            name.charAt(0).toUpperCase()
+                                                        )}
+                                                    </div>
+                                                    {name}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleTester(uid)}
+                                                        className="ml-0.5 p-0.5 hover:bg-purple-100 rounded-full transition-colors"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowTesterPicker(!showTesterPicker)}
+                                        className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                    >
+                                        <Eye className="w-3.5 h-3.5" />
+                                        {selectedTesterMembers.length === 0 ? 'Click to select testers...' : 'Add more testers...'}
+                                    </button>
+
+                                    {showTesterPicker && (
+                                        <>
+                                            <div className="fixed inset-0 z-20" onClick={() => setShowTesterPicker(false)} />
+                                            <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
+                                                <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            placeholder="Search testers..."
+                                                            value={testerSearch}
+                                                            onChange={(e) => setTesterSearch(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="overflow-y-auto custom-scrollbar flex-1">
+                                                    {filteredTesterMembers.map((m) => {
+                                                        const user = m?.user || m;
+                                                        const uid = user?.id || m?.userId || m?.id;
+                                                        const name = user?.name || user?.email || 'User';
+                                                        const isSelected = formData.testerIds?.includes(uid);
+                                                        return (
+                                                            <button
+                                                                key={uid}
+                                                                type="button"
+                                                                onClick={() => toggleTester(uid)}
+                                                                className={cn(
+                                                                    "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 transition-colors flex items-center justify-between gap-2",
+                                                                    isSelected ? "bg-purple-50 text-purple-700 font-semibold" : "text-gray-700"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-2 truncate">
+                                                                    <div
+                                                                        className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0 bg-indigo-600")}
+                                                                    >
+                                                                        {user?.avatarUrl ? (
+                                                                            <img src={user.avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                                        ) : (
+                                                                            name.charAt(0).toUpperCase()
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="truncate">{name}</span>
+                                                                </div>
+                                                                {isSelected && <Check className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

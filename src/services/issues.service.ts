@@ -66,6 +66,22 @@ export const issueService = {
     },
 
     /**
+     * Add tester to issue
+     */
+    async addTester(issueId: string, userId: string): Promise<Issue> {
+        const response = await apiClient.post<Issue>(`/issues/${issueId}/testers`, { userId });
+        return response.data;
+    },
+
+    /**
+     * Remove tester from issue
+     */
+    async removeTester(issueId: string, userId: string): Promise<{ message: string }> {
+        const response = await apiClient.delete<{ message: string }>(`/issues/${issueId}/testers/${userId}`);
+        return response.data;
+    },
+
+    /**
      * Get issues assigned to current user (My Issues - paginated)
      */
     async getMyIssues(params?: {

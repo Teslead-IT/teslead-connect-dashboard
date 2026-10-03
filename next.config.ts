@@ -2,14 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  // Next `dev` = 3041, `start` = 3042 — allow LAN + localhost for both
+  // Hostnames only (no protocol/port) — Next compares Origin hostname against this list
   allowedDevOrigins: [
-    'localhost:3041',
-    'localhost:3042',
-    '192.168.1.196:3041',
-    '192.168.1.196:3042',
-    '10.131.159.226:3041',
-    '10.131.159.226:3042',
+    '192.168.1.203',
+    '10.131.159.226',
   ],
 };
 
