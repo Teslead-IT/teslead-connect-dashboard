@@ -7,6 +7,7 @@ import Dialog from '@/components/ui/Dialog';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
+import { format } from 'date-fns';
 import {
     Save,
     Trash2,
@@ -21,8 +22,13 @@ import {
     X,
     Printer,
     ChevronDown,
+    RotateCcw,
+    Pencil,
+    Minimize2,
+    Maximize2,
 } from 'lucide-react';
 import { MomPrintModal } from '@/components/meetings/MomPrintModal';
+import { ImportPreviousMeetingModal } from '@/components/meetings/ImportPreviousMeetingModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { useOrgStore } from '@/stores/orgStore';
@@ -55,6 +61,22 @@ function getAttendedPeopleCount(attendedByStr: string): number {
     return attendedByStr.split(',').map((s) => s.trim()).filter(Boolean).length;
 }
 
+function formatMeetingDateTimeDisplay(meetingDateStr?: string, timeStr?: string): string {
+    if (!meetingDateStr) return '—';
+    try {
+        const iso = timeStr ? `${meetingDateStr}T${timeStr}` : meetingDateStr;
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) {
+            const [y, m, day] = meetingDateStr.split('-');
+            if (y && m && day) return `${m}/${day}/${y}, ${timeStr || ''}`;
+            return `${meetingDateStr} ${timeStr || ''}`;
+        }
+        return format(d, 'MM/dd/yyyy, hh:mm a');
+    } catch {
+        return `${meetingDateStr} ${timeStr || ''}`;
+    }
+}
+
 export function MeetingForm({
     meetingId,
     defaultDate,
@@ -73,8 +95,19 @@ export function MeetingForm({
 
     const { data: meeting, isLoading } = useMeeting(meetingId || '');
 
-    const isOwner = activeOrgRole === 'OWNER' 
-    const isMetadataReadOnly = readOnly || (!isNew && !isOwner);
+    const isOwner = activeOrgRole === 'OWNER';
+    const isAdmin = activeOrgRole === 'ADMIN';
+    const isCreator =
+        !!currentUser?.id &&
+        !!(meeting?.createdById === currentUser.id || meeting?.createdBy?.id === currentUser.id);
+    const canManageMeeting = isNew || isOwner || isAdmin || isCreator;
+    const [isEditingState, setIsEditingState] = useState<boolean>(isEditing);
+
+    useEffect(() => {
+        setIsEditingState(isEditing);
+    }, [isEditing]);
+
+    const isMetadataReadOnly = readOnly || (!isNew && !isEditingState);
 
     const { mutateAsync: createMeeting, isPending: isCreating } = useCreateMeeting();
     const { mutateAsync: updateMeeting, isPending: isUpdating } = useUpdateMeeting();
@@ -113,10 +146,54 @@ export function MeetingForm({
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showMomPrintModal, setShowMomPrintModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [printModalMode, setPrintModalMode] = useState<'internal' | 'client'>('internal');
     const [showPrintDropdown, setShowPrintDropdown] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const isInitializedRef = useRef(false);
     const lastMeetingIdRef = useRef(meetingId);
+
+    // ESC key to exit fullscreen
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                setIsFullscreen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFullscreen]);
+
+    const handleImportData = (importedData: {
+        location?: string;
+        purpose?: string;
+        attendedBy?: string;
+        absentees?: string;
+        numberOfPeople?: number;
+        rows: any[];
+    }) => {
+        setFormData((prev) => {
+            const newAttendedBy = importedData.attendedBy ?? prev.attendedBy;
+            const newAbsentees = importedData.absentees ?? prev.absentees;
+            const newLocation = importedData.location || prev.location;
+            const newPurpose = importedData.purpose || prev.purpose;
+            const newCount = getAttendedPeopleCount(newAttendedBy) || importedData.numberOfPeople || prev.numberOfPeople;
+
+            return {
+                ...prev,
+                location: newLocation,
+                purpose: newPurpose,
+                attendedBy: newAttendedBy,
+                absentees: newAbsentees,
+                numberOfPeople: newCount,
+                content: {
+                    type: 'discussionTable',
+                    rows: importedData.rows,
+                },
+            };
+        });
+        success(`Imported ${importedData.rows.length} item(s) from previous meeting (completed items ignored)`);
+    };
 
     // Helper to update attendedBy and sync numberOfPeople count automatically
     const updateAttendedBy = (newAttendedBy: string) => {
@@ -233,11 +310,38 @@ export function MeetingForm({
                     projectId: primaryProjectId || null as any,
                 });
                 success('Meeting saved successfully');
+                if (!isNew) {
+                    setIsEditingState(false);
+                }
                 onSaved?.();
             }
         } catch (error) {
             console.error('Failed to save meeting:', error);
             showError('Failed to Save', 'Something went wrong while saving the record.');
+        }
+    };
+
+    const handleCancelEdit = () => {
+        if (isNew) {
+            onCancel?.();
+        } else {
+            if (meeting) {
+                const countFromAttended = getAttendedPeopleCount(meeting.attendedBy || '');
+                setFormData({
+                    title: meeting.title || '',
+                    location: meeting.location || '',
+                    purpose: meeting.purpose || '',
+                    numberOfPeople: meeting.numberOfPeople || countFromAttended,
+                    attendedBy: meeting.attendedBy || '',
+                    absentees: meeting.absentees || '',
+                    content: meeting.content || null,
+                    meetingDate: meeting.meetingDate
+                        ? new Date(meeting.meetingDate).toISOString().split('T')[0]
+                        : '',
+                    time: meeting.time || '',
+                });
+            }
+            setIsEditingState(false);
         }
     };
 
@@ -291,84 +395,151 @@ export function MeetingForm({
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs bg-[#091590] flex-shrink-0">
                         M
                     </div>
-                    <input
-                        type="text"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="Enter The Meeting Title *"
-                        readOnly={isMetadataReadOnly}
-                        className={cn(
-                            "text-lg font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]",
-                            isMetadataReadOnly && "cursor-default text-gray-800"
-                        )}
-                    />
+                    {!isEditingState && !isNew ? (
+                        <h1 className="text-lg font-bold text-gray-900 truncate">
+                            {formData.title || 'Untitled Meeting'}
+                        </h1>
+                    ) : (
+                        <input
+                            type="text"
+                            value={formData.title}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            placeholder="Enter The Meeting Title *"
+                            readOnly={isMetadataReadOnly}
+                            className={cn(
+                                "text-lg font-bold text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-gray-400 flex-1 min-w-[120px]",
+                                isMetadataReadOnly && "cursor-default text-gray-800"
+                            )}
+                        />
+                    )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    {!isEditing && (
-                        <div className="relative">
-                            <div className="inline-flex items-center rounded-lg shadow-sm bg-emerald-700 hover:bg-emerald-800 text-white transition-colors">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setPrintModalMode('internal');
-                                        setShowMomPrintModal(true);
-                                    }}
-                                    className="inline-flex items-center gap-1.5 h-7 px-2.5 font-bold text-[10px] uppercase tracking-wider cursor-pointer border-r border-emerald-600/60 hover:bg-emerald-800/80 rounded-l-lg transition-colors"
-                                    title="Preview & Print Internal MOM Document"
-                                >
-                                    <Printer className="w-3.5 h-3.5" />
-                                    <span>Print MOM</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPrintDropdown(!showPrintDropdown)}
-                                    className="h-7 px-1.5 flex items-center justify-center hover:bg-emerald-800/80 rounded-r-lg cursor-pointer transition-colors"
-                                    title="Select MOM Print Format"
-                                >
-                                    <ChevronDown className="w-3.5 h-3.5" />
-                                </button>
+                    {!isEditingState && !isNew && (
+                        <>
+                            <div className="relative">
+                                <div className="inline-flex items-center rounded-lg shadow-sm bg-emerald-700 hover:bg-emerald-800 text-white transition-colors">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPrintModalMode('internal');
+                                            setShowMomPrintModal(true);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 h-7 px-2.5 font-bold text-[10px] uppercase tracking-wider cursor-pointer border-r border-emerald-600/60 hover:bg-emerald-800/80 rounded-l-lg transition-colors"
+                                        title="Preview & Print Internal MOM Document"
+                                    >
+                                        <Printer className="w-3.5 h-3.5" />
+                                        <span>Print MOM</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPrintDropdown(!showPrintDropdown)}
+                                        className="h-7 px-1.5 flex items-center justify-center hover:bg-emerald-800/80 rounded-r-lg cursor-pointer transition-colors"
+                                        title="Select MOM Print Format"
+                                    >
+                                        <ChevronDown className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+
+                                {showPrintDropdown && (
+                                    <>
+                                        <div className="fixed inset-0 z-[60]" onClick={() => setShowPrintDropdown(false)} />
+                                        <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-[70] py-1 text-gray-900 text-xs font-semibold animate-in fade-in duration-150">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setPrintModalMode('internal');
+                                                    setShowMomPrintModal(true);
+                                                    setShowPrintDropdown(false);
+                                                }}
+                                                className="w-full text-left px-3.5 py-2 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer text-gray-800"
+                                            >
+                                                <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                <div>
+                                                    <p className="font-bold text-[11px]">Print MOM (Internal)</p>
+                                                    <p className="text-[9px] text-gray-500 font-normal">All columns included</p>
+                                                </div>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setPrintModalMode('client');
+                                                    setShowMomPrintModal(true);
+                                                    setShowPrintDropdown(false);
+                                                }}
+                                                className="w-full text-left px-3.5 py-2 hover:bg-amber-50/70 flex items-center gap-2.5 transition-colors cursor-pointer text-gray-800 border-t border-gray-100"
+                                            >
+                                                <UserCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                                                <div>
+                                                    <p className="font-bold text-[11px]">Print MOM (Client)</p>
+                                                    <p className="text-[9px] text-amber-700 font-normal">Removes Status & Assigned To</p>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
-                            {showPrintDropdown && (
-                                <>
-                                    <div className="fixed inset-0 z-[60]" onClick={() => setShowPrintDropdown(false)} />
-                                    <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-[70] py-1 text-gray-900 text-xs font-semibold animate-in fade-in duration-150">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setPrintModalMode('internal');
-                                                setShowMomPrintModal(true);
-                                                setShowPrintDropdown(false);
-                                            }}
-                                            className="w-full text-left px-3.5 py-2 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer text-gray-800"
-                                        >
-                                            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                                            <div>
-                                                <p className="font-bold text-[11px]">Print MOM (Internal)</p>
-                                                <p className="text-[9px] text-gray-500 font-normal">All columns included</p>
-                                            </div>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setPrintModalMode('client');
-                                                setShowMomPrintModal(true);
-                                                setShowPrintDropdown(false);
-                                            }}
-                                            className="w-full text-left px-3.5 py-2 hover:bg-amber-50/70 flex items-center gap-2.5 transition-colors cursor-pointer text-gray-800 border-t border-gray-100"
-                                        >
-                                            <UserCheck className="w-4 h-4 text-amber-600 shrink-0" />
-                                            <div>
-                                                <p className="font-bold text-[11px]">Print MOM (Client)</p>
-                                                <p className="text-[9px] text-amber-700 font-normal">Removes Status & Assigned To</p>
-                                            </div>
-                                        </button>
-                                    </div>
-                                </>
+                            {!readOnly && canManageMeeting && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditingState(true)}
+                                    className="inline-flex items-center justify-center gap-1.5 h-7 px-3 bg-[#091590] text-white hover:bg-[#071170] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer"
+                                >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    <span>Edit</span>
+                                </button>
                             )}
-                        </div>
+                        </>
                     )}
-                    {!readOnly && !isNew && isOwner && (
+
+                    {isEditingState && (
+                        <>
+                            {!readOnly && isNew && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowImportModal(true)}
+                                    className="inline-flex items-center justify-center gap-1.5 h-7 px-3 bg-[#091590]/10 hover:bg-[#091590]/20 text-[#091590] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors border border-[#091590]/20 shadow-sm cursor-pointer"
+                                    title="Fetch and pre-fill data from a previous meeting"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Import Previous Data</span>
+                                </button>
+                            )}
+
+                            {!readOnly && (
+                                <button
+                                    type="button"
+                                    onClick={handleCancelEdit}
+                                    disabled={isSaving}
+                                    className="inline-flex items-center justify-center gap-1 h-7 px-3 bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-[0.98] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors duration-200 border border-gray-200 cursor-pointer disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                            )}
+
+                            {!readOnly && (
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    className="inline-flex items-center justify-center gap-1 h-7 px-3 bg-[#091590] text-white hover:bg-[#071170] active:scale-[0.98] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors duration-200 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            <span>{isNew ? 'Creating...' : 'Saving...'}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="w-3 h-3" />
+                                            <span>{isNew ? 'Create' : 'Update'}</span>
+                                        </>
+                                    )}
+                                </button>
+                            )}
+                        </>
+                    )}
+
+                    {!readOnly && !isNew && canManageMeeting && (
                         <button
                             type="button"
                             onClick={() => setShowDeleteModal(true)}
@@ -378,47 +549,6 @@ export function MeetingForm({
                         >
                             <Trash2 className="w-3.5 h-3.5" />
                             <span>Delete</span>
-                        </button>
-                    )}
-                    {!readOnly && isDraft && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handlePublish}
-                            disabled={isPublishing || isSaving}
-                            className="h-7 px-2.5 font-bold text-[10px] uppercase tracking-wider text-green-600 border border-green-200 hover:bg-green-50"
-                        >
-                            <Send className="w-3 h-3 mr-1" />
-                            {isPublishing ? '...' : 'Publish'}
-                        </Button>
-                    )}
-                    {!readOnly && !isNew && onCancel && (
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            disabled={isSaving}
-                            className="inline-flex items-center justify-center gap-1 h-7 px-3 bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-[0.98] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors duration-200 border border-gray-200 disabled:opacity-50"
-                        >
-                            Cancel
-                        </button>
-                    )}
-                    {!readOnly && (
-                        <button
-                            onClick={handleSave}
-                            disabled={isSaving}
-                            className="inline-flex items-center justify-center gap-1 h-7 px-3 bg-[#091590] text-white hover:bg-[#071170] active:scale-[0.98] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isSaving ? (
-                                <>
-                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    <span>{isNew ? 'Creating...' : 'Saving...'}</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="w-3 h-3" />
-                                    <span>{isNew ? 'Create' : 'Update'}</span>
-                                </>
-                            )}
                         </button>
                     )}
                 </div>
@@ -436,56 +566,62 @@ export function MeetingForm({
                                     <MapPin className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
                                     Location
                                 </label>
-                                <input
-                                    type="text"
-                                    value={formData.location}
-                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    placeholder={isMetadataReadOnly ? "No location set" : "Physical or Digital Link"}
-                                    readOnly={isMetadataReadOnly}
-                                    className={cn(
-                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400",
-                                        isMetadataReadOnly && "bg-gray-50/50 cursor-default"
-                                    )}
-                                />
+                                {isMetadataReadOnly ? (
+                                    <div className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-900 min-h-[38px] flex items-center">
+                                        {formData.location || '—'}
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="text"
+                                        value={formData.location}
+                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                        placeholder="Physical or Digital Link"
+                                        className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400"
+                                    />
+                                )}
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <Calendar className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
                                     Date & Time <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="datetime-local"
-                                    value={formData.meetingDate && formData.time ? `${formData.meetingDate}T${formData.time}` : ''}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val) {
-                                            const [date, time] = val.split('T');
-                                            setFormData({ ...formData, meetingDate: date, time: time });
-                                        }
-                                    }}
-                                    readOnly={isMetadataReadOnly}
-                                    className={cn(
-                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900",
-                                        isMetadataReadOnly && "bg-gray-50/50 cursor-default"
-                                    )}
-                                />
+                                {isMetadataReadOnly ? (
+                                    <div className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-900 min-h-[38px] flex items-center">
+                                        {formatMeetingDateTimeDisplay(formData.meetingDate, formData.time)}
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="datetime-local"
+                                        value={formData.meetingDate && formData.time ? `${formData.meetingDate}T${formData.time}` : ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val) {
+                                                const [date, time] = val.split('T');
+                                                setFormData({ ...formData, meetingDate: date, time: time });
+                                            }
+                                        }}
+                                        className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900"
+                                    />
+                                )}
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
                                     <Users className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
                                     People
                                 </label>
-                                <input
-                                    type="number"
-                                    value={formData.numberOfPeople}
-                                    onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
-                                    min="0"
-                                    readOnly={isMetadataReadOnly}
-                                    className={cn(
-                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900",
-                                        isMetadataReadOnly && "bg-gray-50/50 cursor-default"
-                                    )}
-                                />
+                                {isMetadataReadOnly ? (
+                                    <div className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-900 min-h-[38px] flex items-center">
+                                        {formData.numberOfPeople || 0}
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="number"
+                                        value={formData.numberOfPeople}
+                                        onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 0 })}
+                                        min="0"
+                                        className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900"
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -496,17 +632,19 @@ export function MeetingForm({
                                     <FileText className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
                                     Purpose
                                 </label>
-                                <textarea
-                                    value={formData.purpose}
-                                    onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                                    placeholder={isMetadataReadOnly ? "No purpose specified" : "Objective of the session..."}
-                                    rows={2}
-                                    readOnly={isMetadataReadOnly}
-                                    className={cn(
-                                        "w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400 resize-none",
-                                        isMetadataReadOnly && "bg-gray-50/50 cursor-default"
-                                    )}
-                                />
+                                {isMetadataReadOnly ? (
+                                    <div className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-900 whitespace-pre-wrap min-h-[60px]">
+                                        {formData.purpose || '—'}
+                                    </div>
+                                ) : (
+                                    <textarea
+                                        value={formData.purpose}
+                                        onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                                        placeholder="Objective of the session..."
+                                        rows={2}
+                                        className="w-full bg-white px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#091590] transition-colors text-xs font-medium text-gray-900 placeholder:text-gray-400 resize-none"
+                                    />
+                                )}
                             </div>
                             <div className="relative space-y-1">
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
@@ -736,21 +874,54 @@ export function MeetingForm({
                     {/* Discussion Area Table */}
                     <div className="pt-1 space-y-1">
                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1 flex items-center justify-between">
-                            <span>
+                            <div className='flex flex-col'>
+                                <span>
                                 <MessageSquare className="w-3 h-3 text-[#091590] inline-block mr-1 -mt-0.5" />
                                 Discussion Area <span className="text-red-500">*</span>
                             </span>
-                            <span className="text-[10px] text-gray-400 font-medium normal-case">
-                                Type @ or # to search & mention users/projects
+                             <span className="text-[10px] text-gray-400 font-medium normal-case">
+                                    Type @ or # to search & mention users/projects
                             </span>
+                            </div>
+                            <div className='flex flex-col'>
+                                <button
+                                type="button"
+                                onClick={() => setIsFullscreen(!isFullscreen)}
+                                className={cn(
+                                    "inline-flex items-center gap-1.5 px-3 py-1.5 font-bold text-xs rounded-lg transition-all shadow-2xs cursor-pointer border",
+                                    isFullscreen
+                                        ? "bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300"
+                                        : "bg-white hover:bg-slate-100 text-[#091590] border-blue-200 hover:border-[#091590]"
+                                )}
+                                title={isFullscreen ? "Exit Full Screen (ESC)" : "Expand Table to Full Screen"}
+                            >
+                                {isFullscreen ? (
+                                    <>
+                                        <Minimize2 className="w-3.5 h-3.5 text-gray-700" />
+                                        <span>Exit Full Screen</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Maximize2 className="w-3.5 h-3.5 text-[#091590]" />
+                                        <span>Expand Table</span>
+                                    </>
+                                )}
+                            </button>
+                            </div>
                         </label>
                         <DiscussionAreaTable
+                            isFullScreen={isFullscreen}
+                            onExitFullScreen={() => setIsFullscreen(false)}
                             content={formData.content}
                             onChange={(jsonPayload) => setFormData({ ...formData, content: jsonPayload })}
-                            readOnly={readOnly}
+                            readOnly={!isEditingState || readOnly}
                             userRole={activeOrgRole}
+                            canManageMeeting={canManageMeeting}
                             currentUserId={currentUser?.id ?? undefined}
                             currentUserName={currentUser?.name ?? undefined}
+                            onSave={handleSave}
+                            isSaving={isSaving}
+                            isNew={isNew}
                         />
                     </div>
                 </div>
@@ -785,6 +956,14 @@ export function MeetingForm({
                     meetingDate: formData.meetingDate,
                     content: formData.content,
                 }}
+            />
+
+            {/* Import Previous Data Modal */}
+            <ImportPreviousMeetingModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                currentMeetingDate={formData.meetingDate || defaultDate}
+                onImport={handleImportData}
             />
         </div>
     );

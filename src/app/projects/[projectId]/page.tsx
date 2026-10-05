@@ -32,7 +32,7 @@ import {
     Pencil,
     Trash2,
 } from 'lucide-react';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
 // import { projectsApi } from '@/services/projects.service'; // Removed
 // import { taskService, workflowService } from '@/services/tasks.service'; // Removed
@@ -64,6 +64,7 @@ import { getProjectPermissions, type OrgRole, type ProjectRole } from '@/lib/per
 import { Tabs, TabItem } from '@/components/ui/Tabs';
 import PhaseTaskListTab from '@/components/phases/PhaseTaskListTab';
 import PhasesTab from '@/components/phases/PhasesTab';
+import { IssuesTab } from '@/components/issues/IssuesTab';
 import { ProjectSearchBox } from '@/components/projects/ProjectSearchBox';
 
 type ViewMode = 'board' | 'list';
@@ -76,9 +77,9 @@ const TAB_ITEMS: TabItem[] = [
     { id: 'documents', label: 'Documents' },
     { id: 'tasks', label: 'Tasks' },
     { id: 'phases', label: 'Phases' },
+    { id: 'testing', label: 'Testing' },
     { id: 'time-logs', label: 'Time Logs' },
-    { id: 'issues', label: 'Issues' },
-    { id: 'timesheet', label: 'Timesheet' },
+    { id: 'issues', label: 'Issues' }
 ];
 
 const PRIORITY_COLORS = {
@@ -498,6 +499,28 @@ export default function ProjectDetailPage() {
                         isEditable={projectPermissions.canEditTask}
                         searchQuery={searchQuery}
                     />
+                ) : activeTab === 'testing' ? (
+                    <div className="h-full">
+                        <PhaseTaskListTab
+                            projectId={projectId}
+                            projectName={project.name}
+                            projectColor={project.color}
+                            isEditable={projectPermissions.canEditTask}
+                            canCreateTask={projectPermissions.canCreateTask}
+                            canDeleteTask={projectPermissions.canDeleteTask}
+                            canCreateIssue={projectPermissions.canCreateTask}
+                            currentUserRole={project?.role}
+                            searchQuery={searchQuery}
+                            filterStatusName="Ready for testing"
+                        />
+                    </div>
+                ) : activeTab === 'issues' ? (
+                    <div className="h-full p-2 overflow-y-auto">
+                        <IssuesTab
+                            projectId={projectId}
+                            canCreateIssue={projectPermissions.canCreateTask}
+                        />
+                    </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
@@ -714,7 +737,7 @@ const StatusRenderer = (props: ICellRendererParams) => {
 
     const currentStatus = allStatuses.find((s: any) => s.id === task.status.id);
     const statusName = currentStatus?.name || task.status.name || 'Unknown';
-    const statusColor = currentStatus?.color || '#64748b';
+    const statusColor = getTaskStatusHexColor(statusName, currentStatus?.color || task.status?.color);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -800,7 +823,7 @@ const StatusRenderer = (props: ICellRendererParams) => {
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {allStatuses.map((opt: any) => {
                                     const isSelected = opt.id === task.status.id;
-                                    const optColor = opt.color || '#64748b';
+                                    const optColor = getTaskStatusHexColor(opt.name, opt.color);
                                     return (
                                         <button
                                             key={opt.id}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -9,17 +9,44 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { List as ListIcon, Search, MoreVertical, ChevronDown } from 'lucide-react';
+import { List as ListIcon, Search, MoreVertical, ChevronDown, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
-import { useMyTasks, useUpdateTask, useProjectWorkflow } from '@/hooks/use-tasks';
+import { useDebounce } from '@/hooks/use-debounce';
+import { useMyTasks, useUpdateTask, useProjectWorkflow, taskKeys } from '@/hooks/use-tasks';
 import { useStructuredPhases } from '@/hooks/use-phases';
 import { useProjectMembers } from '@/hooks/use-projects';
+import { issueKeys } from '@/hooks/use-issues';
+import { issueService } from '@/services/issues.service';
 import { taskService } from '@/services/tasks.service';
 import { TaskViewModal } from '@/components/tasks/TaskViewModal';
+import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
+import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { useToast } from '@/components/ui/Toast';
-import { cn } from '@/lib/utils';
+import { useQueryClient, useQueries } from '@tanstack/react-query';
+import { cn, getTaskStatusHexColor } from '@/lib/utils';
 import type { MyTask, MyTaskTag } from '@/types/task';
+import type { Issue } from '@/types/issue';
+
+function isReadyForTestingStatus(statusName?: string | null): boolean {
+    const name = (statusName || '').trim().toLowerCase();
+    return name.includes('ready for testing') || name === 'ready for test';
+}
+
+function buildIssueCountsByTaskId(issues: Issue[]): Map<string, { total: number; readyForTest: number }> {
+    const map = new Map<string, { total: number; readyForTest: number }>();
+    for (const issue of issues) {
+        const linkedId = issue.taskId || issue.linkedTask?.id;
+        if (!linkedId) continue;
+        const current = map.get(linkedId) || { total: 0, readyForTest: 0 };
+        current.total += 1;
+        if (isReadyForTestingStatus(issue.status?.name)) {
+            current.readyForTest += 1;
+        }
+        map.set(linkedId, current);
+    }
+    return map;
+}
 
 // Priority labels (1=highest, 5=lowest)
 const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
@@ -30,13 +57,27 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
     5: { label: 'Lowest', color: 'bg-gray-100 text-gray-600 border-gray-200' },
 };
 
-function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, projectId: string, currentStatus: any }) {
+function StatusDropdown({
+    taskId,
+    projectId,
+    currentStatus,
+    taskTitle,
+    currentExpectedOutput,
+}: {
+    taskId: string;
+    projectId: string;
+    currentStatus: any;
+    taskTitle?: string;
+    currentExpectedOutput?: string | null;
+}) {
     const { data: workflow = [] } = useProjectWorkflow(projectId);
     const updateTaskMutation = useUpdateTask(projectId);
     const toast = useToast();
 
     // Local state for immediate feedback
     const [localStatusId, setLocalStatusId] = useState(currentStatus.id);
+    const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
+    const [isOutputModalOpen, setIsOutputModalOpen] = useState(false);
 
     // Sync local state with prop when it changes from server
     useEffect(() => {
@@ -52,24 +93,38 @@ function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, 
         return allStatuses.find(s => s.id === localStatusId) || currentStatus;
     }, [localStatusId, currentStatus, allStatuses]);
 
-    const handleStatusChange = async (newStatusId: string) => {
-        if (newStatusId === localStatusId) return;
-
-        // Optimistically update local state
+    const performStatusUpdate = async (newStatusId: string, expectedOutput?: string) => {
         setLocalStatusId(newStatusId);
-
         const tid = toast.loading('Updating status...');
         try {
-            await updateTaskMutation.mutateAsync({ taskId, data: { statusId: newStatusId } });
+            const data: any = { statusId: newStatusId };
+            if (expectedOutput !== undefined) {
+                data.expectedOutput = expectedOutput;
+            }
+            await updateTaskMutation.mutateAsync({ taskId, data });
             toast.success('Status updated', undefined, { id: tid });
         } catch (error) {
-            // Revert on error
             setLocalStatusId(currentStatus.id);
             toast.error('Failed to update status', undefined, { id: tid });
         }
     };
 
-    const color = selectedStatus?.color || '#64748b';
+    const handleStatusChange = async (newStatusId: string) => {
+        if (newStatusId === localStatusId) return;
+
+        const targetStatus = allStatuses.find((s: any) => s.id === newStatusId);
+        const name = (targetStatus?.name || '').toLowerCase();
+
+        if (name.includes('ready for testing') || name === 'ready for testing') {
+            setPendingStatusId(newStatusId);
+            setIsOutputModalOpen(true);
+            return;
+        }
+
+        await performStatusUpdate(newStatusId);
+    };
+
+    const color = getTaskStatusHexColor(selectedStatus?.name, selectedStatus?.color);
 
     return (
         <div className="h-full w-full flex items-center relative group" onClick={(e) => e.stopPropagation()}>
@@ -99,6 +154,28 @@ function StatusDropdown({ taskId, projectId, currentStatus }: { taskId: string, 
             <div className="absolute right-3 pointer-events-none opacity-80">
                 <ChevronDown className="w-3 h-3" style={{ color }} />
             </div>
+
+            {isOutputModalOpen && pendingStatusId && (() => {
+                const targetSt = allStatuses.find((s: any) => s.id === pendingStatusId);
+                return (
+                    <ExpectedOutputModal
+                        isOpen={isOutputModalOpen}
+                        onClose={() => {
+                            setIsOutputModalOpen(false);
+                            setPendingStatusId(null);
+                        }}
+                        onConfirm={async (expOutput) => {
+                            await performStatusUpdate(pendingStatusId, expOutput);
+                            setIsOutputModalOpen(false);
+                            setPendingStatusId(null);
+                        }}
+                        taskTitle={taskTitle}
+                        initialValue={currentExpectedOutput || ''}
+                        statusName={targetSt?.name || 'Ready for testing'}
+                        statusColor={targetSt?.color || color}
+                    />
+                );
+            })()}
         </div>
     );
 }
@@ -144,9 +221,21 @@ function TaskModalWrapper({
 }
 
 export default function TasksPage() {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(20);
+    const router = useRouter();
+    const toast = useToast();
+    const searchParams = useSearchParams();
+
+    const pageParam = parseInt(searchParams.get('page') || '1');
+    const limitParam = parseInt(searchParams.get('limit') || '20');
+    const urlSearch = searchParams.get('q') || searchParams.get('search') || '';
+
+    const [page, setPage] = useState(pageParam);
+    const [limit, setLimit] = useState(limitParam);
+    const [searchQuery, setSearchQuery] = useState(urlSearch);
+    const debouncedSearch = useDebounce(searchQuery, 300);
+
+    const queryClient = useQueryClient();
+    const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
     const [taskModalState, setTaskModalState] = useState<{
         isOpen: boolean;
         taskId: string | null;
@@ -157,21 +246,91 @@ export default function TasksPage() {
         projectId: null,
     });
 
-    const { data: tasksData, isLoading, error, refetch } = useMyTasks({ page, limit });
+    // Sync state if URL query params change externally
+    useEffect(() => {
+        setPage(pageParam);
+    }, [pageParam]);
+
+    useEffect(() => {
+        setLimit(limitParam);
+    }, [limitParam]);
+
+    useEffect(() => {
+        setSearchQuery(urlSearch);
+    }, [urlSearch]);
+
+    // Push debounced search query to URL params & reset page to 1
+    useEffect(() => {
+        if (debouncedSearch !== urlSearch) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('page', '1');
+            setPage(1);
+            if (debouncedSearch) {
+                params.set('q', debouncedSearch);
+            } else {
+                params.delete('q');
+                params.delete('search');
+            }
+            router.push(`/projects/tasks?${params.toString()}`);
+        }
+    }, [debouncedSearch, urlSearch, searchParams, router]);
+
+    const { data: tasksData, isLoading, error, refetch } = useMyTasks({ page, limit, search: debouncedSearch });
     const tasks = tasksData?.data || [];
     const meta = tasksData?.meta;
-    const router = useRouter();
+
+    const uniqueProjectIds = useMemo(
+        () => [...new Set(tasks.map((t) => t.projectId).filter(Boolean))],
+        [tasks]
+    );
+
+    const projectIssueQueries = useQueries({
+        queries: uniqueProjectIds.map((projectId) => ({
+            queryKey: issueKeys.all(projectId),
+            queryFn: () => issueService.getProjectIssues(projectId),
+            enabled: !!projectId,
+        })),
+    });
+
+    const issueCountsByTaskId = useMemo(() => {
+        const allIssues = projectIssueQueries.flatMap((q) => q.data || []);
+        return buildIssueCountsByTaskId(allIssues);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on resolved issue payloads, not query object identity
+    }, [projectIssueQueries.map((q) => q.dataUpdatedAt).join(',')]);
+
+    const tasksWithIssueCounts = useMemo(
+        () =>
+            tasks.map((task) => {
+                const counts = issueCountsByTaskId.get(task.id);
+                return {
+                    ...task,
+                    totalIssues: counts?.total ?? 0,
+                    readyForTestIssues: counts?.readyForTest ?? 0,
+                };
+            }),
+        [tasks, issueCountsByTaskId]
+    );
 
     const hasNextPage = meta ? meta.page < meta.totalPages : false;
 
-    const filteredTasks = useMemo(() => {
-        return tasks.filter(
-            (task) =>
-                task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                task.projectName.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [tasks, searchQuery]);
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', newPage.toString());
+        if (limit !== 20) params.set('limit', limit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
+        setPage(newPage);
+        router.push(`/projects/tasks?${params.toString()}`);
+    };
+
+    const handleLimitChange = (newLimit: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', '1');
+        params.set('limit', newLimit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
+        setLimit(newLimit);
+        setPage(1);
+        router.push(`/projects/tasks?${params.toString()}`);
+    };
 
     // Cell Renderers
     const TaskNameRenderer = (props: ICellRendererParams) => {
@@ -289,9 +448,52 @@ export default function TasksPage() {
     };
 
     const StatusRenderer = (props: ICellRendererParams) => {
-        const { id: taskId, status, projectId } = props.data as MyTask;
+        const { id: taskId, status, projectId, title, expectedOutput } = props.data as MyTask;
         if (!status) return null;
-        return <StatusDropdown taskId={taskId} projectId={projectId} currentStatus={status} />;
+        return (
+            <StatusDropdown
+                taskId={taskId}
+                projectId={projectId}
+                currentStatus={status}
+                taskTitle={title}
+                currentExpectedOutput={expectedOutput}
+            />
+        );
+    };
+
+    const ExpectedOutputRenderer = (props: ICellRendererParams) => {
+        const value = props.value as string | undefined | null;
+        if (!value) return <div className="h-full flex items-center text-gray-400 italic text-[11px]">-</div>;
+
+        return (
+            <div className="h-full flex items-center truncate text-xs text-gray-700 font-medium" title={value}>
+                {value}
+            </div>
+        );
+    };
+
+    const IssueCountRenderer = (props: ICellRendererParams) => {
+        const count = (props.value as number | undefined) ?? 0;
+        const isReady = props.colDef?.field === 'readyForTestIssues';
+        const accentClass = isReady
+            ? 'bg-amber-50 text-amber-700 border-amber-100'
+            : 'bg-rose-50 text-rose-700 border-rose-100';
+        const title = isReady
+            ? `${count} issue${count === 1 ? '' : 's'} ready for testing`
+            : `${count} total issue${count === 1 ? '' : 's'} linked to this task`;
+
+        return (
+            <div className="h-full flex items-center" title={title}>
+                <span
+                    className={cn(
+                        'inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-md text-[11px] font-bold tabular-nums border',
+                        count > 0 ? accentClass : 'bg-gray-50 text-gray-400 border-gray-100'
+                    )}
+                >
+                    {count}
+                </span>
+            </div>
+        );
     };
 
     const PriorityRenderer = (props: ICellRendererParams) => {
@@ -336,6 +538,35 @@ export default function TasksPage() {
         );
     };
 
+    const TestersRenderer = (props: ICellRendererParams) => {
+        const testers = props.data?.testers || [];
+
+        if (testers.length === 0) {
+            return <div className="h-full flex items-center text-[10px] text-gray-400 italic">No testers</div>;
+        }
+
+        return (
+            <div className="h-full flex items-center gap-1">
+                {testers.slice(0, 3).map((t: any) => (
+                    <div
+                        key={t.id}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 bg-indigo-600 overflow-hidden"
+                        title={t.name}
+                    >
+                        {t.avatarUrl ? (
+                            <img src={t.avatarUrl} alt={t.name} className="w-full h-full object-cover" />
+                        ) : (
+                            t.name?.charAt(0) || '?'
+                        )}
+                    </div>
+                ))}
+                {testers.length > 3 && (
+                    <span className="text-[10px] text-gray-500 font-medium">+{testers.length - 3}</span>
+                )}
+            </div>
+        );
+    };
+
     const DateRenderer = (props: ICellRendererParams) => {
         const date = props.value;
         if (!date) return <div className="h-full flex items-center text-gray-300">-</div>;
@@ -368,6 +599,32 @@ export default function TasksPage() {
         );
     };
 
+    const DateTimeRenderer = (props: ICellRendererParams) => {
+        const date = props.value;
+        if (!date) return <div className="h-full flex items-center text-gray-300">-</div>;
+
+        const targetDate = new Date(date);
+        if (Number.isNaN(targetDate.getTime())) {
+            return <div className="h-full flex items-center text-gray-300">-</div>;
+        }
+
+        const formatted = targetDate.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+
+        return (
+            <div className="h-full flex items-center">
+                <span className="text-[11px] font-medium text-gray-600" title={formatted}>
+                    {formatted}
+                </span>
+            </div>
+        );
+    };
+
     const columnDefs: ColDef[] = useMemo(
         () => [
             {
@@ -386,15 +643,6 @@ export default function TasksPage() {
                 pinned: 'left',
                 cellRenderer: TaskNameRenderer,
                 cellStyle: { cursor: 'pointer' },
-                onCellClicked: (params) => {
-                    if (params.data) {
-                        setTaskModalState({
-                            isOpen: true,
-                            taskId: params.data.id,
-                            projectId: params.data.projectId,
-                        });
-                    }
-                },
             },
             {
                 field: 'projectName',
@@ -424,6 +672,27 @@ export default function TasksPage() {
                 cellRenderer: StatusRenderer,
             },
             {
+                field: 'expectedOutput',
+                headerName: 'EXPECTED OUTPUT',
+                flex: 1.5,
+                minWidth: 180,
+                cellRenderer: ExpectedOutputRenderer,
+            },
+            {
+                field: 'totalIssues',
+                headerName: 'TOTAL ISSUES',
+                width: 120,
+                cellRenderer: IssueCountRenderer,
+                sortable: true,
+            },
+            {
+                field: 'readyForTestIssues',
+                headerName: 'ISSUES IN READY FOR TEST',
+                width: 190,
+                cellRenderer: IssueCountRenderer,
+                sortable: true,
+            },
+            {
                 field: 'priority',
                 headerName: 'PRIORITY',
                 width: 110,
@@ -435,6 +704,19 @@ export default function TasksPage() {
                 width: 120,
                 cellRenderer: AssigneesRenderer,
                 sortable: false,
+            },
+            {
+                field: 'testers',
+                headerName: 'TESTED BY',
+                width: 120,
+                cellRenderer: TestersRenderer,
+                sortable: false,
+            },
+            {
+                field: 'startDateTime',
+                headerName: 'START',
+                width: 160,
+                cellRenderer: DateTimeRenderer,
             },
             {
                 field: 'dueDate',
@@ -480,7 +762,7 @@ export default function TasksPage() {
                             </button>
                             <h1 className="text-xl font-bold text-gray-900 tracking-tight">Tasks(Assigned to me)</h1>
                             <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
-                                {meta?.total ?? filteredTasks.length}
+                                {meta?.total ?? tasks.length}
                             </span>
                         </div>
                     </div>
@@ -499,17 +781,14 @@ export default function TasksPage() {
                             />
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block" />
-                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
-                                <div
-                                    className="p-1 rounded bg-white text-[var(--primary)] shadow-sm"
-                                    title="List View"
-                                >
-                                    <ListIcon className="w-4 h-4" />
-                                </div>
-                            </div>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setIsCreateTaskModalOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-md shadow-xs transition-colors shrink-0 cursor-pointer"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Task</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -589,7 +868,7 @@ export default function TasksPage() {
                             `}</style>
                             <AgGridReact
                                 theme="legacy"
-                                rowData={filteredTasks}
+                                rowData={tasksWithIssueCounts}
                                 columnDefs={columnDefs}
                                 defaultColDef={defaultColDef}
                                 getRowId={(params) => params.data.id}
@@ -609,7 +888,7 @@ export default function TasksPage() {
                                 <Button
                                     variant="secondary"
                                     size="sm"
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    onClick={() => handlePageChange(Math.max(1, page - 1))}
                                     disabled={page === 1}
                                 >
                                     Previous
@@ -617,7 +896,7 @@ export default function TasksPage() {
                                 <Button
                                     variant="secondary"
                                     size="sm"
-                                    onClick={() => setPage((p) => p + 1)}
+                                    onClick={() => handlePageChange(page + 1)}
                                     disabled={!hasNextPage}
                                 >
                                     Next
@@ -628,7 +907,7 @@ export default function TasksPage() {
                                     <p className="text-xs text-gray-700">
                                         Showing{' '}
                                         <span className="font-medium">
-                                            {filteredTasks.length > 0 ? (page - 1) * limit + 1 : 0}
+                                            {tasks.length > 0 ? (page - 1) * limit + 1 : 0}
                                         </span>{' '}
                                         to{' '}
                                         <span className="font-medium">
@@ -641,10 +920,7 @@ export default function TasksPage() {
                                     <select
                                         className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
                                         value={limit}
-                                        onChange={(e) => {
-                                            setLimit(Number(e.target.value));
-                                            setPage(1);
-                                        }}
+                                        onChange={(e) => handleLimitChange(Number(e.target.value))}
                                     >
                                         <option value={20}>20 / page</option>
                                         <option value={50}>50 / page</option>
@@ -652,7 +928,7 @@ export default function TasksPage() {
                                     </select>
                                     <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                                         <button
-                                            onClick={() => setPage(1)}
+                                            onClick={() => handlePageChange(1)}
                                             disabled={page === 1}
                                             className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -660,7 +936,7 @@ export default function TasksPage() {
                                             <span aria-hidden="true">&laquo;</span>
                                         </button>
                                         <button
-                                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                            onClick={() => handlePageChange(Math.max(1, page - 1))}
                                             disabled={page === 1}
                                             className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -671,7 +947,7 @@ export default function TasksPage() {
                                             {page}
                                         </button>
                                         <button
-                                            onClick={() => setPage((p) => p + 1)}
+                                            onClick={() => handlePageChange(page + 1)}
                                             disabled={!hasNextPage}
                                             className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -679,7 +955,7 @@ export default function TasksPage() {
                                             <span aria-hidden="true">&rsaquo;</span>
                                         </button>
                                         <button
-                                            onClick={() => setPage(meta?.totalPages || 1)}
+                                            onClick={() => handlePageChange(meta?.totalPages || 1)}
                                             disabled={!meta?.totalPages || page === meta?.totalPages}
                                             className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -703,6 +979,28 @@ export default function TasksPage() {
                     onTaskDeleted={() => {
                         setTaskModalState({ isOpen: false, taskId: null, projectId: null });
                         refetch();
+                    }}
+                />
+            )}
+            {isCreateTaskModalOpen && (
+                <CreateTaskModal
+                    isOpen={isCreateTaskModalOpen}
+                    onClose={() => setIsCreateTaskModalOpen(false)}
+                    onSubmit={async (payload, targetProjectId) => {
+                        if (!targetProjectId) return;
+                        const tid = toast.loading('Creating task...');
+                        try {
+                            await taskService.createTask(targetProjectId, payload);
+                            toast.success('Task created successfully', undefined, { id: tid });
+                            queryClient.invalidateQueries({ queryKey: taskKeys.all(targetProjectId) });
+                            queryClient.invalidateQueries({ queryKey: ['tasks', 'my-tasks'] });
+                            refetch();
+                            setIsCreateTaskModalOpen(false);
+                        } catch (error: any) {
+                            const msg = error?.response?.data?.message || error?.message || 'Failed to create task';
+                            toast.error('Failed to create task', Array.isArray(msg) ? msg.join(', ') : msg, { id: tid });
+                            throw error;
+                        }
                     }}
                 />
             )}

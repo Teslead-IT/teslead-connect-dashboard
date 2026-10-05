@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@auth0/nextjs-auth0": "^3.5.0",
+    "@auth0/nextjs-auth0": "^3.8.0",
     "@fullcalendar/daygrid": "~6.1.20",
     "@fullcalendar/interaction": "~6.1.20",
     "@fullcalendar/react": "~6.1.20",
@@ -26,7 +26,7 @@
     "@tiptap/starter-kit": "~3.19.0",
     "ag-grid-community": "^35.0.0",
     "ag-grid-react": "^35.0.0",
-    "axios": "^1.13.2",
+    "axios": "^1.20.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "exceljs": "~4.4.0",
@@ -35,7 +35,7 @@
     "jwt-decode": "^4.0.0",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.562.0",
-    "next": "16.1.1",
+    "next": "16.3.5",
     "primeicons": "~7.0.0",
     "primereact": "~10.9.7",
     "react": "19.2.3",
@@ -45,18 +45,18 @@
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.3.5",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.1.18",
     "@tanstack/react-query-devtools": "^5.91.2",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/node": "^20.19.27",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "^9",
+    "eslint": "^9.39.2",
     "eslint-config-next": "16.1.1",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3"
   }
 }

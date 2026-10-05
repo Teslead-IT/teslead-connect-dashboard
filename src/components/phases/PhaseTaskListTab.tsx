@@ -49,7 +49,8 @@ import {
 import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
 import { CreateTaskListModal } from './CreateTaskListModal';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
 import {
     useStructuredPhases,
@@ -61,11 +62,14 @@ import {
     useReorderPhases,
     useReorderTaskLists,
 } from '@/hooks/use-phases';
-import { useCreateTask, useUpdateTask, useDeleteTask, useProjectWorkflow } from '@/hooks/use-tasks';
+import { useCreateTask, useUpdateTask, useDeleteTask, useProjectWorkflow, useProjectTasks } from '@/hooks/use-tasks';
+import { useCreateIssue, useProjectIssues } from '@/hooks/use-issues';
 import { useProjectMembers } from '@/hooks/use-projects';
+import type { Issue } from '@/types/issue';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { TaskViewModal } from '@/components/tasks/TaskViewModal';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
+import { CreateIssueModal } from '@/components/issues/CreateIssueModal';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { Dialog } from '@/components/ui/Dialog';
 import type { PhaseWithTaskLists, TaskListWithTasks, StructuredTask } from '@/types/phase';
@@ -96,9 +100,14 @@ interface FlatRow {
 
     name: string;
     status?: { id: string; name: string; color: string };
+    expectedOutput?: string | null;
     assignees?: Array<{ id: string; name: string; email: string; avatarUrl?: string }>;
+    assignedBy?: { id: string; name: string; email?: string; avatarUrl?: string } | null;
+    createdBy?: { id: string; name: string; email?: string; avatarUrl?: string } | null;
+    testers?: Array<{ id: string; name: string; email: string; avatarUrl?: string }>;
     tags?: Array<{ id: string; name: string; color: string }>;
     startDate?: string | null;
+    startDateTime?: string | null;
     dueDate?: string | null;
     priority?: number;
     type?: TaskType;
@@ -106,6 +115,9 @@ interface FlatRow {
     childCount?: number;
     isExpanded?: boolean;
     hasChildren?: boolean;
+
+    totalIssues?: number;
+    readyForTestIssues?: number;
 
     phaseData?: PhaseWithTaskLists;
     taskListData?: TaskListWithTasks;
@@ -123,8 +135,95 @@ interface PhaseTaskListTabProps {
     canCreateTask?: boolean;
     /** Delete task: ADMIN only (backend aligned) */
     canDeleteTask?: boolean;
+    /** Create issue from a task row (e.g. Testing tab) */
+    canCreateIssue?: boolean;
     currentUserRole?: ProjectRole;
     searchQuery?: string;
+    filterStatusName?: string;
+}
+
+function normalizeStr(str?: string | null): string {
+    return str ? str.trim().toLowerCase() : '';
+}
+
+function isReadyForTestingStatus(statusName?: string | null): boolean {
+    const name = normalizeStr(statusName);
+    return name.includes('ready for testing') || name === 'ready for test';
+}
+
+function buildIssueCountsByTaskId(issues: Issue[]): Map<string, { total: number; readyForTest: number }> {
+    const map = new Map<string, { total: number; readyForTest: number }>();
+    for (const issue of issues) {
+        const linkedId = issue.taskId || issue.linkedTask?.id;
+        if (!linkedId) continue;
+        const current = map.get(linkedId) || { total: 0, readyForTest: 0 };
+        current.total += 1;
+        if (isReadyForTestingStatus(issue.status?.name)) {
+            current.readyForTest += 1;
+        }
+        map.set(linkedId, current);
+    }
+    return map;
+}
+
+function doesTaskOrChildrenMatch(
+    task: StructuredTask,
+    targetStatus?: string,
+    query?: string
+): boolean {
+    const sName = normalizeStr(task.status?.name);
+    const statusMatch = !targetStatus || sName === targetStatus || (targetStatus.includes('testing') && sName.includes('testing'));
+    const queryMatch = !query ||
+        normalizeStr(task.title).includes(query) ||
+        normalizeStr(task.taskId).includes(query);
+
+    if (statusMatch && queryMatch) return true;
+
+    if (task.children && task.children.length > 0) {
+        return task.children.some(child => doesTaskOrChildrenMatch(child, targetStatus, query));
+    }
+
+    return false;
+}
+
+function doesTaskListHaveMatches(
+    taskList: TaskListWithTasks,
+    phaseName: string,
+    targetStatus?: string,
+    query?: string
+): boolean {
+    if (!targetStatus && !query) return true;
+
+    const queryMatchesPhase = !!query && normalizeStr(phaseName).includes(query);
+    const queryMatchesTaskList = !!query && normalizeStr(taskList.name).includes(query);
+
+    const effectiveQuery = (queryMatchesPhase || queryMatchesTaskList) ? undefined : query;
+
+    const tasks = taskList.tasks || [];
+    if (tasks.length === 0) {
+        if (!targetStatus && (queryMatchesPhase || queryMatchesTaskList)) return true;
+        return false;
+    }
+
+    return tasks.some(task => doesTaskOrChildrenMatch(task, targetStatus, effectiveQuery));
+}
+
+function doesPhaseHaveMatches(
+    phase: PhaseWithTaskLists,
+    targetStatus?: string,
+    query?: string
+): boolean {
+    if (!targetStatus && !query) return true;
+
+    const queryMatchesPhase = !!query && normalizeStr(phase.name).includes(query);
+
+    const taskLists = phase.taskLists || [];
+    if (taskLists.length === 0) {
+        if (!targetStatus && queryMatchesPhase) return true;
+        return false;
+    }
+
+    return taskLists.some(tl => doesTaskListHaveMatches(tl, phase.name, targetStatus, query));
 }
 
 function isAdmin(role?: ProjectRole): boolean {
@@ -138,13 +237,22 @@ export default function PhaseTaskListTab({
     isEditable,
     canCreateTask = isEditable,
     canDeleteTask = false,
+    canCreateIssue = false,
     currentUserRole,
-    searchQuery = ''
+    searchQuery = '',
+    filterStatusName
 }: PhaseTaskListTabProps) {
     const showViewButton = isAdmin(currentUserRole);
     const { data: phases = [], isLoading } = useStructuredPhases(projectId);
     const { data: workflow = [] } = useProjectWorkflow(projectId);
     const { data: members = [] } = useProjectMembers(projectId);
+    const { data: projectTasks = [] } = useProjectTasks(projectId);
+    const { data: projectIssues = [] } = useProjectIssues(projectId);
+
+    const issueCountsByTaskId = useMemo(
+        () => buildIssueCountsByTaskId(projectIssues),
+        [projectIssues]
+    );
     const createPhaseMutation = useCreatePhase(projectId);
     const createTaskListMutation = useCreateTaskList(projectId);
     const createTaskMutation = useCreateTask(projectId);
@@ -154,6 +262,7 @@ export default function PhaseTaskListTab({
     const moveTaskMutation = useMoveTask(projectId);
     const reorderPhasesMutation = useReorderPhases(projectId);
     const reorderTaskListsMutation = useReorderTaskLists(projectId);
+    const createIssueMutation = useCreateIssue(projectId);
     const toast = useToast();
 
     const gridRef = useRef<AgGridReact>(null);
@@ -179,6 +288,13 @@ export default function PhaseTaskListTab({
         phaseId?: string;
         parentTask?: any;
         editingTask?: any;
+    }>({ isOpen: false });
+
+    const [createIssueModal, setCreateIssueModal] = useState<{
+        isOpen: boolean;
+        phaseId?: string;
+        taskListId?: string;
+        taskId?: string;
     }>({ isOpen: false });
 
     const [deleteDialog, setDeleteDialog] = useState<{
@@ -244,10 +360,18 @@ export default function PhaseTaskListTab({
         const rows: FlatRow[] = [];
         if (!phases) return rows;
 
+        const targetStatus = filterStatusName?.trim().toLowerCase();
+        const query = searchQuery?.trim().toLowerCase();
+        const hasFilter = !!(targetStatus || query);
+
         const countTasks = (items: StructuredTask[]): number =>
             (items || []).reduce((s, t) => s + 1 + countTasks(t.children || []), 0);
 
         phases.forEach((phase) => {
+            if (hasFilter && !doesPhaseHaveMatches(phase, targetStatus, query)) {
+                return;
+            }
+
             const taskLists = phase.taskLists || [];
             const totalTasks = taskLists.reduce((sum, tl) => sum + countTasks(tl.tasks || []), 0);
             const isPhaseExpanded = expandedPhases.has(phase.id);
@@ -268,6 +392,10 @@ export default function PhaseTaskListTab({
 
             if (isPhaseExpanded) {
                 taskLists.forEach((taskList) => {
+                    if (hasFilter && !doesTaskListHaveMatches(taskList, phase.name, targetStatus, query)) {
+                        return;
+                    }
+
                     const tasks = taskList.tasks || [];
                     const isTaskListExpanded = expandedTaskLists.has(taskList.id);
                     const taskCount = countTasks(tasks);
@@ -286,10 +414,20 @@ export default function PhaseTaskListTab({
                     });
 
                     if (isTaskListExpanded) {
+                        const queryMatchesPhase = !!query && normalizeStr(phase.name).includes(query);
+                        const queryMatchesTaskList = !!query && normalizeStr(taskList.name).includes(query);
+                        const effectiveQuery = (queryMatchesPhase || queryMatchesTaskList) ? undefined : query;
+
                         const addRows = (items: StructuredTask[], parentLevel: number) => {
                             (items || []).forEach((task) => {
+                                if (hasFilter && !doesTaskOrChildrenMatch(task, targetStatus, effectiveQuery)) {
+                                    return;
+                                }
+
                                 const children = task.children || [];
                                 const isTaskExpanded = expandedTasks.has(task.id);
+
+                                const issueCounts = issueCountsByTaskId.get(task.id);
 
                                 rows.push({
                                     rowId: `task-${task.id}`,
@@ -301,15 +439,21 @@ export default function PhaseTaskListTab({
                                     formattedTaskId: task.taskId,
                                     name: task.title,
                                     status: task.status,
+                                    expectedOutput: task.expectedOutput,
                                     assignees: task.assignees,
+                                    assignedBy: (task as any).assignedBy || (task as any).createdBy || null,
+                                    createdBy: (task as any).createdBy || null,
+                                    testers: task.testers || (task as any).testers,
                                     tags: task.tags,
-                                    startDate: null,
+                                    startDateTime: task.startDateTime ?? null,
                                     dueDate: task.dueDate,
                                     priority: task.priority,
                                     type: task.type,
                                     childCount: children.length,
                                     isExpanded: isTaskExpanded,
                                     hasChildren: children.length > 0,
+                                    totalIssues: issueCounts?.total ?? 0,
+                                    readyForTestIssues: issueCounts?.readyForTest ?? 0,
                                     taskData: task,
                                 });
 
@@ -326,24 +470,9 @@ export default function PhaseTaskListTab({
         });
 
         return rows;
-    }, [phases, expandedPhases, expandedTaskLists, expandedTasks, isEditable]);
+    }, [phases, expandedPhases, expandedTaskLists, expandedTasks, isEditable, searchQuery, filterStatusName, issueCountsByTaskId]);
 
-    const filteredFlatRows = useMemo(() => {
-        if (!searchQuery.trim()) return flatRows;
-        const q = searchQuery.trim().toLowerCase();
-        const matches = (name: string) => name.toLowerCase().includes(q);
-        const ids = new Set<string>();
-        flatRows.forEach((r) => { if (matches(r.name)) ids.add(r.rowId); });
-        flatRows.forEach((r) => {
-            if (r.rowType === 'tasklist' && flatRows.some((x) => x.taskListId === r.taskListId && ids.has(x.rowId)))
-                ids.add(r.rowId);
-        });
-        flatRows.forEach((r) => {
-            if (r.rowType === 'phase' && flatRows.some((x) => x.phaseId === r.phaseId && ids.has(x.rowId)))
-                ids.add(r.rowId);
-        });
-        return flatRows.filter((r) => ids.has(r.rowId));
-    }, [flatRows, searchQuery]);
+    const filteredFlatRows = flatRows;
 
     // Force AG Grid to completely redraw rows when the data or expansion state changes.
     // This ensures icons and indentation are always in sync with the current state.
@@ -411,10 +540,14 @@ export default function PhaseTaskListTab({
         }
     };
 
-    const handleUpdateStatus = useCallback(async (taskId: string, statusId: string) => {
+    const handleUpdateStatus = useCallback(async (taskId: string, statusId: string, expectedOutput?: string) => {
         const tid = toast.loading('Updating status...');
         try {
-            await updateTaskMutation.mutateAsync({ taskId, data: { statusId } });
+            const data: any = { statusId };
+            if (expectedOutput !== undefined) {
+                data.expectedOutput = expectedOutput;
+            }
+            await updateTaskMutation.mutateAsync({ taskId, data });
             toast.success('Status updated', undefined, { id: tid });
         } catch {
             toast.error('Failed to update status', undefined, { id: tid });
@@ -577,10 +710,45 @@ export default function PhaseTaskListTab({
             cellClass: '!p-0',
         },
         {
-            headerName: 'Owner',
+            headerName: 'Expected Output',
+            field: 'expectedOutput',
+            width: 200,
+            cellRenderer: ExpectedOutputCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Total Issues',
+            field: 'totalIssues',
+            width: 110,
+            cellRenderer: TotalIssuesCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Issues in Ready for Test',
+            field: 'readyForTestIssues',
+            width: 180,
+            cellRenderer: ReadyForTestIssuesCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Assigned To',
             field: 'assignees',
             width: 140,
             cellRenderer: OwnerCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Assigned By',
+            field: 'assignedBy',
+            width: 140,
+            cellRenderer: AssignedByCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Tested By',
+            field: 'testers',
+            width: 140,
+            cellRenderer: TestedByCell,
             cellClass: '!p-0',
         },
         {
@@ -592,9 +760,9 @@ export default function PhaseTaskListTab({
         },
         {
             headerName: 'Start Date',
-            field: 'startDate',
-            width: 120,
-            cellRenderer: DateCell,
+            field: 'startDateTime',
+            width: 150,
+            cellRenderer: DateTimeCell,
             cellClass: '!p-0',
         },
         {
@@ -885,6 +1053,13 @@ export default function PhaseTaskListTab({
                                 setDeleteDialog({ isOpen: true, type: 'task', id: taskId, name }) : undefined,
                             onCreateSubtask: canCreateTask ? (parentTask: StructuredTask, taskListId: string) =>
                                 setCreateTaskModal({ isOpen: true, taskListId, parentTask }) : undefined,
+                            onCreateIssue: canCreateIssue ? (row: FlatRow) =>
+                                setCreateIssueModal({
+                                    isOpen: true,
+                                    phaseId: row.phaseId,
+                                    taskListId: row.taskListId,
+                                    taskId: row.taskId,
+                                }) : undefined,
                             projectId,
                         }}
                     />
@@ -896,11 +1071,18 @@ export default function PhaseTaskListTab({
                     workflow={workflow}
                     isEditable={isEditable}
                     searchQuery={searchQuery}
+                    filterStatusName={filterStatusName}
                     onUpdateStatus={handleUpdateStatus}
                     onEditTask={(task) => setTaskViewModal({ isOpen: true, selectedTaskId: task.id, startInEditMode: true })}
                     onViewTask={(taskId) => setTaskViewModal({ isOpen: true, selectedTaskId: taskId, startInEditMode: false })}
                     onDeleteTask={canDeleteTask ? (taskId, name) => setDeleteDialog({ isOpen: true, type: 'task', id: taskId, name }) : undefined}
                     onCreateSubtask={canCreateTask ? (task) => setCreateTaskModal({ isOpen: true, parentTask: task, taskListId: (task as any).taskListId }) : undefined}
+                    onCreateIssue={canCreateIssue ? (task) => setCreateIssueModal({
+                        isOpen: true,
+                        phaseId: (task as any).phaseId,
+                        taskListId: (task as any).taskListId,
+                        taskId: task.id,
+                    }) : undefined}
                 />
             )}
 
@@ -934,6 +1116,27 @@ export default function PhaseTaskListTab({
                     projectId={projectId}
                 />
             )}
+
+            {/* Create Issue Modal (from task row) */}
+            <CreateIssueModal
+                isOpen={createIssueModal.isOpen}
+                onClose={() => setCreateIssueModal({ isOpen: false })}
+                onSubmit={async (data) => {
+                    await createIssueMutation.mutateAsync(data);
+                }}
+                workflow={workflow}
+                tasks={projectTasks}
+                members={members}
+                phases={phases}
+                projectName={projectName}
+                projectColor={projectColor}
+                projectId={projectId}
+                initialValues={{
+                    phaseId: createIssueModal.phaseId,
+                    taskListId: createIssueModal.taskListId,
+                    taskId: createIssueModal.taskId,
+                }}
+            />
 
             {/* Delete Dialog */}
             {deleteDialog && (
@@ -1013,10 +1216,20 @@ export default function PhaseTaskListTab({
                         setContextMenu(null);
                     }}
                     onAddTask={() => { setCreateTaskModal({ isOpen: true, taskListId: contextMenu.row.taskListId!, phaseId: contextMenu.row.phaseId }); setContextMenu(null); }}
+                    onViewTask={() => { setTaskViewModal({ isOpen: true, selectedTaskId: contextMenu.row.taskId!, startInEditMode: false }); setContextMenu(null); }}
                     onEditTask={() => { setTaskViewModal({ isOpen: true, selectedTaskId: contextMenu.row.taskId!, startInEditMode: true }); setContextMenu(null); }}
                     onDeletePhase={() => { setDeleteDialog({ isOpen: true, type: 'phase', id: contextMenu.row.phaseId, name: contextMenu.row.name }); setContextMenu(null); }}
                     onDeleteTask={canDeleteTask ? () => { setDeleteDialog({ isOpen: true, type: 'task', id: contextMenu.row.taskId!, name: contextMenu.row.name }); setContextMenu(null); } : undefined}
                     onCreateSubtask={canCreateTask ? () => { setCreateTaskModal({ isOpen: true, parentTask: contextMenu.row.taskData, taskListId: contextMenu.row.taskListId }); setContextMenu(null); } : undefined}
+                    onCreateIssue={canCreateIssue ? () => {
+                        setCreateIssueModal({
+                            isOpen: true,
+                            phaseId: contextMenu.row.phaseId,
+                            taskListId: contextMenu.row.taskListId,
+                            taskId: contextMenu.row.taskId,
+                        });
+                        setContextMenu(null);
+                    } : undefined}
                 />
             )}
 
@@ -1035,22 +1248,26 @@ function TasksBoardView({
     workflow,
     isEditable,
     searchQuery = '',
+    filterStatusName,
     onUpdateStatus,
     onEditTask,
     onViewTask,
     onDeleteTask,
     onCreateSubtask,
+    onCreateIssue,
 }: {
     projectId: string;
     phases: PhaseWithTaskLists[];
     workflow: any[];
     isEditable: boolean;
     searchQuery?: string;
+    filterStatusName?: string;
     onUpdateStatus: (taskId: string, statusId: string) => void;
     onEditTask: (task: any) => void;
     onViewTask?: (taskId: string) => void;
     onDeleteTask?: (taskId: string, name: string) => void;
     onCreateSubtask?: (task: any) => void;
+    onCreateIssue?: (task: any) => void;
 }) {
     const [draggedTask, setDraggedTask] = useState<any>(null);
 
@@ -1071,10 +1288,18 @@ function TasksBoardView({
     }, [phases]);
 
     const filteredTasks = useMemo(() => {
-        if (!searchQuery.trim()) return allTasks;
+        let tasks = allTasks;
+        if (filterStatusName) {
+            const targetStatus = filterStatusName.trim().toLowerCase();
+            tasks = tasks.filter((t: any) => {
+                const sName = t.status?.name?.trim().toLowerCase() || '';
+                return sName === targetStatus || (targetStatus.includes('testing') && sName.includes('testing'));
+            });
+        }
+        if (!searchQuery.trim()) return tasks;
         const q = searchQuery.trim().toLowerCase();
-        return allTasks.filter((t: any) => t.title?.toLowerCase().includes(q));
-    }, [allTasks, searchQuery]);
+        return tasks.filter((t: any) => t.title?.toLowerCase().includes(q));
+    }, [allTasks, searchQuery, filterStatusName]);
 
     const parentTasks = useMemo(() => filteredTasks.filter(t => !t.parentId), [filteredTasks]);
 
@@ -1134,11 +1359,14 @@ function TasksBoardView({
                                                     {onViewTask && (
                                                         <button onClick={() => onViewTask(task.id)} className="p-1 hover:bg-indigo-50 rounded" title="View"><Eye className="w-3 h-3 text-indigo-600" /></button>
                                                     )}
+                                                    {onCreateIssue && (
+                                                        <button onClick={() => onCreateIssue(task)} className="p-1 hover:bg-red-50 rounded" title="Create Issue"><Bug className="w-3 h-3 text-red-500" /></button>
+                                                    )}
                                                     {isEditable && (
                                                         <>
                                                             <button onClick={() => onEditTask(task)} className="p-1 hover:bg-blue-50 rounded" title="Edit"><Pencil className="w-3 h-3" /></button>
                                                             {onDeleteTask && <button onClick={() => onDeleteTask(task.id, task.title)} className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-3 h-3" /></button>}
-                                                            {onCreateSubtask && <button onClick={() => onCreateSubtask(task)} className="p-1 hover:bg-gray-100 rounded"><Plus className="w-3 h-3" /></button>}
+                                                            {onCreateSubtask && <button onClick={() => onCreateSubtask(task)} className="p-1 hover:bg-gray-100 rounded" title="Add Subtask"><Plus className="w-3 h-3" /></button>}
                                                         </>
                                                     )}
                                                 </div>
@@ -1183,10 +1411,12 @@ function RowContextMenu({
     isEditable,
     onAddTaskList,
     onAddTask,
+    onViewTask,
     onEditTask,
     onDeletePhase,
     onDeleteTask,
     onCreateSubtask,
+    onCreateIssue,
 }: {
     row: FlatRow;
     x: number;
@@ -1195,10 +1425,12 @@ function RowContextMenu({
     isEditable: boolean;
     onAddTaskList: () => void;
     onAddTask: () => void;
+    onViewTask?: () => void;
     onEditTask: () => void;
     onDeletePhase: () => void;
     onDeleteTask?: () => void;
     onCreateSubtask?: () => void;
+    onCreateIssue?: () => void;
 }) {
     return (
         <>
@@ -1217,8 +1449,10 @@ function RowContextMenu({
                 )}
                 {(row.rowType === 'task' || row.rowType === 'subtask') && (
                     <>
-                        <button onClick={onEditTask} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Pencil className="w-4 h-4" />View / Edit</button>
+                        {onViewTask && <button onClick={onViewTask} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Eye className="w-4 h-4 text-blue-600" />View Task</button>}
+                        {isEditable && <button onClick={onEditTask} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Pencil className="w-4 h-4 text-gray-500" />Edit Task</button>}
                         {isEditable && onCreateSubtask && <button onClick={onCreateSubtask} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Plus className="w-4 h-4" />Add Subtask</button>}
+                        {onCreateIssue && <button onClick={onCreateIssue} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700"><Bug className="w-4 h-4 text-red-500" />Create Issue</button>}
                         {isEditable && onDeleteTask && <><div className="h-px bg-gray-100 my-1" /><button onClick={onDeleteTask} className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-red-600"><Trash2 className="w-4 h-4" />Delete Task</button></>}
                     </>
                 )}
@@ -1239,7 +1473,10 @@ function TaskNameCell(params: ICellRendererParams) {
     // ---- PHASE ROW ----
     if (row.rowType === 'phase') {
         return (
-            <div className="flex items-center h-full w-full px-2 pr-3 group/phase">
+            <div
+                className="flex items-center h-full w-full px-2 pr-3 group/phase cursor-pointer select-none"
+                onClick={() => { if (row.hasChildren) ctx.togglePhase(row.phaseId); }}
+            >
                 {row.hasChildren ? (
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.togglePhase(row.phaseId); }}
@@ -1286,7 +1523,11 @@ function TaskNameCell(params: ICellRendererParams) {
     if (row.rowType === 'tasklist') {
         const indent = row.level * 24 + 8;
         return (
-            <div className="flex items-center h-full w-full pr-3 group/tl" style={{ paddingLeft: `${indent}px` }}>
+            <div
+                className="flex items-center h-full w-full pr-3 group/tl cursor-pointer select-none"
+                style={{ paddingLeft: `${indent}px` }}
+                onClick={() => { if (row.hasChildren) ctx.toggleTaskList(row.taskListId!); }}
+            >
                 {row.hasChildren ? (
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.toggleTaskList(row.taskListId!); }}
@@ -1338,27 +1579,49 @@ function TaskNameCell(params: ICellRendererParams) {
     // ---- TASK / SUBTASK ROW ----
     const indent = row.level * 24 + 8;
     const [copied, setCopied] = useState(false);
+    const toast = useToast();
+    const taskIdToCopy = row.formattedTaskId || row.taskId || '';
 
-    const handleCopy = (e: React.MouseEvent) => {
+    const handleCopy = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (row.formattedTaskId) {
-            navigator.clipboard.writeText(row.formattedTaskId);
+        e.preventDefault();
+        if (!taskIdToCopy) return;
+
+        try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(taskIdToCopy);
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = taskIdToCopy;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
             setCopied(true);
+            toast.success('Copied to clipboard', `Task ID: ${taskIdToCopy}`);
             setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy Task ID:', err);
+            toast.error('Copy Failed', 'Unable to copy task ID to clipboard.');
         }
     };
 
     return (
         <div className="flex items-center h-full w-full pr-3 group/task relative" style={{ paddingLeft: `${indent}px` }}>
-            {row.formattedTaskId && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1 group/copy shrink-0">
+            {taskIdToCopy && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1 group/copy shrink-0 z-10">
                     <button
+                        type="button"
                         onClick={handleCopy}
-                        className="flex justify-center items-center gap-1 p-1 group-hover/task:opacity-100 text-indigo-500 hover:text-indigo-600 rounded transition-all"
-                        title={`Copy full ID: ${row.formattedTaskId}`}
+                        className="flex justify-center items-center gap-1 p-1 text-indigo-500 hover:text-indigo-600 rounded transition-all cursor-pointer select-none"
+                        title={`Copy full ID: ${taskIdToCopy}`}
                     >
                         <span className="text-[9px] font-bold text-black bg-white border border-gray-100 px-1.5 py-0.5 rounded tracking-tight min-w-[32px] text-center shadow-xs">
-                            {row.formattedTaskId.split('-').pop()}
+                            {taskIdToCopy.includes('-') ? taskIdToCopy.split('-').pop() : taskIdToCopy}
                         </span>
                         {copied ? (
                             <Check className="w-2.5 h-2.5 text-emerald-500" />
@@ -1387,9 +1650,15 @@ function TaskNameCell(params: ICellRendererParams) {
 
             <span
                 className={cn(
-                    "text-xs truncate flex-1 min-w-0",
+                    "text-xs truncate flex-1 min-w-0 cursor-pointer hover:text-blue-600 transition-colors",
                     row.rowType === 'subtask' ? 'text-gray-500' : 'text-gray-800 font-medium'
                 )}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (row.taskId) {
+                        ctx.onViewTask?.(row.taskId);
+                    }
+                }}
                 title={row.name}
             >
                 {row.name.length > 60 ? row.name.substring(0, 60) + '...' : row.name}
@@ -1403,6 +1672,15 @@ function TaskNameCell(params: ICellRendererParams) {
                 <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity pr-2">
                     {row.taskId && ctx.projectId && (
                         <TaskTimerButton taskId={row.taskId} projectId={ctx.projectId} phaseId={row.phaseId} taskListId={row.taskListId} taskName={row.name} />
+                    )}
+                    {ctx.onCreateIssue && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); ctx.onCreateIssue?.(row); }}
+                            className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Create Issue"
+                        >
+                            <Bug className="w-3.5 h-3.5" />
+                        </button>
                     )}
                     {ctx.onCreateSubtask && (
                         <button
@@ -1429,6 +1707,17 @@ function TaskNameCell(params: ICellRendererParams) {
                             <Trash2 className="w-3.5 h-3.5" />
                         </button>
                     )}
+                </div>
+            )}
+            {!ctx.isEditable && ctx.onCreateIssue && (
+                <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity pr-2">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); ctx.onCreateIssue?.(row); }}
+                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        title="Create Issue"
+                    >
+                        <Bug className="w-3.5 h-3.5" />
+                    </button>
                 </div>
             )}
         </div>
@@ -1474,8 +1763,15 @@ function ViewButtonCell(params: ICellRendererParams) {
     return (
         <div className="flex items-center h-full justify-center opacity-0 group-hover/task:opacity-100 transition-opacity gap-1.5">
             <button
-                onClick={() => ctx.onViewTask?.(row.taskId!)}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded hover:bg-indigo-100 transition-colors"
+                type="button"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (row.taskId) {
+                        ctx.onViewTask?.(row.taskId);
+                    }
+                }}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded hover:bg-indigo-100 transition-colors cursor-pointer select-none"
             >
                 <Eye className="w-3 h-3" />
                 View
@@ -1502,6 +1798,67 @@ function TypeCell(params: ICellRendererParams) {
     );
 }
 
+function ExpectedOutputCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
+    const value = row.expectedOutput || (row.taskData as any)?.expectedOutput;
+    if (!value) return <div className="px-2 text-[10px] text-gray-400 italic">-</div>;
+    return (
+        <div className="px-2 h-full flex items-center truncate text-xs text-gray-700 font-medium" title={value}>
+            {value}
+        </div>
+    );
+}
+
+function IssueCountBadge({
+    count,
+    accentClass,
+    title,
+}: {
+    count: number;
+    accentClass: string;
+    title: string;
+}) {
+    return (
+        <div className="px-2 h-full flex items-center" title={title}>
+            <span
+                className={cn(
+                    'inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-md text-[11px] font-bold tabular-nums border',
+                    count > 0 ? accentClass : 'bg-gray-50 text-gray-400 border-gray-100'
+                )}
+            >
+                {count}
+            </span>
+        </div>
+    );
+}
+
+function TotalIssuesCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
+    const count = row.totalIssues ?? 0;
+    return (
+        <IssueCountBadge
+            count={count}
+            accentClass="bg-rose-50 text-rose-700 border-rose-100"
+            title={`${count} total issue${count === 1 ? '' : 's'} linked to this task`}
+        />
+    );
+}
+
+function ReadyForTestIssuesCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
+    const count = row.readyForTestIssues ?? 0;
+    return (
+        <IssueCountBadge
+            count={count}
+            accentClass="bg-amber-50 text-amber-700 border-amber-100"
+            title={`${count} issue${count === 1 ? '' : 's'} ready for testing`}
+        />
+    );
+}
+
 function StatusCell(params: ICellRendererParams) {
     const row = params.data as FlatRow;
     const ctx = params.context;
@@ -1513,6 +1870,9 @@ function StatusCell(params: ICellRendererParams) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+
+    const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
+    const [isOutputModalOpen, setIsOutputModalOpen] = useState(false);
 
     const allStatuses = useMemo(() =>
         workflow.flatMap((s: any) => (s.statuses || []).map((st: any) => ({ ...st, stageName: s.name })))
@@ -1558,6 +1918,16 @@ function StatusCell(params: ICellRendererParams) {
 
     const handleStatusChange = async (newStatusId: string) => {
         if (newStatusId === localStatusId) return;
+
+        const targetStatus = allStatuses.find((s: any) => s.id === newStatusId);
+        const name = (targetStatus?.name || '').toLowerCase();
+
+        if (name.includes('ready for testing') || name === 'ready for testing') {
+            setPendingStatusId(newStatusId);
+            setIsOutputModalOpen(true);
+            return;
+        }
+
         setLocalStatusId(newStatusId);
         try {
             await onUpdateStatus?.(row.taskId!, newStatusId);
@@ -1566,7 +1936,7 @@ function StatusCell(params: ICellRendererParams) {
         }
     };
 
-    const color = selectedStatus?.color || '#64748b';
+    const color = getTaskStatusHexColor(selectedStatus?.name, selectedStatus?.color);
     const statusStyle = {
         backgroundColor: `${color}15`,
         color,
@@ -1624,7 +1994,7 @@ function StatusCell(params: ICellRendererParams) {
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {allStatuses.map((opt: any) => {
                                     const isSelected = opt.id === localStatusId;
-                                    const optColor = opt.color || '#64748b';
+                                    const optColor = getTaskStatusHexColor(opt.name, opt.color);
                                     return (
                                         <button
                                             key={opt.id}
@@ -1654,6 +2024,34 @@ function StatusCell(params: ICellRendererParams) {
                 </AnimatePresence>,
                 document.body
             )}
+
+            {isOutputModalOpen && pendingStatusId && (() => {
+                const targetSt = allStatuses.find((s: any) => s.id === pendingStatusId);
+                return (
+                    <ExpectedOutputModal
+                        isOpen={isOutputModalOpen}
+                        onClose={() => {
+                            setIsOutputModalOpen(false);
+                            setPendingStatusId(null);
+                        }}
+                        onConfirm={async (expOutput) => {
+                            setLocalStatusId(pendingStatusId);
+                            try {
+                                await onUpdateStatus?.(row.taskId!, pendingStatusId, expOutput);
+                            } catch {
+                                setLocalStatusId(row.status?.id || '');
+                            } finally {
+                                setIsOutputModalOpen(false);
+                                setPendingStatusId(null);
+                            }
+                        }}
+                        taskTitle={row.name}
+                        initialValue={row.expectedOutput || ''}
+                        statusName={targetSt?.name || 'Ready for testing'}
+                        statusColor={targetSt?.color || color}
+                    />
+                );
+            })()}
         </div>
     );
 }
@@ -1712,6 +2110,108 @@ function OwnerCell(params: ICellRendererParams) {
     );
 }
 
+function AssignedByCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType === 'tasklist') return null;
+
+    if (row.rowType === 'phase') {
+        return (
+            <div className="flex items-center h-full px-2">
+                <span className="text-xs text-gray-400 font-medium">-</span>
+            </div>
+        );
+    }
+
+    let assignedBy = row.assignedBy || row.createdBy || (row.taskData as any)?.assignedBy || (row.taskData as any)?.createdBy;
+
+    if (Array.isArray(assignedBy)) {
+        assignedBy = assignedBy[0];
+    }
+
+    if (!assignedBy) {
+        return (
+            <div className="flex items-center h-full px-2">
+                <span className="text-xs text-gray-400 font-medium">—</span>
+            </div>
+        );
+    }
+
+    const name = typeof assignedBy === 'string' ? assignedBy : assignedBy.name || 'System';
+    const avatarUrl = typeof assignedBy === 'object' ? assignedBy.avatarUrl : undefined;
+
+    return (
+        <div className="flex items-center h-full px-2 gap-1.5" title={name}>
+            <div
+                className={cn(
+                    "w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold text-white shadow-sm flex-shrink-0",
+                    avatarUrl ? '' : getAvatarColor(name)
+                )}
+            >
+                {avatarUrl ? (
+                    <img src={avatarUrl} alt={name} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                    name.charAt(0).toUpperCase()
+                )}
+            </div>
+            <span className="text-[11px] text-gray-700 font-medium truncate max-w-[80px]">
+                {name.split(' ')[0]}
+            </span>
+        </div>
+    );
+}
+
+function TestedByCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
+
+    const rawTesters = row.testers || (row.taskData as any)?.testers || [];
+    const testers = (rawTesters as any[]).map((t) => ({
+        id: t.id || t.userId || t.user?.id,
+        name: t.name || t.user?.name,
+        email: t.email || t.user?.email,
+        avatarUrl: t.avatarUrl || t.user?.avatarUrl,
+    })).filter((t) => t.id || t.name || t.email);
+
+    if (!testers || testers.length === 0) {
+        return (
+            <div className="flex items-center h-full px-2">
+                <span className="text-xs text-gray-400 font-medium">—</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center h-full px-2 gap-1.5">
+            <div className="flex -space-x-1.5">
+                {testers.slice(0, 2).map((t: any) => (
+                    <div
+                        key={t.id || t.email}
+                        className={cn(
+                            "w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold text-white shadow-sm flex-shrink-0",
+                            t.avatarUrl ? '' : getAvatarColor(t.name || t.email || 'Tester')
+                        )}
+                        title={t.name || t.email}
+                    >
+                        {t.avatarUrl ? (
+                            <img src={t.avatarUrl} alt={t.name || 'Tester'} className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                            (t.name || t.email || 'T').charAt(0).toUpperCase()
+                        )}
+                    </div>
+                ))}
+            </div>
+            {testers.length === 1 && (
+                <span className="text-[11px] text-gray-600 font-medium truncate max-w-[60px]">
+                    {(testers[0].name || testers[0].email || '').split(' ')[0]}
+                </span>
+            )}
+            {testers.length > 2 && (
+                <span className="text-[10px] text-gray-400 font-bold">+{testers.length - 2}</span>
+            )}
+        </div>
+    );
+}
+
 function TagsCell(params: ICellRendererParams) {
     const row = params.data as FlatRow;
     if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
@@ -1752,6 +2252,35 @@ function DateCell(params: ICellRendererParams) {
     return (
         <div className="flex items-center h-full px-2">
             <span className={cn('text-[11px] font-medium', isPast ? 'text-red-500' : 'text-gray-600')}>
+                {formatted}
+            </span>
+        </div>
+    );
+}
+
+function DateTimeCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
+
+    const dateStr = params.value || row.startDateTime;
+    if (!dateStr) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) {
+        return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+    }
+
+    const formatted = d.toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    return (
+        <div className="flex items-center h-full px-2">
+            <span className="text-[11px] font-medium text-gray-600" title={formatted}>
                 {formatted}
             </span>
         </div>

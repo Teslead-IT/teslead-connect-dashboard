@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
 import { ProjectFormData, CreateProjectModal } from '@/components/ui/CreateProjectModal';
 import { ProjectContextMenu } from '@/components/projects/ProjectContextMenu';
+import { EditProjectMembersModal } from '@/components/projects/EditProjectMembersModal';
 import { SendProjectInviteModal } from '@/components/invitations';
 import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
 import { useUser } from '@/hooks/use-auth';
@@ -39,6 +40,7 @@ import { Dropdown } from '@/components/ui/Dropdown';
 import { useOrganizationMembers } from '@/hooks/use-organization-members';
 import type { Project, Tag } from '@/types/project';
 import { getProjectPermissions, type OrgRole, type ProjectRole } from '@/lib/permissions';
+import { useDebounce } from '@/hooks/use-debounce';
 
 // ==================== TYPE DEFINITIONS ====================
 type ViewMode = 'list' | 'kanban';
@@ -65,15 +67,39 @@ export default function ProjectsPage() {
 
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
+    const urlSearch = searchParams.get('q') || searchParams.get('search') || '';
 
     const [viewMode, setViewMode] = useState<ViewMode>('list');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(urlSearch);
+    const debouncedSearch = useDebounce(searchQuery, 300);
+
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
 
+    // Sync state with URL search param if changed externally
+    useEffect(() => {
+        setSearchQuery(urlSearch);
+    }, [urlSearch]);
+
+    // Push debounced search query to URL params
+    useEffect(() => {
+        if (debouncedSearch !== urlSearch) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('page', '1');
+            if (debouncedSearch) {
+                params.set('q', debouncedSearch);
+            } else {
+                params.delete('q');
+                params.delete('search');
+            }
+            router.push(`/projects?${params.toString()}`);
+        }
+    }, [debouncedSearch, urlSearch, searchParams, router]);
+
     const { data: projectsData, isLoading: loading, error, refetch } = useProjects({
         page,
-        limit
+        limit,
+        search: debouncedSearch,
     });
 
     const projects = projectsData?.data || [];
@@ -96,16 +122,18 @@ export default function ProjectsPage() {
     const memberships = user?.memberships || [];
 
     const handlePageChange = (newPage: number) => {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(searchParams.toString());
         params.set('page', newPage.toString());
         if (limit !== 20) params.set('limit', limit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
         router.push(`/projects?${params.toString()}`);
     };
 
     const handleLimitChange = (newLimit: number) => {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(searchParams.toString());
         params.set('page', '1');
         params.set('limit', newLimit.toString());
+        if (debouncedSearch) params.set('q', debouncedSearch);
         router.push(`/projects?${params.toString()}`);
     };
 
@@ -131,6 +159,14 @@ export default function ProjectsPage() {
         isOpen: boolean;
         projectId?: string;
         projectName?: string;
+    }>({ isOpen: false });
+
+    // Edit Members Modal State (existing members: role change / remove)
+    const [editMembersModalState, setEditMembersModalState] = useState<{
+        isOpen: boolean;
+        projectId?: string;
+        projectName?: string;
+        projectOwnerId?: string | null;
     }>({ isOpen: false });
 
     // Handle Context Menu
@@ -188,19 +224,14 @@ export default function ProjectsPage() {
     const isCurrentOrgAdminOrOwner = activeOrgRole === 'OWNER' || activeOrgRole === 'ADMIN';
 
     const filteredProjects = useMemo(() => {
-        // Client-side filtering of current page
         return projects.filter(project => {
             // Defense-in-depth: If not Org Owner/Admin, hide projects where user has no role
             if (!isCurrentOrgAdminOrOwner && !project.role) {
                 return false;
             }
-
-            return (
-                project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
-            );
+            return true;
         });
-    }, [projects, searchQuery, isCurrentOrgAdminOrOwner]);
+    }, [projects, isCurrentOrgAdminOrOwner]);
 
     const handleUpdateProjectStatus = useCallback(async (projectId: string, newStatus: string) => {
         try {
@@ -256,10 +287,15 @@ export default function ProjectsPage() {
             orgRole
         );
 
+        const isOrgOwner = orgRole === 'OWNER';
+        const isProjectOwner = !!user?.id && project.ownerId === user.id;
+
         return {
-            canDelete: isOrgOwnerOrAdmin || project.ownerId === user?.id,
+            canDelete: isOrgOwnerOrAdmin || isProjectOwner,
             canEdit: isOrgOwnerOrAdmin || projectPerms.canEditProjectSettings,
             canInvite: isOrgOwnerOrAdmin || projectPerms.canAddMembers,
+            // Edit Members: project owner or organization owner only
+            canEditMembers: isOrgOwner || isProjectOwner,
             isOrgOwnerOrAdmin,
             orgRole
         };
@@ -643,6 +679,7 @@ export default function ProjectsPage() {
                     access: projectData.access,
                     status: projectData.status,
                     tags: projectData.tags,
+                    phases: projectData.phases,
                 });
                 toast.success('Project created successfully', undefined, { id: toastId, soundEnabled: true });
             }
@@ -733,11 +770,11 @@ export default function ProjectsPage() {
             </div>
 
             <div className="flex-1 overflow-hidden p-0 bg-white">
-                {loading ? (
+                {loading && !projectsData ? (
                     <div className="flex flex-col items-center justify-center h-full space-y-4">
                         <Loader />
                     </div>
-                ) : error ? (
+                ) : error && !projectsData ? (
                     <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto text-center space-y-4">
                         <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-2">
                             <MoreVertical className="w-6 h-6 text-red-500" />
@@ -1210,7 +1247,7 @@ export default function ProjectsPage() {
             </div>
 
             {contextMenu && (() => {
-                const { canEdit, canDelete, canInvite } = getProjectPermissionsForUI(contextMenu.project);
+                const { canEdit, canDelete, canInvite, canEditMembers } = getProjectPermissionsForUI(contextMenu.project);
 
                 return (
                     <ProjectContextMenu
@@ -1235,6 +1272,15 @@ export default function ProjectsPage() {
                             });
                             setContextMenu(null);
                         } : undefined}
+                        onEditMembers={canEditMembers ? () => {
+                            setEditMembersModalState({
+                                isOpen: true,
+                                projectId: contextMenu.project.id,
+                                projectName: contextMenu.project.name,
+                                projectOwnerId: contextMenu.project.ownerId,
+                            });
+                            setContextMenu(null);
+                        } : undefined}
                     />
                 );
             })()
@@ -1247,6 +1293,18 @@ export default function ProjectsPage() {
                         onClose={() => setInviteModalState({ ...inviteModalState, isOpen: false })}
                         projectId={inviteModalState.projectId}
                         projectName={inviteModalState.projectName || 'Project'}
+                    />
+                )
+            }
+
+            {
+                editMembersModalState.projectId && (
+                    <EditProjectMembersModal
+                        isOpen={editMembersModalState.isOpen}
+                        onClose={() => setEditMembersModalState({ ...editMembersModalState, isOpen: false })}
+                        projectId={editMembersModalState.projectId}
+                        projectName={editMembersModalState.projectName || 'Project'}
+                        projectOwnerId={editMembersModalState.projectOwnerId}
                     />
                 )
             }

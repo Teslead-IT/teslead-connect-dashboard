@@ -19,10 +19,11 @@ export const projectsApi = {
     /**
      * Get all projects for the current organization (org from header)
      */
-    async getAllProjects(params?: { email?: string; page?: number; limit?: number }): Promise<PaginatedProjectsResponse> {
+    async getAllProjects(params?: { email?: string; page?: number; limit?: number; search?: string }): Promise<PaginatedProjectsResponse> {
         const queryParams: Record<string, any> = {};
         if (params?.page) queryParams.page = params.page;
         if (params?.limit) queryParams.limit = params.limit;
+        if (params?.search) queryParams.search = params.search;
 
         const { data } = await apiClient.get<PaginatedProjectsResponse>('/projects', {
             params: queryParams
@@ -97,5 +98,33 @@ export const projectsApi = {
     async getProjectMembers(projectId: string): Promise<ProjectMember[]> {
         const { data } = await apiClient.get<ProjectMember[]>(`/projects/${projectId}/members`);
         return data || [];
+    },
+
+    /**
+     * Update an existing project member's role
+     */
+    async updateProjectMemberRole(
+        projectId: string,
+        userId: string,
+        role: 'ADMIN' | 'MEMBER' | 'VIEWER'
+    ): Promise<{ message: string; member: ProjectMember }> {
+        const { data } = await apiClient.patch<{ message: string; member: ProjectMember }>(
+            `/projects/${projectId}/members/${userId}`,
+            { role }
+        );
+        return data;
+    },
+
+    /**
+     * Soft-remove an existing project member
+     */
+    async removeProjectMember(
+        projectId: string,
+        userId: string
+    ): Promise<{ message: string; member: ProjectMember }> {
+        const { data } = await apiClient.delete<{ message: string; member: ProjectMember }>(
+            `/projects/${projectId}/members/${userId}`
+        );
+        return data;
     },
 };
