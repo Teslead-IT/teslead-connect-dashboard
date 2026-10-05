@@ -3,7 +3,7 @@ import type { ProjectMember, Project } from '@/types/project';
 import type { PhaseWithTaskLists, TaskList } from '@/types/phase';
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Flag, Calendar, Users, AlignLeft, CheckCircle2, Layers, ListTodo, Search, Check, AlertCircle, Stars, Bug, Zap, RefreshCw, FlaskConical, FileText, Settings, ClipboardCheck, Flame, Tag, Folder, ChevronDown } from 'lucide-react';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Plus, CheckCircle2 as CheckCircleIcon } from 'lucide-react';
 import { useCreateStatus, useProjectWorkflow } from '@/hooks/use-tasks';
 import { useProjects, useProjectMembers } from '@/hooks/use-projects';
@@ -34,6 +34,8 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string; color: string; bg:
     { value: 4, label: 'High', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', icon: '↑' },
     { value: 5, label: 'Critical', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: '⬆' },
 ];
+
+const STATUS_COLOR_PRESETS = ['#D946EF', '#8B5CF6', '#A25DDC', '#3B82F6', '#FDAB3D', '#00C875', '#E85D75', '#06B6D4', '#64748b'];
 
 const TASK_TYPE_OPTIONS: { value: TaskType; label: string; color: string; bg: string; icon: any }[] = [
     { value: 'FEAT', label: 'Feature', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200', icon: Stars },
@@ -87,6 +89,7 @@ export function CreateTaskModal({
     const [statusSearch, setStatusSearch] = useState('');
     const [isCreatingStatus, setIsCreatingStatus] = useState(false);
     const [newStatusName, setNewStatusName] = useState('');
+    const [newStatusColor, setNewStatusColor] = useState('#8B5CF6');
     const [showProjectDropdown, setShowProjectDropdown] = useState(false);
     const [projectSearch, setProjectSearch] = useState('');
 
@@ -310,16 +313,18 @@ export function CreateTaskModal({
         if (!newStatusName.trim() || !workflow.length) return;
 
         const firstStage = workflow[0];
+        const statusColor = getTaskStatusHexColor(newStatusName.trim(), newStatusColor);
         try {
             const newStatus = await createStatusMutation.mutateAsync({
                 stageId: firstStage.id,
                 name: newStatusName.trim(),
-                color: '#64748b', // Default status color
+                color: statusColor,
             });
 
             setFormData(prev => ({ ...prev, statusId: newStatus.id }));
             setIsCreatingStatus(false);
             setNewStatusName('');
+            setNewStatusColor('#8B5CF6');
             setShowStatusDropdown(false);
             toast.success('New status created');
         } catch (err: any) {
@@ -1040,7 +1045,7 @@ export function CreateTaskModal({
                                                                 )}
                                                             >
                                                                 <div className="flex items-center gap-2 truncate">
-                                                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
+                                                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getTaskStatusHexColor(status.name, status.color) }} />
                                                                     <span className="truncate">{status.name}</span>
                                                                 </div>
                                                                 {formData.statusId === status.id && <Check className="w-3 h-3 text-indigo-600" />}
@@ -1052,34 +1057,61 @@ export function CreateTaskModal({
                                                 {/* Add Custom Status Section */}
                                                 <div className="border-t border-gray-100 p-1.5 bg-gray-50/50">
                                                     {isCreatingStatus ? (
-                                                        <div className="flex items-center gap-1.5 animate-in slide-in-from-bottom-2">
-                                                            <input
-                                                                autoFocus
-                                                                type="text"
-                                                                placeholder="New status name..."
-                                                                value={newStatusName}
-                                                                onChange={(e) => setNewStatusName(e.target.value)}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') handleCreateCustomStatus();
-                                                                    if (e.key === 'Escape') setIsCreatingStatus(false);
-                                                                }}
-                                                                className="flex-1 px-2 py-1.5 text-[11px] border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleCreateCustomStatus}
-                                                                disabled={!newStatusName.trim() || createStatusMutation.isPending}
-                                                                className="p-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-                                                            >
-                                                                {createStatusMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setIsCreatingStatus(false)}
-                                                                className="p-1.5 text-gray-400 hover:text-gray-600"
-                                                            >
-                                                                <X className="w-3 h-3" />
-                                                            </button>
+                                                        <div className="flex flex-col gap-2 p-1.5 animate-in slide-in-from-bottom-2">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div
+                                                                    className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm border border-black/10"
+                                                                    style={{ backgroundColor: newStatusColor }}
+                                                                    title="Status color"
+                                                                />
+                                                                <input
+                                                                    autoFocus
+                                                                    type="text"
+                                                                    placeholder="New status name..."
+                                                                    value={newStatusName}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        setNewStatusName(val);
+                                                                        setNewStatusColor(getTaskStatusHexColor(val, null));
+                                                                    }}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') handleCreateCustomStatus();
+                                                                        if (e.key === 'Escape') setIsCreatingStatus(false);
+                                                                    }}
+                                                                    className="flex-1 px-2 py-1.5 text-[11px] border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleCreateCustomStatus}
+                                                                    disabled={!newStatusName.trim() || createStatusMutation.isPending}
+                                                                    className="p-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+                                                                >
+                                                                    {createStatusMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setIsCreatingStatus(false)}
+                                                                    className="p-1.5 text-gray-400 hover:text-gray-600"
+                                                                >
+                                                                    <X className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                            {/* Color Presets */}
+                                                            <div className="flex items-center gap-1.5 px-0.5 pt-0.5">
+                                                                <span className="text-[10px] text-gray-400 font-medium mr-1">Color:</span>
+                                                                {STATUS_COLOR_PRESETS.map((c) => (
+                                                                    <button
+                                                                        key={c}
+                                                                        type="button"
+                                                                        onClick={() => setNewStatusColor(c)}
+                                                                        className={cn(
+                                                                            "w-3.5 h-3.5 rounded-full transition-transform hover:scale-110",
+                                                                            newStatusColor === c ? "ring-2 ring-offset-1 ring-indigo-500 scale-110" : ""
+                                                                        )}
+                                                                        style={{ backgroundColor: c }}
+                                                                    />
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     ) : (
                                                         <button

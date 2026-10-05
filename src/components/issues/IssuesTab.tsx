@@ -228,6 +228,35 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
         );
     };
 
+    const TestersRenderer = (props: ICellRendererParams<Issue>) => {
+        const testers = props.data?.testers || [];
+
+        if (testers.length === 0) {
+            return <div className="h-full flex items-center text-[10px] text-gray-400 italic">No testers</div>;
+        }
+
+        return (
+            <div className="h-full flex items-center gap-1">
+                {testers.slice(0, 3).map((t: any) => (
+                    <div
+                        key={t.id || t.userId || t.email}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 bg-indigo-600 overflow-hidden shadow-xs"
+                        title={t.name || t.email}
+                    >
+                        {t.avatarUrl ? (
+                            <img src={t.avatarUrl} alt={t.name || t.email} className="w-full h-full object-cover" />
+                        ) : (
+                            (t.name || t.email || '?').charAt(0).toUpperCase()
+                        )}
+                    </div>
+                ))}
+                {testers.length > 3 && (
+                    <span className="text-[10px] text-gray-500 font-medium">+{testers.length - 3}</span>
+                )}
+            </div>
+        );
+    };
+
     const TagsRenderer = (props: ICellRendererParams<Issue>) => {
         const type = props.data?.type || 'BUG';
         return (
@@ -340,6 +369,13 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             headerName: 'ASSIGNEES',
             width: 130,
             cellRenderer: AssigneesRenderer,
+            sortable: false,
+        },
+        {
+            field: 'testers',
+            headerName: 'TESTED BY',
+            width: 130,
+            cellRenderer: TestersRenderer,
             sortable: false,
         },
         {
