@@ -50,7 +50,7 @@ import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
 import { CreateTaskListModal } from './CreateTaskListModal';
 import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
 import {
     useStructuredPhases,
@@ -63,8 +63,9 @@ import {
     useReorderTaskLists,
 } from '@/hooks/use-phases';
 import { useCreateTask, useUpdateTask, useDeleteTask, useProjectWorkflow, useProjectTasks } from '@/hooks/use-tasks';
-import { useCreateIssue } from '@/hooks/use-issues';
+import { useCreateIssue, useProjectIssues } from '@/hooks/use-issues';
 import { useProjectMembers } from '@/hooks/use-projects';
+import type { Issue } from '@/types/issue';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { TaskViewModal } from '@/components/tasks/TaskViewModal';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
@@ -106,6 +107,7 @@ interface FlatRow {
     testers?: Array<{ id: string; name: string; email: string; avatarUrl?: string }>;
     tags?: Array<{ id: string; name: string; color: string }>;
     startDate?: string | null;
+    startDateTime?: string | null;
     dueDate?: string | null;
     priority?: number;
     type?: TaskType;
@@ -113,6 +115,9 @@ interface FlatRow {
     childCount?: number;
     isExpanded?: boolean;
     hasChildren?: boolean;
+
+    totalIssues?: number;
+    readyForTestIssues?: number;
 
     phaseData?: PhaseWithTaskLists;
     taskListData?: TaskListWithTasks;
@@ -141,12 +146,33 @@ function normalizeStr(str?: string | null): string {
     return str ? str.trim().toLowerCase() : '';
 }
 
+function isReadyForTestingStatus(statusName?: string | null): boolean {
+    const name = normalizeStr(statusName);
+    return name.includes('ready for testing') || name === 'ready for test';
+}
+
+function buildIssueCountsByTaskId(issues: Issue[]): Map<string, { total: number; readyForTest: number }> {
+    const map = new Map<string, { total: number; readyForTest: number }>();
+    for (const issue of issues) {
+        const linkedId = issue.taskId || issue.linkedTask?.id;
+        if (!linkedId) continue;
+        const current = map.get(linkedId) || { total: 0, readyForTest: 0 };
+        current.total += 1;
+        if (isReadyForTestingStatus(issue.status?.name)) {
+            current.readyForTest += 1;
+        }
+        map.set(linkedId, current);
+    }
+    return map;
+}
+
 function doesTaskOrChildrenMatch(
     task: StructuredTask,
     targetStatus?: string,
     query?: string
 ): boolean {
-    const statusMatch = !targetStatus || normalizeStr(task.status?.name) === targetStatus;
+    const sName = normalizeStr(task.status?.name);
+    const statusMatch = !targetStatus || sName === targetStatus || (targetStatus.includes('testing') && sName.includes('testing'));
     const queryMatch = !query ||
         normalizeStr(task.title).includes(query) ||
         normalizeStr(task.taskId).includes(query);
@@ -221,6 +247,12 @@ export default function PhaseTaskListTab({
     const { data: workflow = [] } = useProjectWorkflow(projectId);
     const { data: members = [] } = useProjectMembers(projectId);
     const { data: projectTasks = [] } = useProjectTasks(projectId);
+    const { data: projectIssues = [] } = useProjectIssues(projectId);
+
+    const issueCountsByTaskId = useMemo(
+        () => buildIssueCountsByTaskId(projectIssues),
+        [projectIssues]
+    );
     const createPhaseMutation = useCreatePhase(projectId);
     const createTaskListMutation = useCreateTaskList(projectId);
     const createTaskMutation = useCreateTask(projectId);
@@ -395,6 +427,8 @@ export default function PhaseTaskListTab({
                                 const children = task.children || [];
                                 const isTaskExpanded = expandedTasks.has(task.id);
 
+                                const issueCounts = issueCountsByTaskId.get(task.id);
+
                                 rows.push({
                                     rowId: `task-${task.id}`,
                                     rowType: parentLevel === 2 ? 'task' : 'subtask',
@@ -411,13 +445,15 @@ export default function PhaseTaskListTab({
                                     createdBy: (task as any).createdBy || null,
                                     testers: task.testers || (task as any).testers,
                                     tags: task.tags,
-                                    startDate: null,
+                                    startDateTime: task.startDateTime ?? null,
                                     dueDate: task.dueDate,
                                     priority: task.priority,
                                     type: task.type,
                                     childCount: children.length,
                                     isExpanded: isTaskExpanded,
                                     hasChildren: children.length > 0,
+                                    totalIssues: issueCounts?.total ?? 0,
+                                    readyForTestIssues: issueCounts?.readyForTest ?? 0,
                                     taskData: task,
                                 });
 
@@ -434,7 +470,7 @@ export default function PhaseTaskListTab({
         });
 
         return rows;
-    }, [phases, expandedPhases, expandedTaskLists, expandedTasks, isEditable, searchQuery, filterStatusName]);
+    }, [phases, expandedPhases, expandedTaskLists, expandedTasks, isEditable, searchQuery, filterStatusName, issueCountsByTaskId]);
 
     const filteredFlatRows = flatRows;
 
@@ -681,6 +717,20 @@ export default function PhaseTaskListTab({
             cellClass: '!p-0',
         },
         {
+            headerName: 'Total Issues',
+            field: 'totalIssues',
+            width: 110,
+            cellRenderer: TotalIssuesCell,
+            cellClass: '!p-0',
+        },
+        {
+            headerName: 'Issues in Ready for Test',
+            field: 'readyForTestIssues',
+            width: 180,
+            cellRenderer: ReadyForTestIssuesCell,
+            cellClass: '!p-0',
+        },
+        {
             headerName: 'Assigned To',
             field: 'assignees',
             width: 140,
@@ -710,9 +760,9 @@ export default function PhaseTaskListTab({
         },
         {
             headerName: 'Start Date',
-            field: 'startDate',
-            width: 120,
-            cellRenderer: DateCell,
+            field: 'startDateTime',
+            width: 150,
+            cellRenderer: DateTimeCell,
             cellClass: '!p-0',
         },
         {
@@ -1241,7 +1291,10 @@ function TasksBoardView({
         let tasks = allTasks;
         if (filterStatusName) {
             const targetStatus = filterStatusName.trim().toLowerCase();
-            tasks = tasks.filter((t: any) => t.status?.name?.trim().toLowerCase() === targetStatus);
+            tasks = tasks.filter((t: any) => {
+                const sName = t.status?.name?.trim().toLowerCase() || '';
+                return sName === targetStatus || (targetStatus.includes('testing') && sName.includes('testing'));
+            });
         }
         if (!searchQuery.trim()) return tasks;
         const q = searchQuery.trim().toLowerCase();
@@ -1757,6 +1810,55 @@ function ExpectedOutputCell(params: ICellRendererParams) {
     );
 }
 
+function IssueCountBadge({
+    count,
+    accentClass,
+    title,
+}: {
+    count: number;
+    accentClass: string;
+    title: string;
+}) {
+    return (
+        <div className="px-2 h-full flex items-center" title={title}>
+            <span
+                className={cn(
+                    'inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-md text-[11px] font-bold tabular-nums border',
+                    count > 0 ? accentClass : 'bg-gray-50 text-gray-400 border-gray-100'
+                )}
+            >
+                {count}
+            </span>
+        </div>
+    );
+}
+
+function TotalIssuesCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
+    const count = row.totalIssues ?? 0;
+    return (
+        <IssueCountBadge
+            count={count}
+            accentClass="bg-rose-50 text-rose-700 border-rose-100"
+            title={`${count} total issue${count === 1 ? '' : 's'} linked to this task`}
+        />
+    );
+}
+
+function ReadyForTestIssuesCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
+    const count = row.readyForTestIssues ?? 0;
+    return (
+        <IssueCountBadge
+            count={count}
+            accentClass="bg-amber-50 text-amber-700 border-amber-100"
+            title={`${count} issue${count === 1 ? '' : 's'} ready for testing`}
+        />
+    );
+}
+
 function StatusCell(params: ICellRendererParams) {
     const row = params.data as FlatRow;
     const ctx = params.context;
@@ -1834,7 +1936,7 @@ function StatusCell(params: ICellRendererParams) {
         }
     };
 
-    const color = selectedStatus?.color || '#64748b';
+    const color = getTaskStatusHexColor(selectedStatus?.name, selectedStatus?.color);
     const statusStyle = {
         backgroundColor: `${color}15`,
         color,
@@ -1892,7 +1994,7 @@ function StatusCell(params: ICellRendererParams) {
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {allStatuses.map((opt: any) => {
                                     const isSelected = opt.id === localStatusId;
-                                    const optColor = opt.color || '#64748b';
+                                    const optColor = getTaskStatusHexColor(opt.name, opt.color);
                                     return (
                                         <button
                                             key={opt.id}
@@ -2150,6 +2252,35 @@ function DateCell(params: ICellRendererParams) {
     return (
         <div className="flex items-center h-full px-2">
             <span className={cn('text-[11px] font-medium', isPast ? 'text-red-500' : 'text-gray-600')}>
+                {formatted}
+            </span>
+        </div>
+    );
+}
+
+function DateTimeCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
+
+    const dateStr = params.value || row.startDateTime;
+    if (!dateStr) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) {
+        return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+    }
+
+    const formatted = d.toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    return (
+        <div className="flex items-center h-full px-2">
+            <span className="text-[11px] font-medium text-gray-600" title={formatted}>
                 {formatted}
             </span>
         </div>

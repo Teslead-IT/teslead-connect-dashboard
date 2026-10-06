@@ -32,7 +32,7 @@ import {
     Flame,
     Plus,
 } from 'lucide-react';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Dialog } from '@/components/ui/Dialog';
 import type { PhaseWithTaskLists } from '@/types/phase';
 import type { StructuredTask } from '@/types/phase';
@@ -292,7 +292,7 @@ export function TaskViewModal({
                                                                     {task.title || 'Untitled'}
                                                                 </h3>
                                                                 <div className={cn("flex items-center gap-2 mt-1.5", isActive ? "text-white/70" : "text-gray-400")}>
-                                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.7)' : task.status?.color || '#64748b' }} />
+                                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.7)' : getTaskStatusHexColor(task.status?.name, task.status?.color) }} />
                                                                     <span className="text-[10px] font-bold uppercase">{task.status?.name || 'No status'}</span>
                                                                 </div>
                                                                 {task.dueDate && (
@@ -947,7 +947,7 @@ function TaskDetailsPanel({
             <div>
                 <label className={labelClasses}>Status</label>
                 <div className={cn("inline-flex items-center gap-2 px-3 py-2 border bg-white", rounded)}>
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: task.status?.color || '#64748b' }} />
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getTaskStatusHexColor(task.status?.name, task.status?.color) }} />
                     <span className="text-xs font-medium">{task.status?.name || 'No status'}</span>
                 </div>
             </div>

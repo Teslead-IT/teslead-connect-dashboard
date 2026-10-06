@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
 import { ProjectFormData, CreateProjectModal } from '@/components/ui/CreateProjectModal';
 import { ProjectContextMenu } from '@/components/projects/ProjectContextMenu';
+import { EditProjectMembersModal } from '@/components/projects/EditProjectMembersModal';
 import { SendProjectInviteModal } from '@/components/invitations';
 import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
 import { useUser } from '@/hooks/use-auth';
@@ -160,6 +161,14 @@ export default function ProjectsPage() {
         projectName?: string;
     }>({ isOpen: false });
 
+    // Edit Members Modal State (existing members: role change / remove)
+    const [editMembersModalState, setEditMembersModalState] = useState<{
+        isOpen: boolean;
+        projectId?: string;
+        projectName?: string;
+        projectOwnerId?: string | null;
+    }>({ isOpen: false });
+
     // Handle Context Menu
     const handleCellContextMenu = useCallback((params: any) => {
         const event = params.event;
@@ -278,10 +287,15 @@ export default function ProjectsPage() {
             orgRole
         );
 
+        const isOrgOwner = orgRole === 'OWNER';
+        const isProjectOwner = !!user?.id && project.ownerId === user.id;
+
         return {
-            canDelete: isOrgOwnerOrAdmin || project.ownerId === user?.id,
+            canDelete: isOrgOwnerOrAdmin || isProjectOwner,
             canEdit: isOrgOwnerOrAdmin || projectPerms.canEditProjectSettings,
             canInvite: isOrgOwnerOrAdmin || projectPerms.canAddMembers,
+            // Edit Members: project owner or organization owner only
+            canEditMembers: isOrgOwner || isProjectOwner,
             isOrgOwnerOrAdmin,
             orgRole
         };
@@ -1233,7 +1247,7 @@ export default function ProjectsPage() {
             </div>
 
             {contextMenu && (() => {
-                const { canEdit, canDelete, canInvite } = getProjectPermissionsForUI(contextMenu.project);
+                const { canEdit, canDelete, canInvite, canEditMembers } = getProjectPermissionsForUI(contextMenu.project);
 
                 return (
                     <ProjectContextMenu
@@ -1258,6 +1272,15 @@ export default function ProjectsPage() {
                             });
                             setContextMenu(null);
                         } : undefined}
+                        onEditMembers={canEditMembers ? () => {
+                            setEditMembersModalState({
+                                isOpen: true,
+                                projectId: contextMenu.project.id,
+                                projectName: contextMenu.project.name,
+                                projectOwnerId: contextMenu.project.ownerId,
+                            });
+                            setContextMenu(null);
+                        } : undefined}
                     />
                 );
             })()
@@ -1270,6 +1293,18 @@ export default function ProjectsPage() {
                         onClose={() => setInviteModalState({ ...inviteModalState, isOpen: false })}
                         projectId={inviteModalState.projectId}
                         projectName={inviteModalState.projectName || 'Project'}
+                    />
+                )
+            }
+
+            {
+                editMembersModalState.projectId && (
+                    <EditProjectMembersModal
+                        isOpen={editMembersModalState.isOpen}
+                        onClose={() => setEditMembersModalState({ ...editMembersModalState, isOpen: false })}
+                        projectId={editMembersModalState.projectId}
+                        projectName={editMembersModalState.projectName || 'Project'}
+                        projectOwnerId={editMembersModalState.projectOwnerId}
                     />
                 )
             }

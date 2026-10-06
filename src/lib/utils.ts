@@ -165,11 +165,57 @@ export function getStatusColor(status: string): string {
     active: 'bg-green-500',
     'in-progress': 'bg-blue-500',
     testing: 'bg-yellow-500',
+    'testing in-progress': 'bg-pink-500',
+    'testing in progress': 'bg-pink-500',
+    'testing in-prograss': 'bg-pink-500',
     completed: 'bg-green-600',
     overdue: 'bg-red-500',
     pending: 'bg-gray-500',
   };
   return statusMap[status.toLowerCase()] || 'bg-gray-500';
+}
+
+/**
+ * Resolve hex color for a task status, with smart defaults for testing in-progress, etc.
+ */
+export function getTaskStatusHexColor(statusName?: string, existingColor?: string | null): string {
+  const lower = (statusName || '').trim().toLowerCase();
+
+  // If testing in-progress, prefer Magenta/Bright Pink (#D946EF) over legacy purple (#8B5CF6)
+  if (
+    lower.includes('testing in-progress') ||
+    lower.includes('testing in progress') ||
+    lower.includes('testing in-prograss') ||
+    lower.includes('testing inprogress')
+  ) {
+    if (existingColor && existingColor !== '#64748b' && existingColor !== '#8B5CF6' && existingColor.trim() !== '') {
+      return existingColor;
+    }
+    return '#D946EF';
+  }
+
+  if (existingColor && existingColor !== '#64748b' && existingColor.trim() !== '') {
+    return existingColor;
+  }
+  if (lower.includes('ready for testing')) {
+    return '#A25DDC';
+  }
+  if (lower.includes('testing') || lower.includes('test')) {
+    return '#D946EF';
+  }
+  if (lower.includes('working on it') || lower.includes('in progress') || lower.includes('in-progress')) {
+    return '#FDAB3D';
+  }
+  if (lower.includes('stuck') || lower.includes('blocked')) {
+    return '#E85D75';
+  }
+  if (lower.includes('completed') || lower.includes('done')) {
+    return '#00C875';
+  }
+  if (lower.includes('not started') || lower.includes('to do') || lower.includes('todo')) {
+    return '#94A3B8';
+  }
+  return existingColor || '#64748b';
 }
 
 /**

@@ -267,6 +267,7 @@ export function IssueViewModal({
         taskId: undefined,
         dueDate: undefined,
         assigneeIds: [],
+        testerIds: [],
     });
 
     // Popover Toggles
@@ -276,6 +277,8 @@ export function IssueViewModal({
     const [showTaskPop, setShowTaskPop] = useState(false);
     const [showAssigneePop, setShowAssigneePop] = useState(false);
     const [assigneeSearch, setAssigneeSearch] = useState('');
+    const [showTesterPop, setShowTesterPop] = useState(false);
+    const [testerSearch, setTesterSearch] = useState('');
 
     useEffect(() => {
         if (issue) {
@@ -292,6 +295,7 @@ export function IssueViewModal({
                 taskId: issue.taskId || undefined,
                 dueDate: issue.dueDate ? issue.dueDate.split('T')[0] : undefined,
                 assigneeIds: issue.assignees?.map(a => a.id) || [],
+                testerIds: (issue as any).testers?.map((t: any) => t.id || t.userId) || (issue as any).testerIds || [],
             });
         }
     }, [issue]);
@@ -363,6 +367,34 @@ export function IssueViewModal({
                 ? current.filter(id => id !== userId)
                 : [...current, userId];
             return { ...prev, assigneeIds: next };
+        });
+    };
+
+    const filteredTesterMembers = useMemo(() => {
+        if (!testerSearch.trim()) return members;
+        const q = testerSearch.toLowerCase();
+        return members.filter(m => {
+            const u = m?.user || m;
+            const name = u?.name || '';
+            const email = u?.email || '';
+            return name.toLowerCase().includes(q) || email.toLowerCase().includes(q);
+        });
+    }, [members, testerSearch]);
+
+    const selectedTesters = useMemo(() => {
+        const ids = formData.testerIds || [];
+        return members
+            .map(m => m?.user || m)
+            .filter(u => u && ids.includes(u.id || (u as any).userId));
+    }, [members, formData.testerIds]);
+
+    const toggleTester = (userId: string) => {
+        setFormData(prev => {
+            const current = prev.testerIds || [];
+            const next = current.includes(userId)
+                ? current.filter(id => id !== userId)
+                : [...current, userId];
+            return { ...prev, testerIds: next };
         });
     };
 
@@ -657,9 +689,10 @@ export function IssueViewModal({
                                                 </span>
                                                 {!isReadOnly && phases.length > 0 && (
                                                     <button
+                                                        disabled
                                                         type="button"
                                                         onClick={() => setShowPhasePop(!showPhasePop)}
-                                                        className="text-[10px] text-indigo-600 font-semibold hover:underline"
+                                                        className="text-[10px] text-indigo-600 font-semibold"
                                                     >
                                                         Change
                                                     </button>
@@ -709,9 +742,10 @@ export function IssueViewModal({
                                                 </span>
                                                 {!isReadOnly && availableTaskLists.length > 0 && (
                                                     <button
+                                                        disabled
                                                         type="button"
                                                         onClick={() => setShowTaskListPop(!showTaskListPop)}
-                                                        className="text-[10px] text-emerald-600 font-semibold hover:underline"
+                                                        className="text-[10px] text-emerald-600 font-semibold"
                                                     >
                                                         Change
                                                     </button>
@@ -754,9 +788,10 @@ export function IssueViewModal({
                                                 </span>
                                                 {!isReadOnly && tasks.length > 0 && (
                                                     <button
+                                                        disabled
                                                         type="button"
                                                         onClick={() => setShowTaskPop(!showTaskPop)}
-                                                        className="text-[10px] text-blue-600 font-semibold hover:underline"
+                                                        className="text-[10px] text-blue-600 font-semibold"
                                                     >
                                                         Link
                                                     </button>
@@ -925,6 +960,117 @@ export function IssueViewModal({
                                                                                 <span className="truncate">{name}</span>
                                                                             </div>
                                                                             {isAssigned && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Tested By Section */}
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                            <Eye className="w-3.5 h-3.5 text-indigo-500" /> Tested By
+                                        </label>
+
+                                        {selectedTesters.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mb-2">
+                                                {selectedTesters.map(t => (
+                                                    <span
+                                                        key={t.id}
+                                                        className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-purple-50 border border-purple-100 text-xs font-medium text-purple-700 shadow-2xs"
+                                                    >
+                                                        <div
+                                                            className={cn(
+                                                                "w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0 bg-indigo-600"
+                                                            )}
+                                                        >
+                                                            {t.avatarUrl ? (
+                                                                <img src={t.avatarUrl} alt={t.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                t.name.charAt(0).toUpperCase()
+                                                            )}
+                                                        </div>
+                                                        <span>{t.name}</span>
+                                                        {!isReadOnly && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleTester(t.id)}
+                                                                className="ml-0.5 p-0.5 hover:bg-purple-100 rounded-full transition-colors text-purple-600"
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                        )}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {!isReadOnly && (
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowTesterPop(!showTesterPop)}
+                                                    className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                                >
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                    {selectedTesters.length === 0 ? 'Click to select testers...' : 'Add more testers...'}
+                                                </button>
+
+                                                {showTesterPop && (
+                                                    <>
+                                                        <div className="fixed inset-0 z-20" onClick={() => setShowTesterPop(false)} />
+                                                        <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
+                                                            <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                                <div className="relative">
+                                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                                    <input
+                                                                        autoFocus
+                                                                        type="text"
+                                                                        placeholder="Search testers..."
+                                                                        value={testerSearch}
+                                                                        onChange={e => setTesterSearch(e.target.value)}
+                                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="overflow-y-auto custom-scrollbar flex-1">
+                                                                {filteredTesterMembers.map(m => {
+                                                                    const u = m?.user || m;
+                                                                    const uid = u?.id || m?.userId || m?.id;
+                                                                    const name = u?.name || u?.email || 'User';
+                                                                    const isSelected = (formData.testerIds || []).includes(uid);
+                                                                    const avatarUrl = u?.avatarUrl;
+
+                                                                    return (
+                                                                        <button
+                                                                            key={uid}
+                                                                            type="button"
+                                                                            onClick={() => toggleTester(uid)}
+                                                                            className={cn(
+                                                                                "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 transition-colors flex items-center justify-between gap-2",
+                                                                                isSelected ? "bg-purple-50 text-purple-700 font-semibold" : "text-gray-700"
+                                                                            )}
+                                                                        >
+                                                                            <div className="flex items-center gap-2 truncate">
+                                                                                <div
+                                                                                    className={cn(
+                                                                                        "w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase overflow-hidden shrink-0 bg-indigo-600"
+                                                                                    )}
+                                                                                >
+                                                                                    {avatarUrl ? (
+                                                                                        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                                                    ) : (
+                                                                                        name.charAt(0).toUpperCase()
+                                                                                    )}
+                                                                                </div>
+                                                                                <span className="truncate">{name}</span>
+                                                                            </div>
+                                                                            {isSelected && <Check className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
                                                                         </button>
                                                                     );
                                                                 })}

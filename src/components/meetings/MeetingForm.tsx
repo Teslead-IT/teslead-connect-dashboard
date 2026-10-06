@@ -96,6 +96,11 @@ export function MeetingForm({
     const { data: meeting, isLoading } = useMeeting(meetingId || '');
 
     const isOwner = activeOrgRole === 'OWNER';
+    const isAdmin = activeOrgRole === 'ADMIN';
+    const isCreator =
+        !!currentUser?.id &&
+        !!(meeting?.createdById === currentUser.id || meeting?.createdBy?.id === currentUser.id);
+    const canManageMeeting = isNew || isOwner || isAdmin || isCreator;
     const [isEditingState, setIsEditingState] = useState<boolean>(isEditing);
 
     useEffect(() => {
@@ -474,7 +479,7 @@ export function MeetingForm({
                                 )}
                             </div>
 
-                            {!readOnly && (
+                            {!readOnly && canManageMeeting && (
                                 <button
                                     type="button"
                                     onClick={() => setIsEditingState(true)}
@@ -534,7 +539,7 @@ export function MeetingForm({
                         </>
                     )}
 
-                    {!readOnly && !isNew && isOwner && (
+                    {!readOnly && !isNew && canManageMeeting && (
                         <button
                             type="button"
                             onClick={() => setShowDeleteModal(true)}
@@ -911,6 +916,7 @@ export function MeetingForm({
                             onChange={(jsonPayload) => setFormData({ ...formData, content: jsonPayload })}
                             readOnly={!isEditingState || readOnly}
                             userRole={activeOrgRole}
+                            canManageMeeting={canManageMeeting}
                             currentUserId={currentUser?.id ?? undefined}
                             currentUserName={currentUser?.name ?? undefined}
                             onSave={handleSave}

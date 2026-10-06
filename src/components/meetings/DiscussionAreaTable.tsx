@@ -37,6 +37,8 @@ interface DiscussionAreaTableProps {
     onChange: (jsonPayload: any) => void;
     readOnly?: boolean;
     userRole?: 'OWNER' | 'ADMIN' | 'MEMBER' | null;
+    /** OWNER, ADMIN, or meeting creator — full edit/delete on discussion rows */
+    canManageMeeting?: boolean;
     currentUserId?: string;
     currentUserName?: string;
     isFullScreen?: boolean;
@@ -152,6 +154,7 @@ export function DiscussionAreaTable({
     onChange,
     readOnly = false,
     userRole = 'MEMBER',
+    canManageMeeting = false,
     currentUserId,
     currentUserName,
     isFullScreen = false,
@@ -164,6 +167,7 @@ export function DiscussionAreaTable({
 
     const isOwner = userRole === 'OWNER';
     const isAdmin = userRole === 'ADMIN';
+    const canFullyManage = canManageMeeting || isOwner || isAdmin;
 
     // isFullscreen is now controlled by the parent via isFullScreen prop
     const isFullscreen = isFullScreen;
@@ -311,7 +315,7 @@ export function DiscussionAreaTable({
     }, [activeProjectSearchRowId, projectQuery]);
 
     const isMentionedInRow = (row: DiscussionRow): boolean => {
-        if (isOwner || isAdmin) return true;
+        if (canFullyManage) return true;
         if (!currentUserId && !currentUserName) return false;
 
         if (currentUserId) {
@@ -487,9 +491,9 @@ export function DiscussionAreaTable({
                         ) : (
                             rows.map((row, index) => {
                             const isNewlyAddedRow = newlyAddedRowIds.has(row.id);
-                            const canEditFullRow = !readOnly && (isOwner || isNewlyAddedRow);
-                            const canEditStatusRemark = !readOnly && (isOwner || isAdmin || isMentionedInRow(row) || isNewlyAddedRow);
-                            const canDeleteThisRow = !readOnly && (isOwner || isNewlyAddedRow);
+                            const canEditFullRow = !readOnly && (canFullyManage || isNewlyAddedRow);
+                            const canEditStatusRemark = !readOnly && (canFullyManage || isMentionedInRow(row) || isNewlyAddedRow);
+                            const canDeleteThisRow = !readOnly && (canFullyManage || isNewlyAddedRow);
 
                             return (
                                 <tr key={row.id} className="hover:bg-blue-50/20 transition-colors group">
