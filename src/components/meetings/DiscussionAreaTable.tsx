@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     Plus,
     Trash2,
@@ -14,9 +14,13 @@ import {
     Maximize2,
     Minimize2,
     Save,
+    Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Dialog from '@/components/ui/Dialog';
 import { meetingsApi, SuggestUserItem, SuggestProjectItem } from '@/services/meetings.service';
+
+export type DiscussionUserItem = { id: string; name: string; email?: string };
 
 export interface DiscussionRow {
     id: string;
@@ -24,12 +28,24 @@ export interface DiscussionRow {
     user: string;
     userId?: string;
     userIds?: string[];
-    userItems?: Array<{ id: string; name: string }>;
+    userItems?: DiscussionUserItem[];
     project: string;
     projectId?: string;
     discussionPoints: string;
     status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'RESOLVED' | 'CLOSED' | 'PENDING';
     remarks: string;
+}
+
+function rowMatchesUserFilter(row: DiscussionRow, query: string): boolean {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    if (row.user?.toLowerCase().includes(q)) return true;
+    if (row.userItems?.some((u) =>
+        u.name?.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
+    )) {
+        return true;
+    }
+    return false;
 }
 
 interface DiscussionAreaTableProps {
@@ -175,12 +191,25 @@ export function DiscussionAreaTable({
     // Track rows added during current editing session
     const [newlyAddedRowIds, setNewlyAddedRowIds] = useState<Set<string>>(new Set());
 
+    const [userFilter, setUserFilter] = useState('');
+    const [deleteDialog, setDeleteDialog] = useState<{
+        isOpen: boolean;
+        index: number | null;
+        label: string;
+    }>({ isOpen: false, index: null, label: '' });
+
     // Mention suggestions popup states
     const [activeUserSearchRowId, setActiveUserSearchRowId] = useState<string | null>(null);
     const [userQuery, setUserQuery] = useState('');
     const [userSuggestions, setUserSuggestions] = useState<SuggestUserItem[]>([]);
     const [isUserLoading, setIsUserLoading] = useState(false);
     const [typedUserQuery, setTypedUserQuery] = useState<Record<string, string>>({});
+
+    const filteredRows = useMemo(() => {
+        return rows
+            .map((row, index) => ({ row, index }))
+            .filter(({ row }) => rowMatchesUserFilter(row, userFilter));
+    }, [rows, userFilter]);
 
     const [activeProjectSearchRowId, setActiveProjectSearchRowId] = useState<string | null>(null);
     const [projectQuery, setProjectQuery] = useState('');
@@ -346,12 +375,20 @@ export function DiscussionAreaTable({
     const handleDeleteRow = (index: number) => {
         const targetRow = rows[index];
         const rowNum = index + 1;
-        const label = targetRow?.discussionPoints ? `"${targetRow.discussionPoints.slice(0, 30)}..."` : `Row #${rowNum}`;
-        if (!window.confirm(`Are you sure you want to delete discussion point ${label}? This action cannot be undone.`)) {
-            return;
-        }
-        const updated = rows.filter((_, i) => i !== index).map((r, idx) => ({ ...r, sno: idx + 1 }));
+        const points = targetRow?.discussionPoints?.trim();
+        const label = points
+            ? (points.length > 40 ? `${points.slice(0, 40)}...` : points)
+            : `Row #${rowNum}`;
+        setDeleteDialog({ isOpen: true, index, label });
+    };
+
+    const confirmDeleteRow = () => {
+        if (deleteDialog.index === null) return;
+        const updated = rows
+            .filter((_, i) => i !== deleteDialog.index)
+            .map((r, idx) => ({ ...r, sno: idx + 1 }));
         updateRowsAndNotify(updated);
+        setDeleteDialog({ isOpen: false, index: null, label: '' });
     };
 
     // Row field change handler
@@ -365,14 +402,16 @@ export function DiscussionAreaTable({
     const handleSelectUser = (index: number, userItem: SuggestUserItem) => {
         const updated = [...rows];
         const currentItem = updated[index];
-        const existingItems: Array<{ id: string; name: string }> = currentItem.userItems
+        const existingItems: DiscussionUserItem[] = currentItem.userItems
             ? [...currentItem.userItems]
             : currentItem.user
             ? currentItem.user.split(',').map((s) => s.trim()).filter(Boolean).map((n) => ({ id: currentItem.userId || `user-${n}`, name: n }))
             : [];
 
         const exists = existingItems.some((it) => it.id === userItem.id || it.name.toLowerCase() === userItem.name.toLowerCase());
-        const newItems = exists ? existingItems : [...existingItems, { id: userItem.id, name: userItem.name }];
+        const newItems = exists
+            ? existingItems
+            : [...existingItems, { id: userItem.id, name: userItem.name, email: userItem.email || undefined }];
 
         const names = newItems.map((it) => it.name).join(', ');
         const ids = newItems.map((it) => it.id);
@@ -439,6 +478,34 @@ export function DiscussionAreaTable({
             "border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col transition-all",
             isFullscreen ? "h-full w-full rounded-none border-none shadow-none flex-1" : ""
         )}>
+            {/* User filter (sheet-style) */}
+            <div className="px-3 py-2 bg-slate-50 border-b border-gray-200 flex items-center gap-2 flex-shrink-0">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                        type="text"
+                        value={userFilter}
+                        onChange={(e) => setUserFilter(e.target.value)}
+                        placeholder="Filter by username or email..."
+                        className="w-full pl-8 pr-8 py-1.5 border border-gray-200 rounded-lg bg-white text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#091590] focus:ring-1 focus:ring-blue-100"
+                    />
+                    {userFilter && (
+                        <button
+                            type="button"
+                            onClick={() => setUserFilter('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                            title="Clear filter"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+                {userFilter.trim() && (
+                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                        Showing {filteredRows.length} of {rows.length}
+                    </span>
+                )}
+            </div>
             <div
                 className={cn(
                     "overflow-x-auto overflow-y-auto relative scrollbar-thin",
@@ -475,21 +542,17 @@ export function DiscussionAreaTable({
                                 <td colSpan={readOnly ? 6 : 7} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <span>No discussion points added yet.</span>
-                                        {/* {!readOnly && (
-                                            <button
-                                                type="button"
-                                                onClick={handleAddRow}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#091590] border border-blue-200 hover:border-[#091590] font-bold text-xs rounded-lg transition-all shadow-2xs cursor-pointer"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" />
-                                                <span>Add Discussion Point Row</span>
-                                            </button>
-                                        )} */}
                                     </div>
                                 </td>
                             </tr>
+                        ) : filteredRows.length === 0 ? (
+                            <tr>
+                                <td colSpan={readOnly ? 6 : 7} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
+                                    No rows match &quot;{userFilter.trim()}&quot;
+                                </td>
+                            </tr>
                         ) : (
-                            rows.map((row, index) => {
+                            filteredRows.map(({ row, index }) => {
                             const isNewlyAddedRow = newlyAddedRowIds.has(row.id);
                             const canEditFullRow = !readOnly && (canFullyManage || isNewlyAddedRow);
                             const canEditStatusRemark = !readOnly && (canFullyManage || isMentionedInRow(row) || isNewlyAddedRow);
@@ -926,7 +989,9 @@ export function DiscussionAreaTable({
                     )}
                 </div>
                 <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-                    Total Items: {rows.length}
+                    {userFilter.trim()
+                        ? `Showing ${filteredRows.length} of ${rows.length}`
+                        : `Total Items: ${rows.length}`}
                 </span>
             </div>
         </div>
@@ -990,6 +1055,18 @@ export function DiscussionAreaTable({
             ) : (
                 tableElement
             )}
+
+            <Dialog
+                isOpen={deleteDialog.isOpen}
+                onClose={() => setDeleteDialog({ isOpen: false, index: null, label: '' })}
+                type="warning"
+                title="Delete Discussion Point"
+                message={`Are you sure you want to delete "${deleteDialog.label}"?`}
+                description="This action cannot be undone."
+                confirmText="Delete"
+                confirmVariant="destructive"
+                onConfirm={confirmDeleteRow}
+            />
         </div>
     );
 }

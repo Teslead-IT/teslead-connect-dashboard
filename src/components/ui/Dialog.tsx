@@ -140,14 +140,23 @@ export const Dialog: React.FC<DialogProps> = ({
             }
         };
 
-        if (isOpen) {
-            window.addEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'hidden';
+        if (!isOpen) return;
+
+        window.addEventListener('keydown', handleEscape);
+
+        // Lock scroll without layout shift (scrollbar width compensation → no bg flicker)
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        const prevOverflow = document.body.style.overflow;
+        const prevPaddingRight = document.body.style.paddingRight;
+        document.body.style.overflow = 'hidden';
+        if (scrollbarWidth > 0) {
+            document.body.style.paddingRight = `${scrollbarWidth}px`;
         }
 
         return () => {
             window.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = prevOverflow;
+            document.body.style.paddingRight = prevPaddingRight;
         };
     }, [isOpen, closeOnEscape, onClose]);
 
@@ -177,29 +186,31 @@ export const Dialog: React.FC<DialogProps> = ({
     if (!mounted) return null;
 
     return createPortal(
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
             {isOpen && (
-                <div
+                <motion.div
+                    key="dialog-root"
                     className={cn(
                         'fixed inset-0 z-[100000] flex px-4',
                         positionConfig[position]
                     )}
+                    initial={showAnimation ? { opacity: 0 } : false}
+                    animate={{ opacity: 1 }}
+                    exit={showAnimation ? { opacity: 0 } : undefined}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
                 >
-                    {/* Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] dark:bg-black/60"
+                    {/* Backdrop — solid overlay only (no blur: avoids GPU flicker over other layers) */}
+                    <div
+                        className="absolute inset-0 bg-slate-900/40 dark:bg-black/60"
                         onClick={handleBackdropClick}
                     />
 
                     {/* Dialog Card */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                        initial={showAnimation ? { opacity: 0, scale: 0.98, y: 8 } : false}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.98, y: 10 }}
-                        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                        exit={showAnimation ? { opacity: 0, scale: 0.98, y: 8 } : undefined}
+                        transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                         className={cn(
                             'relative w-full bg-white dark:bg-[#0f172a] rounded-2xl shadow-2xl shadow-blue-900/10 overflow-hidden',
                             'border border-gray-100 dark:border-slate-800',
@@ -285,7 +296,7 @@ export const Dialog: React.FC<DialogProps> = ({
                             )}
                         </div>
                     </motion.div>
-                </div>
+                </motion.div>
             )}
         </AnimatePresence>,
         document.body

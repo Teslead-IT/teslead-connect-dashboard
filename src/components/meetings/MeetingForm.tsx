@@ -717,7 +717,6 @@ export function MeetingForm({
                                     />
                                 </div>
 
-                                {/* Localized Popup for Attended By */}
                                 {attendedByShowAll && (
                                     <>
                                         <div className="fixed inset-0 z-[60]" onClick={() => setAttendedByShowAll(false)} />
@@ -827,7 +826,6 @@ export function MeetingForm({
                                     />
                                 </div>
 
-                                {/* Localized Popup for Absentees */}
                                 {absenteesShowAll && (
                                     <>
                                         <div className="fixed inset-0 z-[60]" onClick={() => setAbsenteesShowAll(false)} />

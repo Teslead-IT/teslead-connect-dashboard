@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -9,7 +9,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { Bug, Search, ChevronDown, Plus, List as ListIcon, LayoutGrid } from 'lucide-react';
+import { Bug, Search, ChevronDown, Plus, List as ListIcon, LayoutGrid, FileSpreadsheet } from 'lucide-react';
 import { Loader } from '@/components/ui/Loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useQueryClient } from '@tanstack/react-query';
@@ -22,7 +22,16 @@ import { IssueViewModal } from '@/components/issues/IssueViewModal';
 import { CreateIssueModal } from '@/components/issues/CreateIssueModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn, formatDate } from '@/lib/utils';
+import { exportIssuesToExcel } from '@/utils/issues-excel-export';
 import type { Issue } from '@/types/issue';
+
+const PRIORITY_LABELS: Record<number, string> = {
+    1: 'P1-LOWEST',
+    2: 'P2-LOW',
+    3: 'MEDIUM',
+    4: 'HIGH',
+    5: 'CRITICAL',
+};
 
 function IssueStatusDropdownWrapper({ issue, onInteraction }: { issue: Issue; onInteraction?: () => void }) {
     const { data: workflow = [] } = useProjectWorkflow(issue.projectId);
@@ -120,6 +129,8 @@ export default function MyIssuesPage() {
     const [limit, setLimit] = useState(limitParam);
     const [searchQuery, setSearchQuery] = useState(urlSearch);
     const debouncedSearch = useDebounce(searchQuery, 300);
+    const [isExporting, setIsExporting] = useState(false);
+    const gridRef = useRef<AgGridReact<Issue>>(null);
 
     const queryClient = useQueryClient();
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
@@ -250,8 +261,7 @@ export default function MyIssuesPage() {
     };
 
     const RoleRenderer = (props: ICellRendererParams<Issue>) => {
-        const prioMap: Record<number, string> = { 1: 'P1-LOWEST', 2: 'P2-LOW', 3: 'MEDIUM', 4: 'HIGH', 5: 'CRITICAL' };
-        const prioLabel = prioMap[props.data?.priority || 3] || 'MEDIUM';
+        const prioLabel = PRIORITY_LABELS[props.data?.priority || 3] || 'MEDIUM';
         return (
             <div className="h-full w-full flex items-center">
                 <span className="flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide uppercase bg-purple-50 text-purple-600 border-l border-r border-purple-100">
@@ -260,6 +270,24 @@ export default function MyIssuesPage() {
             </div>
         );
     };
+
+    const handleExportExcel = useCallback(async () => {
+        setIsExporting(true);
+        try {
+            const api = gridRef.current?.api;
+            const rows: Issue[] = [];
+            if (api) {
+                api.forEachNodeAfterFilterAndSort((node) => {
+                    if (node.data) rows.push(node.data);
+                });
+            } else {
+                rows.push(...issues);
+            }
+            await exportIssuesToExcel(rows, 'issues');
+        } finally {
+            setIsExporting(false);
+        }
+    }, [issues]);
 
     const AssigneesRenderer = (props: ICellRendererParams<Issue>) => {
         const assignees = props.data?.assignees || [];
@@ -395,6 +423,7 @@ export default function MyIssuesPage() {
             pinned: 'left',
             cellClass: 'text-gray-500 font-medium text-[11px] flex items-center justify-center',
             suppressMenu: true,
+            filter: false,
         },
         {
             field: 'issueId',
@@ -402,12 +431,14 @@ export default function MyIssuesPage() {
             width: 120,
             pinned: 'left',
             cellClass: 'text-gray-400 font-mono text-[10px]',
+            filter: 'agTextColumnFilter',
         },
         {
             field: 'projectName',
             headerName: 'PROJECT',
             width: 140,
             cellRenderer: ProjectRenderer,
+            filter: 'agTextColumnFilter',
         },
         {
             field: 'title',
@@ -415,6 +446,7 @@ export default function MyIssuesPage() {
             flex: 2,
             minWidth: 240,
             cellRenderer: IssueTitleRenderer,
+            filter: 'agTextColumnFilter',
         },
         {
             field: 'type',
@@ -422,18 +454,23 @@ export default function MyIssuesPage() {
             width: 120,
             cellRenderer: TagsRenderer,
             sortable: false,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => p.data?.type || '',
         },
         {
             field: 'phaseName',
             headerName: 'PHASE',
             width: 140,
             cellRenderer: PhaseRenderer,
+            filter: 'agTextColumnFilter',
         },
         {
             field: 'severity',
             headerName: 'SEVERITY',
             width: 110,
             cellRenderer: AccessRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => p.data?.severity || '',
         },
         {
             field: 'status',
@@ -443,12 +480,16 @@ export default function MyIssuesPage() {
                 if (!params.data || !params.data.status) return null;
                 return <IssueStatusDropdownWrapper issue={params.data} onInteraction={markStatusInteraction} />;
             },
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => p.data?.status?.name || '',
         },
         {
             field: 'priority',
             headerName: 'PRIORITY',
             width: 100,
             cellRenderer: RoleRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => PRIORITY_LABELS[p.data?.priority || 3] || '',
         },
         {
             field: 'assignees',
@@ -456,6 +497,9 @@ export default function MyIssuesPage() {
             width: 130,
             cellRenderer: AssigneesRenderer,
             sortable: false,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) =>
+                (p.data?.assignees || []).map((a: any) => a.name || a.email || '').join(' '),
         },
         {
             field: 'testers',
@@ -463,18 +507,33 @@ export default function MyIssuesPage() {
             width: 130,
             cellRenderer: TestersRenderer,
             sortable: false,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) =>
+                (p.data?.testers || []).map((t: any) => t.name || t.email || '').join(' '),
         },
         {
             field: 'createdAt',
             headerName: 'CREATED',
             width: 120,
             cellRenderer: DateRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => {
+                const v = p.data?.createdAt;
+                if (!v) return '';
+                return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            },
         },
         {
             field: 'dueDate',
             headerName: 'DUE',
             width: 120,
             cellRenderer: DateRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => {
+                const v = p.data?.dueDate;
+                if (!v) return '';
+                return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            },
         },
     ], [markStatusInteraction]);
 
@@ -512,6 +571,17 @@ export default function MyIssuesPage() {
                                 className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all text-xs"
                             />
                         </div>
+
+                        <button
+                            type="button"
+                            onClick={handleExportExcel}
+                            disabled={isExporting || issues.length === 0}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-white border border-emerald-200 hover:bg-emerald-50 rounded-md shadow-xs transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Export issues to Excel"
+                        >
+                            <FileSpreadsheet className="w-3.5 h-3.5" />
+                            <span>{isExporting ? 'Exporting...' : 'Export Excel'}</span>
+                        </button>
 
                         <button
                             type="button"
@@ -588,6 +658,7 @@ export default function MyIssuesPage() {
                                 }
                             `}</style>
                             <AgGridReact
+                                ref={gridRef}
                                 theme="legacy"
                                 rowData={issues}
                                 columnDefs={columnDefs}

@@ -680,6 +680,8 @@ export default function PhaseTaskListTab({
             minWidth: 320,
             cellRenderer: TaskNameCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
             rowDrag: (params) => {
                 const type = params.data?.rowType;
                 return isEditable && (type === 'phase' || type === 'tasklist' || type === 'task' || type === 'subtask');
@@ -701,6 +703,9 @@ export default function PhaseTaskListTab({
             width: 100,
             cellRenderer: TypeCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) => p.data?.type ?? '',
         },
         {
             headerName: 'Status',
@@ -708,6 +713,9 @@ export default function PhaseTaskListTab({
             width: 150,
             cellRenderer: StatusCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) => p.data?.status?.name ?? '',
         },
         {
             headerName: 'Expected Output',
@@ -715,6 +723,7 @@ export default function PhaseTaskListTab({
             width: 200,
             cellRenderer: ExpectedOutputCell,
             cellClass: '!p-0',
+            filter: false,
         },
         {
             headerName: 'Total Issues',
@@ -722,6 +731,7 @@ export default function PhaseTaskListTab({
             width: 110,
             cellRenderer: TotalIssuesCell,
             cellClass: '!p-0',
+            filter: false,
         },
         {
             headerName: 'Issues in Ready for Test',
@@ -729,6 +739,7 @@ export default function PhaseTaskListTab({
             width: 180,
             cellRenderer: ReadyForTestIssuesCell,
             cellClass: '!p-0',
+            filter: false,
         },
         {
             headerName: 'Assigned To',
@@ -736,6 +747,10 @@ export default function PhaseTaskListTab({
             width: 140,
             cellRenderer: OwnerCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) =>
+                (p.data?.assignees || []).map((a: any) => a.name || a.email || '').join(' '),
         },
         {
             headerName: 'Assigned By',
@@ -743,6 +758,10 @@ export default function PhaseTaskListTab({
             width: 140,
             cellRenderer: AssignedByCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) =>
+                p.data?.assignedBy?.name || p.data?.assignedBy?.email || '',
         },
         {
             headerName: 'Tested By',
@@ -750,6 +769,10 @@ export default function PhaseTaskListTab({
             width: 140,
             cellRenderer: TestedByCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) =>
+                (p.data?.testers || []).map((t: any) => t.name || t.email || '').join(' '),
         },
         {
             headerName: 'Tags',
@@ -757,6 +780,10 @@ export default function PhaseTaskListTab({
             width: 120,
             cellRenderer: TagsCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) =>
+                (p.data?.tags || []).map((t: any) => t.name || '').join(' '),
         },
         {
             headerName: 'Start Date',
@@ -764,6 +791,17 @@ export default function PhaseTaskListTab({
             width: 150,
             cellRenderer: DateTimeCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) => {
+                const v = p.data?.startDateTime;
+                if (!v) return '';
+                try {
+                    return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } catch {
+                    return String(v);
+                }
+            },
         },
         {
             headerName: 'Due Date',
@@ -771,6 +809,17 @@ export default function PhaseTaskListTab({
             width: 120,
             cellRenderer: DateCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) => {
+                const v = p.data?.dueDate;
+                if (!v) return '';
+                try {
+                    return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } catch {
+                    return String(v);
+                }
+            },
         },
     ], [isEditable, showViewButton]);
 
