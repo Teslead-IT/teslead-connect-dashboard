@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useMeeting, useUpdateMeeting, useDeleteMeeting, usePublishMeeting, useCreateMeeting } from '@/hooks/use-meetings';
-import { DiscussionAreaTable } from '@/components/meetings/DiscussionAreaTable';
+import { DiscussionAreaTable, CollaboratorsPresenceBar } from '@/components/meetings/DiscussionAreaTable';
 import Dialog from '@/components/ui/Dialog';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -33,6 +33,25 @@ import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { useOrgStore } from '@/stores/orgStore';
 import { useUser } from '@/hooks/use-auth';
+import {
+    useMeetingCollab,
+    type ContentUpdatedPayload,
+    type CellCommitPayload,
+} from '@/hooks/use-meeting-collab';
+
+const COLLAB_FLUSH_MS = 1200;
+
+function applyCellToDiscussionContent(content: any, payload: CellCommitPayload) {
+    if (!content || typeof content !== 'object' || !Array.isArray(content.rows)) {
+        return content;
+    }
+    const idx = content.rows.findIndex((r: any) => r.id === payload.rowId);
+    if (idx < 0) return content;
+    const rows = content.rows.map((r: any, i: number) =>
+        i === idx ? { ...r, [payload.field]: payload.value } : r
+    );
+    return { ...content, rows };
+}
 
 interface MeetingFormProps {
     meetingId: string | null; // null = create mode
@@ -116,6 +135,12 @@ export function MeetingForm({
 
     const isSaving = isCreating || isUpdating;
     const { success, error: showError } = useToast();
+    const dirtyRef = useRef(false);
+    const applyingRemoteRef = useRef(false);
+    const isInitializedRef = useRef(false);
+    const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const formDataRef = useRef<any>(null);
+    const [flashCellKey, setFlashCellKey] = useState<string | null>(null);
 
     const [formData, setFormData] = useState<{
         title: string;
@@ -144,13 +169,94 @@ export function MeetingForm({
     const [attendedByShowAll, setAttendedByShowAll] = useState(false);
     const [absenteesShowAll, setAbsenteesShowAll] = useState(false);
 
+    const handleRemoteContentUpdated = useCallback((payload: ContentUpdatedPayload) => {
+        if (payload.updatedBy && payload.updatedBy === currentUser?.id) return;
+        if (applyingRemoteRef.current) return;
+
+        // Sheets-style LWW — apply silently, no conflict banner
+        applyingRemoteRef.current = true;
+        setFormData((prev) => ({ ...prev, content: payload.content ?? prev.content }));
+        dirtyRef.current = false;
+    }, [currentUser?.id]);
+
+    /** A1: remote cell commit overwrites local value even if focused */
+    const handleRemoteCellCommit = useCallback((payload: CellCommitPayload) => {
+        // Same-tab echo: value already local; still apply for multi-tab same user
+        applyingRemoteRef.current = true;
+        setFormData((prev) => ({
+            ...prev,
+            content: applyCellToDiscussionContent(prev.content, payload),
+        }));
+        setFlashCellKey(`${payload.rowId}::${payload.field}`);
+        window.setTimeout(() => setFlashCellKey((k) => (k === `${payload.rowId}::${payload.field}` ? null : k)), 900);
+    }, []);
+
+    const {
+        otherViewers,
+        remoteFocusByCell,
+        setFocus,
+        commitCell,
+    } = useMeetingCollab(meetingId, {
+        userId: currentUser?.id,
+        userName: currentUser?.name,
+        enabled: !isNew && !!meetingId,
+        onContentUpdated: handleRemoteContentUpdated,
+        onCellCommit: handleRemoteCellCommit,
+    });
+
+    useEffect(() => {
+        formDataRef.current = formData;
+    }, [formData]);
+
+    useEffect(() => {
+        // Clear remote-apply flag here (not microtask) so we don't mark dirty on peer cell commits
+        if (applyingRemoteRef.current) {
+            applyingRemoteRef.current = false;
+            return;
+        }
+        if (!isInitializedRef.current) return;
+        dirtyRef.current = true;
+    }, [formData]);
+
+    const scheduleDurableFlush = useCallback(() => {
+        if (!meetingId || isNew) return;
+        if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+        flushTimerRef.current = setTimeout(async () => {
+            const data = formDataRef.current;
+            if (!data?.content) return;
+            try {
+                await updateMeeting({
+                    id: meetingId,
+                    content: data.content,
+                });
+                dirtyRef.current = false;
+            } catch (err) {
+                console.error('Collab durable flush failed:', err);
+                showError('Sync failed', 'Could not save live cell changes. Click Update to retry.');
+            }
+        }, COLLAB_FLUSH_MS);
+    }, [meetingId, isNew, updateMeeting, showError]);
+
+    useEffect(() => {
+        return () => {
+            if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+        };
+    }, []);
+
+    const handleCellBlurCommit = useCallback(
+        (rowId: string, field: string, value: string) => {
+            const didCommit = commitCell(rowId, field, value);
+            if (didCommit) scheduleDurableFlush();
+        },
+        [commitCell, scheduleDurableFlush],
+    );
+
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showMomPrintModal, setShowMomPrintModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [printModalMode, setPrintModalMode] = useState<'internal' | 'client'>('internal');
     const [showPrintDropdown, setShowPrintDropdown] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const isInitializedRef = useRef(false);
     const lastMeetingIdRef = useRef(meetingId);
 
     // ESC key to exit fullscreen
@@ -246,6 +352,7 @@ export function MeetingForm({
                     : '',
                 time: meeting.time || '',
             });
+            dirtyRef.current = false;
             isInitializedRef.current = true;
         }
     }, [meeting, meetingId, isNew, defaultDate]);
@@ -310,6 +417,8 @@ export function MeetingForm({
                     projectId: primaryProjectId || null as any,
                 });
                 success('Meeting saved successfully');
+                dirtyRef.current = false;
+                setPendingRemoteContent(null);
                 if (!isNew) {
                     setIsEditingState(false);
                 }
@@ -414,6 +523,7 @@ export function MeetingForm({
                     )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                    <CollaboratorsPresenceBar viewers={otherViewers} compact />
                     {!isEditingState && !isNew && (
                         <>
                             <div className="relative">
@@ -907,6 +1017,7 @@ export function MeetingForm({
                             </button>
                             </div>
                         </label>
+
                         <DiscussionAreaTable
                             isFullScreen={isFullscreen}
                             onExitFullScreen={() => setIsFullscreen(false)}
@@ -920,6 +1031,11 @@ export function MeetingForm({
                             onSave={handleSave}
                             isSaving={isSaving}
                             isNew={isNew}
+                            remoteFocusByCell={remoteFocusByCell}
+                            otherViewers={otherViewers}
+                            flashCellKey={flashCellKey}
+                            onCellFocus={setFocus}
+                            onCellBlur={handleCellBlurCommit}
                         />
                     </div>
                 </div>
