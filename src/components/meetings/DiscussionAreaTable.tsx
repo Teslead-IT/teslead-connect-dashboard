@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     Plus,
     Trash2,
@@ -14,9 +14,133 @@ import {
     Maximize2,
     Minimize2,
     Save,
+    Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Dialog from '@/components/ui/Dialog';
 import { meetingsApi, SuggestUserItem, SuggestProjectItem } from '@/services/meetings.service';
+import type { MeetingCollabViewer, RemoteFocus } from '@/hooks/use-meeting-collab';
+
+export type DiscussionUserItem = { id: string; name: string; email?: string };
+
+const COLLAB_AVATAR_COLORS = [
+    'bg-[#091590]',
+    'bg-emerald-600',
+    'bg-amber-600',
+    'bg-rose-600',
+    'bg-violet-600',
+    'bg-cyan-600',
+];
+
+function collabAvatarColor(userId: string) {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) hash = (hash + userId.charCodeAt(i) * (i + 1)) % COLLAB_AVATAR_COLORS.length;
+    return COLLAB_AVATAR_COLORS[hash] || COLLAB_AVATAR_COLORS[0];
+}
+
+/** Sheets-style “who’s working” avatar stack */
+export function CollaboratorsPresenceBar({
+    viewers,
+    compact = false,
+    className,
+}: {
+    viewers: MeetingCollabViewer[];
+    compact?: boolean;
+    className?: string;
+}) {
+    if (!viewers.length) return null;
+    const shown = viewers.slice(0, 5);
+    const extra = viewers.length - shown.length;
+    const names = viewers.map((v) => v.userName).join(', ');
+    const statusText =
+        viewers.length === 1
+            ? `${viewers[0].userName} is working`
+            : `${names} are working`;
+
+    return (
+        <div
+            className={cn(
+                'flex items-center gap-2 min-w-0',
+                compact ? 'px-0' : 'px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-100',
+                className,
+            )}
+            title={statusText}
+        >
+            <div className="flex items-center -space-x-1.5 flex-shrink-0">
+                {shown.map((v) => (
+                    <div
+                        key={v.userId}
+                        className={cn(
+                            'w-6 h-6 rounded-full border-2 border-white text-white text-[9px] font-bold flex items-center justify-center shadow-sm',
+                            collabAvatarColor(v.userId),
+                        )}
+                        title={
+                            v.focused
+                                ? `${v.userName} · editing ${v.focused.field}`
+                                : `${v.userName} is working`
+                        }
+                    >
+                        {(v.userName || '?').charAt(0).toUpperCase()}
+                    </div>
+                ))}
+                {extra > 0 && (
+                    <div className="w-6 h-6 rounded-full border-2 border-white bg-slate-200 text-slate-700 text-[9px] font-bold flex items-center justify-center shadow-sm">
+                        +{extra}
+                    </div>
+                )}
+            </div>
+            {!compact && (
+                <span className="text-[11px] font-semibold text-sky-900 truncate">
+                    {viewers.length === 1
+                        ? `${viewers[0].userName} is working`
+                        : `${viewers.length} people working`}
+                </span>
+            )}
+        </div>
+    );
+}
+
+function collabCellKey(rowId: string, field: string) {
+    return `${rowId}::${field}`;
+}
+
+function CollabFieldShell({
+    rowId,
+    field,
+    remoteFocusByCell,
+    flashCellKey,
+    children,
+    className,
+}: {
+    rowId: string;
+    field: string;
+    remoteFocusByCell?: Record<string, RemoteFocus>;
+    flashCellKey?: string | null;
+    children: React.ReactNode;
+    className?: string;
+}) {
+    const key = collabCellKey(rowId, field);
+    const remote = remoteFocusByCell?.[key];
+    const flashing = flashCellKey === key;
+    return (
+        <div
+            className={cn(
+                'relative rounded-lg transition-shadow',
+                remote && 'ring-2 ring-amber-400 ring-offset-1 bg-amber-50/40',
+                flashing && 'ring-2 ring-sky-400 ring-offset-1 bg-sky-50/70',
+                className,
+            )}
+            title={remote ? `${remote.userName} is editing` : flashing ? 'Updated by collaborator' : undefined}
+        >
+            {remote && (
+                <span className="absolute -top-2.5 left-1 z-10 max-w-[140px] truncate px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-bold shadow-sm">
+                    {remote.userName}
+                </span>
+            )}
+            {children}
+        </div>
+    );
+}
 
 export interface DiscussionRow {
     id: string;
@@ -24,12 +148,24 @@ export interface DiscussionRow {
     user: string;
     userId?: string;
     userIds?: string[];
-    userItems?: Array<{ id: string; name: string }>;
+    userItems?: DiscussionUserItem[];
     project: string;
     projectId?: string;
     discussionPoints: string;
     status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'RESOLVED' | 'CLOSED' | 'PENDING';
     remarks: string;
+}
+
+function rowMatchesUserFilter(row: DiscussionRow, query: string): boolean {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    if (row.user?.toLowerCase().includes(q)) return true;
+    if (row.userItems?.some((u) =>
+        u.name?.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
+    )) {
+        return true;
+    }
+    return false;
 }
 
 interface DiscussionAreaTableProps {
@@ -46,6 +182,15 @@ interface DiscussionAreaTableProps {
     onSave?: () => void;
     isSaving?: boolean;
     isNew?: boolean;
+    /** Soft-lock remote focus map from useMeetingCollab */
+    remoteFocusByCell?: Record<string, RemoteFocus>;
+    /** Other users currently in this meeting (Sheets-style presence) */
+    otherViewers?: MeetingCollabViewer[];
+    /** Brief highlight when A1 remote overwrite lands */
+    flashCellKey?: string | null;
+    onCellFocus?: (rowId: string, field: string) => void;
+    /** Blur with value — Sheets-style cell commit */
+    onCellBlur?: (rowId: string, field: string, value: string) => void;
 }
 
 const STATUS_OPTIONS = [
@@ -162,6 +307,11 @@ export function DiscussionAreaTable({
     onSave,
     isSaving = false,
     isNew = false,
+    remoteFocusByCell,
+    otherViewers = [],
+    flashCellKey = null,
+    onCellFocus,
+    onCellBlur,
 }: DiscussionAreaTableProps) {
     const [rows, setRows] = useState<DiscussionRow[]>(() => parseInitialRows(content));
 
@@ -175,12 +325,25 @@ export function DiscussionAreaTable({
     // Track rows added during current editing session
     const [newlyAddedRowIds, setNewlyAddedRowIds] = useState<Set<string>>(new Set());
 
+    const [userFilter, setUserFilter] = useState('');
+    const [deleteDialog, setDeleteDialog] = useState<{
+        isOpen: boolean;
+        index: number | null;
+        label: string;
+    }>({ isOpen: false, index: null, label: '' });
+
     // Mention suggestions popup states
     const [activeUserSearchRowId, setActiveUserSearchRowId] = useState<string | null>(null);
     const [userQuery, setUserQuery] = useState('');
     const [userSuggestions, setUserSuggestions] = useState<SuggestUserItem[]>([]);
     const [isUserLoading, setIsUserLoading] = useState(false);
     const [typedUserQuery, setTypedUserQuery] = useState<Record<string, string>>({});
+
+    const filteredRows = useMemo(() => {
+        return rows
+            .map((row, index) => ({ row, index }))
+            .filter(({ row }) => rowMatchesUserFilter(row, userFilter));
+    }, [rows, userFilter]);
 
     const [activeProjectSearchRowId, setActiveProjectSearchRowId] = useState<string | null>(null);
     const [projectQuery, setProjectQuery] = useState('');
@@ -346,12 +509,20 @@ export function DiscussionAreaTable({
     const handleDeleteRow = (index: number) => {
         const targetRow = rows[index];
         const rowNum = index + 1;
-        const label = targetRow?.discussionPoints ? `"${targetRow.discussionPoints.slice(0, 30)}..."` : `Row #${rowNum}`;
-        if (!window.confirm(`Are you sure you want to delete discussion point ${label}? This action cannot be undone.`)) {
-            return;
-        }
-        const updated = rows.filter((_, i) => i !== index).map((r, idx) => ({ ...r, sno: idx + 1 }));
+        const points = targetRow?.discussionPoints?.trim();
+        const label = points
+            ? (points.length > 40 ? `${points.slice(0, 40)}...` : points)
+            : `Row #${rowNum}`;
+        setDeleteDialog({ isOpen: true, index, label });
+    };
+
+    const confirmDeleteRow = () => {
+        if (deleteDialog.index === null) return;
+        const updated = rows
+            .filter((_, i) => i !== deleteDialog.index)
+            .map((r, idx) => ({ ...r, sno: idx + 1 }));
         updateRowsAndNotify(updated);
+        setDeleteDialog({ isOpen: false, index: null, label: '' });
     };
 
     // Row field change handler
@@ -365,14 +536,16 @@ export function DiscussionAreaTable({
     const handleSelectUser = (index: number, userItem: SuggestUserItem) => {
         const updated = [...rows];
         const currentItem = updated[index];
-        const existingItems: Array<{ id: string; name: string }> = currentItem.userItems
+        const existingItems: DiscussionUserItem[] = currentItem.userItems
             ? [...currentItem.userItems]
             : currentItem.user
             ? currentItem.user.split(',').map((s) => s.trim()).filter(Boolean).map((n) => ({ id: currentItem.userId || `user-${n}`, name: n }))
             : [];
 
         const exists = existingItems.some((it) => it.id === userItem.id || it.name.toLowerCase() === userItem.name.toLowerCase());
-        const newItems = exists ? existingItems : [...existingItems, { id: userItem.id, name: userItem.name }];
+        const newItems = exists
+            ? existingItems
+            : [...existingItems, { id: userItem.id, name: userItem.name, email: userItem.email || undefined }];
 
         const names = newItems.map((it) => it.name).join(', ');
         const ids = newItems.map((it) => it.id);
@@ -439,6 +612,34 @@ export function DiscussionAreaTable({
             "border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col transition-all",
             isFullscreen ? "h-full w-full rounded-none border-none shadow-none flex-1" : ""
         )}>
+            {/* User filter (sheet-style) */}
+            <div className="px-3 py-2 bg-slate-50 border-b border-gray-200 flex items-center gap-2 flex-shrink-0">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                        type="text"
+                        value={userFilter}
+                        onChange={(e) => setUserFilter(e.target.value)}
+                        placeholder="Filter by username or email..."
+                        className="w-full pl-8 pr-8 py-1.5 border border-gray-200 rounded-lg bg-white text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#091590] focus:ring-1 focus:ring-blue-100"
+                    />
+                    {userFilter && (
+                        <button
+                            type="button"
+                            onClick={() => setUserFilter('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                            title="Clear filter"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+                {userFilter.trim() && (
+                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                        Showing {filteredRows.length} of {rows.length}
+                    </span>
+                )}
+            </div>
             <div
                 className={cn(
                     "overflow-x-auto overflow-y-auto relative scrollbar-thin",
@@ -475,21 +676,17 @@ export function DiscussionAreaTable({
                                 <td colSpan={readOnly ? 6 : 7} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <span>No discussion points added yet.</span>
-                                        {/* {!readOnly && (
-                                            <button
-                                                type="button"
-                                                onClick={handleAddRow}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#091590] border border-blue-200 hover:border-[#091590] font-bold text-xs rounded-lg transition-all shadow-2xs cursor-pointer"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" />
-                                                <span>Add Discussion Point Row</span>
-                                            </button>
-                                        )} */}
                                     </div>
                                 </td>
                             </tr>
+                        ) : filteredRows.length === 0 ? (
+                            <tr>
+                                <td colSpan={readOnly ? 6 : 7} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
+                                    No rows match &quot;{userFilter.trim()}&quot;
+                                </td>
+                            </tr>
                         ) : (
-                            rows.map((row, index) => {
+                            filteredRows.map(({ row, index }) => {
                             const isNewlyAddedRow = newlyAddedRowIds.has(row.id);
                             const canEditFullRow = !readOnly && (canFullyManage || isNewlyAddedRow);
                             const canEditStatusRemark = !readOnly && (canFullyManage || isMentionedInRow(row) || isNewlyAddedRow);
@@ -518,6 +715,7 @@ export function DiscussionAreaTable({
                                                 <span title="No user assigned" className="text-gray-400 font-normal">-</span>
                                             )
                                         ) : (
+                                            <CollabFieldShell rowId={row.id} field="user" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
                                             <div className="relative space-y-1.5">
                                                 {/* Selected User Tag Badges */}
                                                 {row.user && (
@@ -560,7 +758,9 @@ export function DiscussionAreaTable({
                                                             setActiveUserSearchRowId(row.id);
                                                             setUserQuery((typedUserQuery[row.id] ?? '').replace(/^@/, ''));
                                                             setActiveProjectSearchRowId(null);
+                                                            onCellFocus?.(row.id, 'user');
                                                         }}
+                                                        onBlur={() => onCellBlur?.(row.id, 'user', row.user || '')}
                                                         onKeyDown={(e) => {
                                                             if ((e.key === 'Enter' || e.key === ',') && typedUserQuery[row.id]?.trim()) {
                                                                 e.preventDefault();
@@ -664,6 +864,7 @@ export function DiscussionAreaTable({
                                                     </>
                                                 )}
                                             </div>
+                                            </CollabFieldShell>
                                         )}
                                     </td>
 
@@ -679,6 +880,7 @@ export function DiscussionAreaTable({
                                                 <span title="No project assigned" className="text-gray-400 font-normal">-</span>
                                             )
                                         ) : (
+                                            <CollabFieldShell rowId={row.id} field="project" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
                                             <div className="relative space-y-1.5">
                                                 {/* Selected Project Badge */}
                                                 {row.project && (
@@ -729,7 +931,9 @@ export function DiscussionAreaTable({
                                                                 setActiveProjectSearchRowId(row.id);
                                                                 setProjectQuery((typedProjectQuery[row.id] ?? '').replace(/^[#@]/, ''));
                                                                 setActiveUserSearchRowId(null);
+                                                                onCellFocus?.(row.id, 'project');
                                                             }}
+                                                            onBlur={() => onCellBlur?.(row.id, 'project', row.project || '')}
                                                             onKeyDown={(e) => {
                                                                 if ((e.key === 'Enter' || e.key === ',') && typedProjectQuery[row.id]?.trim()) {
                                                                     e.preventDefault();
@@ -815,6 +1019,7 @@ export function DiscussionAreaTable({
                                                     </>
                                                 )}
                                             </div>
+                                            </CollabFieldShell>
                                         )}
                                     </td>
 
@@ -825,14 +1030,18 @@ export function DiscussionAreaTable({
                                                 {row.discussionPoints || '-'}
                                             </p>
                                         ) : (
-                                            <textarea
-                                                value={row.discussionPoints}
-                                                title={row.discussionPoints}
-                                                onChange={(e) => handleRowChange(index, 'discussionPoints', e.target.value)}
-                                                placeholder="Enter inspection & discussion details..."
-                                                rows={2}
-                                                className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
-                                            />
+                                            <CollabFieldShell rowId={row.id} field="discussionPoints" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
+                                                <textarea
+                                                    value={row.discussionPoints}
+                                                    title={row.discussionPoints}
+                                                    onChange={(e) => handleRowChange(index, 'discussionPoints', e.target.value)}
+                                                    onFocus={() => onCellFocus?.(row.id, 'discussionPoints')}
+                                                    onBlur={() => onCellBlur?.(row.id, 'discussionPoints', row.discussionPoints || '')}
+                                                    placeholder="Enter inspection & discussion details..."
+                                                    rows={2}
+                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
+                                                />
+                                            </CollabFieldShell>
                                         )}
                                     </td>
 
@@ -850,22 +1059,26 @@ export function DiscussionAreaTable({
                                                 {STATUS_OPTIONS.find((s) => s.value === row.status)?.label || row.status}
                                             </span>
                                         ) : (
-                                            <select
-                                                value={row.status}
-                                                title={STATUS_OPTIONS.find((s) => s.value === row.status)?.label}
-                                                onChange={(e) => handleRowChange(index, 'status', e.target.value)}
-                                                className={cn(
-                                                    "w-full px-2 py-1.5 rounded-lg border text-xs font-bold focus:outline-none transition-all cursor-pointer truncate",
-                                                    STATUS_OPTIONS.find((s) => s.value === row.status)?.color ||
-                                                    "bg-white border-gray-200 text-gray-900"
-                                                )}
-                                            >
-                                                {STATUS_OPTIONS.map((opt) => (
-                                                    <option key={opt.value} value={opt.value} className="bg-white text-gray-900 font-medium">
-                                                        {opt.label}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <CollabFieldShell rowId={row.id} field="status" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
+                                                <select
+                                                    value={row.status}
+                                                    title={STATUS_OPTIONS.find((s) => s.value === row.status)?.label}
+                                                    onChange={(e) => handleRowChange(index, 'status', e.target.value)}
+                                                    onFocus={() => onCellFocus?.(row.id, 'status')}
+                                                    onBlur={() => onCellBlur?.(row.id, 'status', row.status || '')}
+                                                    className={cn(
+                                                        "w-full px-2 py-1.5 rounded-lg border text-xs font-bold focus:outline-none transition-all cursor-pointer truncate",
+                                                        STATUS_OPTIONS.find((s) => s.value === row.status)?.color ||
+                                                        "bg-white border-gray-200 text-gray-900"
+                                                    )}
+                                                >
+                                                    {STATUS_OPTIONS.map((opt) => (
+                                                        <option key={opt.value} value={opt.value} className="bg-white text-gray-900 font-medium">
+                                                            {opt.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </CollabFieldShell>
                                         )}
                                     </td>
 
@@ -876,14 +1089,18 @@ export function DiscussionAreaTable({
                                                 {row.remarks || '-'}
                                             </p>
                                         ) : (
-                                            <textarea
-                                                value={row.remarks}
-                                                title={row.remarks}
-                                                onChange={(e) => handleRowChange(index, 'remarks', e.target.value)}
-                                                placeholder="Remarks / notes..."
-                                                rows={2}
-                                                className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
-                                            />
+                                            <CollabFieldShell rowId={row.id} field="remarks" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
+                                                <textarea
+                                                    value={row.remarks}
+                                                    title={row.remarks}
+                                                    onChange={(e) => handleRowChange(index, 'remarks', e.target.value)}
+                                                    onFocus={() => onCellFocus?.(row.id, 'remarks')}
+                                                    onBlur={() => onCellBlur?.(row.id, 'remarks', row.remarks || '')}
+                                                    placeholder="Remarks / notes..."
+                                                    rows={2}
+                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
+                                                />
+                                            </CollabFieldShell>
                                         )}
                                     </td>
 
@@ -926,7 +1143,9 @@ export function DiscussionAreaTable({
                     )}
                 </div>
                 <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-                    Total Items: {rows.length}
+                    {userFilter.trim()
+                        ? `Showing ${filteredRows.length} of ${rows.length}`
+                        : `Total Items: ${rows.length}`}
                 </span>
             </div>
         </div>
@@ -938,17 +1157,26 @@ export function DiscussionAreaTable({
                 <div className="fixed inset-0 z-[9990] bg-slate-900/60 backdrop-blur-xs flex flex-col p-2 md:p-5 animate-in fade-in duration-150">
                     <div className="w-full h-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
                         {/* Fullscreen Modal Header */}
-                        <div className="px-5 py-3 bg-white border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-lg bg-[#091590]/10 text-[#091590] flex items-center justify-center font-bold">
+                        <div className="px-5 py-3 bg-white border-b border-gray-200 flex items-center justify-between flex-shrink-0 gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-[#091590]/10 text-[#091590] flex items-center justify-center font-bold flex-shrink-0">
                                     <MessageSquare className="w-4 h-4 text-[#091590]" />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Discussion Area Table</h2>
-                                    <p className="text-[10px] text-gray-400">Full Screen View • Press ESC to exit</p>
+                                    <p className="text-[10px] text-gray-400 truncate">
+                                        Full Screen View • Press ESC to exit
+                                        {otherViewers.length > 0
+                                            ? ` • ${otherViewers.length === 1
+                                                ? `${otherViewers[0].userName} is working`
+                                                : `${otherViewers.length} people working`}`
+                                            : ''}
+                                    </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                                {/* Sheets-style collaborator avatars in expand header */}
+                                <CollaboratorsPresenceBar viewers={otherViewers} compact />
                                 {!readOnly && onSave && (
                                     <button
                                         type="button"
@@ -990,6 +1218,18 @@ export function DiscussionAreaTable({
             ) : (
                 tableElement
             )}
+
+            <Dialog
+                isOpen={deleteDialog.isOpen}
+                onClose={() => setDeleteDialog({ isOpen: false, index: null, label: '' })}
+                type="warning"
+                title="Delete Discussion Point"
+                message={`Are you sure you want to delete "${deleteDialog.label}"?`}
+                description="This action cannot be undone."
+                confirmText="Delete"
+                confirmVariant="destructive"
+                onConfirm={confirmDeleteRow}
+            />
         </div>
     );
 }

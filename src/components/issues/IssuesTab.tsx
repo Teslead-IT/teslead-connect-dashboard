@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -8,7 +8,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { Plus, Search, ChevronDown, List as ListIcon, LayoutGrid } from 'lucide-react';
+import { Plus, Search, ChevronDown, List as ListIcon, LayoutGrid, FileSpreadsheet } from 'lucide-react';
 import { Loader } from '@/components/ui/Loader';
 import { useProjectIssues, useCreateIssue, useUpdateIssue } from '@/hooks/use-issues';
 import { useProjectWorkflow, useProjectTasks } from '@/hooks/use-tasks';
@@ -18,7 +18,16 @@ import { CreateIssueModal } from './CreateIssueModal';
 import { IssueViewModal } from './IssueViewModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn, formatDate } from '@/lib/utils';
+import { exportIssuesToExcel } from '@/utils/issues-excel-export';
 import type { Issue } from '@/types/issue';
+
+const PRIORITY_LABELS: Record<number, string> = {
+    1: 'P1-LOWEST',
+    2: 'P2-LOW',
+    3: 'MEDIUM',
+    4: 'HIGH',
+    5: 'CRITICAL',
+};
 
 interface IssuesTabProps {
     projectId: string;
@@ -125,6 +134,8 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
     const [limit, setLimit] = useState(20);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
+    const gridRef = useRef<AgGridReact<Issue>>(null);
     const lastStatusInteractionRef = React.useRef<number>(0);
 
     const markStatusInteraction = React.useCallback(() => {
@@ -188,8 +199,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
     };
 
     const RoleRenderer = (props: ICellRendererParams<Issue>) => {
-        const prioMap: Record<number, string> = { 1: 'P1-LOWEST', 2: 'P2-LOW', 3: 'MEDIUM', 4: 'HIGH', 5: 'CRITICAL' };
-        const prioLabel = prioMap[props.data?.priority || 3] || 'MEDIUM';
+        const prioLabel = PRIORITY_LABELS[props.data?.priority || 3] || 'MEDIUM';
         return (
             <div className="h-full w-full flex items-center">
                 <span className="flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide uppercase bg-purple-50 text-purple-600 border-l border-r border-purple-100">
@@ -198,6 +208,24 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             </div>
         );
     };
+
+    const handleExportExcel = useCallback(async () => {
+        setIsExporting(true);
+        try {
+            const api = gridRef.current?.api;
+            const rows: Issue[] = [];
+            if (api) {
+                api.forEachNodeAfterFilterAndSort((node) => {
+                    if (node.data) rows.push(node.data);
+                });
+            } else {
+                rows.push(...filteredIssues);
+            }
+            await exportIssuesToExcel(rows, 'project_issues');
+        } finally {
+            setIsExporting(false);
+        }
+    }, [filteredIssues]);
 
     const AssigneesRenderer = (props: ICellRendererParams<Issue>) => {
         const assignees = props.data?.assignees || [];
@@ -308,6 +336,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             pinned: 'left',
             cellClass: 'text-gray-500 font-medium text-[11px] flex items-center justify-center',
             suppressMenu: true,
+            filter: false,
         },
         {
             field: 'issueId',
@@ -315,6 +344,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             width: 120,
             pinned: 'left',
             cellClass: 'text-gray-400 font-mono text-[10px]',
+            filter: 'agTextColumnFilter',
         },
         {
             field: 'title',
@@ -322,6 +352,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             flex: 2,
             minWidth: 240,
             cellRenderer: IssueTitleRenderer,
+            filter: 'agTextColumnFilter',
         },
         {
             field: 'type',
@@ -329,12 +360,15 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             width: 120,
             cellRenderer: TagsRenderer,
             sortable: false,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => p.data?.type || '',
         },
         {
             field: 'phaseName',
             headerName: 'PHASE',
             width: 140,
             cellRenderer: PhaseRenderer,
+            filter: 'agTextColumnFilter',
         },
         /*{
             field: 'severity',
@@ -357,12 +391,16 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                     />
                 );
             },
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => p.data?.status?.name || '',
         },
         {
             field: 'priority',
             headerName: 'PRIORITY',
             width: 100,
             cellRenderer: RoleRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => PRIORITY_LABELS[p.data?.priority || 3] || '',
         },
         {
             field: 'assignees',
@@ -370,6 +408,9 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             width: 130,
             cellRenderer: AssigneesRenderer,
             sortable: false,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) =>
+                (p.data?.assignees || []).map((a: any) => a.name || a.email || '').join(' '),
         },
         {
             field: 'testers',
@@ -377,18 +418,33 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             width: 130,
             cellRenderer: TestersRenderer,
             sortable: false,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) =>
+                (p.data?.testers || []).map((t: any) => t.name || t.email || '').join(' '),
         },
         {
             field: 'createdAt',
             headerName: 'CREATED',
             width: 120,
             cellRenderer: DateRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => {
+                const v = p.data?.createdAt;
+                if (!v) return '';
+                return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            },
         },
         {
             field: 'dueDate',
             headerName: 'DUE',
             width: 120,
             cellRenderer: DateRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => {
+                const v = p.data?.dueDate;
+                if (!v) return '';
+                return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            },
         },
     ], [projectId, markStatusInteraction]);
 
@@ -433,14 +489,16 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                         <div className="flex items-center gap-2">
                             <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
 
-                            {/* <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
-                                <button className="p-1 rounded bg-white text-blue-600 shadow-xs" title="List View">
-                                    <ListIcon className="w-4 h-4" />
-                                </button>
-                                <button className="p-1 rounded text-gray-400 hover:text-gray-600" title="Kanban View">
-                                    <LayoutGrid className="w-4 h-4" />
-                                </button>
-                            </div> */}
+                            <button
+                                type="button"
+                                onClick={handleExportExcel}
+                                disabled={isExporting || filteredIssues.length === 0}
+                                className="inline-flex items-center justify-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50 font-medium px-3 h-8 text-xs rounded-md transition-colors duration-200 shadow-xs whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                                title="Export issues to Excel"
+                            >
+                                <FileSpreadsheet className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export Excel'}</span>
+                            </button>
 
                             {canCreateIssue && (
                                 <button
@@ -518,6 +576,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                 }
                             `}</style>
                             <AgGridReact
+                                ref={gridRef}
                                 theme="legacy"
                                 rowData={filteredIssues}
                                 columnDefs={columnDefs}

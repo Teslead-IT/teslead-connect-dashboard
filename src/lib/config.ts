@@ -99,6 +99,7 @@ export const API_CONFIG = {
     WEBSOCKET: {
         NAMESPACE: '/notifications',
         PRESENCE_NAMESPACE: '/presence',
+        MEETINGS_NAMESPACE: '/meetings',
     },
 
     // Token Storage Keys
