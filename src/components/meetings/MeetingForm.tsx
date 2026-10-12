@@ -418,7 +418,6 @@ export function MeetingForm({
                 });
                 success('Meeting saved successfully');
                 dirtyRef.current = false;
-                setPendingRemoteContent(null);
                 if (!isNew) {
                     setIsEditingState(false);
                 }
