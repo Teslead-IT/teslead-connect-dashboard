@@ -56,10 +56,22 @@ export function useUpdateIssue(projectId: string) {
     return useMutation({
         mutationFn: ({ issueId, data }: { issueId: string; data: UpdateIssuePayload }) =>
             issueService.updateIssue(issueId, data),
-        onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: issueKeys.all(projectId) });
+        onSuccess: (updated, variables) => {
+            // Patch cache in place — full list invalidate remounts grid and jumps scroll to top
+            queryClient.setQueryData(issueKeys.all(projectId), (old: unknown) => {
+                if (!Array.isArray(old)) return old;
+                return old.map((issue: any) =>
+                    issue.id === variables.issueId
+                        ? { ...issue, ...updated, status: updated?.status ?? issue.status }
+                        : issue
+                );
+            });
+            if (updated) {
+                queryClient.setQueryData(issueKeys.detail(variables.issueId), updated);
+            } else {
+                queryClient.invalidateQueries({ queryKey: issueKeys.detail(variables.issueId) });
+            }
             queryClient.invalidateQueries({ queryKey: ['issues', 'my-issues'] });
-            queryClient.invalidateQueries({ queryKey: issueKeys.detail(variables.issueId) });
         },
     });
 }
