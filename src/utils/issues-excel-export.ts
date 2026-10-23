@@ -48,6 +48,8 @@ export async function exportIssuesToExcel(issues: Issue[], filePrefix = 'issues'
         { header: 'Created', key: 'createdAt', width: 14 },
         { header: 'Due', key: 'dueDate', width: 14 },
         { header: 'Description', key: 'description', width: 40 },
+        { header: 'Expected Output', key: 'expectedOutput', width: 36 },
+        { header: 'Actual Output', key: 'actualOutput', width: 36 },
         { header: 'Severity', key: 'severity', width: 12 },
         { header: 'Project Name', key: 'projectName', width: 24 },
     ];
@@ -76,6 +78,8 @@ export async function exportIssuesToExcel(issues: Issue[], filePrefix = 'issues'
             createdAt: formatDateCell(issue.createdAt),
             dueDate: formatDateCell(issue.dueDate),
             description: issue.description || '',
+            expectedOutput: issue.expectedOutput || '',
+            actualOutput: issue.actualOutput || '',
             severity: issue.severity || '',
             projectName: issue.projectName || '',
         });

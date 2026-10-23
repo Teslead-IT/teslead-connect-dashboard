@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import { ColDef, ICellRendererParams, GetRowIdParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
@@ -455,6 +455,30 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
         headerClass: 'bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
     }), []);
 
+    const getRowId = useCallback((params: GetRowIdParams<Issue>) => params.data?.id ?? '', []);
+
+    const goToPage = useCallback((nextPage: number) => {
+        const maxPage = Math.max(1, Math.ceil(filteredIssues.length / limit) || 1);
+        const clamped = Math.min(Math.max(1, nextPage), maxPage);
+        setPage(clamped);
+        const api = gridRef.current?.api;
+        if (api) {
+            api.paginationGoToPage(clamped - 1);
+        }
+    }, [filteredIssues.length, limit]);
+
+    // Keep AG Grid page in sync after data/limit changes (prevents jump to page 1)
+    useEffect(() => {
+        const api = gridRef.current?.api;
+        if (!api) return;
+        const maxPage = Math.max(1, Math.ceil(filteredIssues.length / limit) || 1);
+        const clamped = Math.min(page, maxPage);
+        if (clamped !== page) setPage(clamped);
+        if (api.paginationGetCurrentPage() !== clamped - 1) {
+            api.paginationGoToPage(clamped - 1);
+        }
+    }, [filteredIssues, limit, page]);
+
     return (
         <div className="h-full flex flex-col bg-white">
             {/* Header Toolbar */}
@@ -581,12 +605,13 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                 rowData={filteredIssues}
                                 columnDefs={columnDefs}
                                 defaultColDef={defaultColDef}
+                                getRowId={getRowId}
                                 rowHeight={32}
                                 headerHeight={30}
                                 pagination={true}
                                 paginationPageSize={limit}
                                 suppressPaginationPanel={true}
-                                animateRows={true}
+                                animateRows={false}
                                 onRowClicked={(event) => {
                                     if (Date.now() - lastStatusInteractionRef.current < 1000) return;
                                     if ((event as any).colDef?.field === 'status' || (event as any).column?.getColId?.() === 'status') return;
@@ -594,6 +619,11 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                     if (event.data) {
                                         setSelectedIssueId(event.data.id);
                                     }
+                                }}
+                                onPaginationChanged={(event) => {
+                                    if (!event.api) return;
+                                    const gridPage = event.api.paginationGetCurrentPage() + 1;
+                                    setPage((prev) => (prev === gridPage ? prev : gridPage));
                                 }}
                             />
                         </div>
@@ -610,8 +640,12 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                     className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 px-2 py-1 bg-white border"
                                     value={limit}
                                     onChange={(e) => {
-                                        setLimit(Number(e.target.value));
+                                        const next = Number(e.target.value);
+                                        setLimit(next);
                                         setPage(1);
+                                        const api = gridRef.current?.api;
+                                        api?.setGridOption?.('paginationPageSize', next);
+                                        api?.paginationGoToPage(0);
                                     }}
                                 >
                                     <option value={20}>20 / page</option>
@@ -620,14 +654,14 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                 </select>
                                 <nav className="isolate inline-flex -space-x-px rounded-md shadow-2xs" aria-label="Pagination">
                                     <button
-                                        onClick={() => setPage(1)}
+                                        onClick={() => goToPage(1)}
                                         disabled={page === 1}
                                         className="relative inline-flex items-center rounded-l-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &laquo;
                                     </button>
                                     <button
-                                        onClick={() => setPage(Math.max(1, page - 1))}
+                                        onClick={() => goToPage(page - 1)}
                                         disabled={page === 1}
                                         className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
@@ -637,14 +671,14 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                         {page}
                                     </button>
                                     <button
-                                        onClick={() => setPage(page + 1)}
+                                        onClick={() => goToPage(page + 1)}
                                         disabled={page * limit >= filteredIssues.length}
                                         className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &rsaquo;
                                     </button>
                                     <button
-                                        onClick={() => setPage(Math.ceil(filteredIssues.length / limit) || 1)}
+                                        onClick={() => goToPage(Math.ceil(filteredIssues.length / limit) || 1)}
                                         disabled={page * limit >= filteredIssues.length}
                                         className="relative inline-flex items-center rounded-r-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >

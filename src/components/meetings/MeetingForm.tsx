@@ -126,7 +126,9 @@ export function MeetingForm({
         setIsEditingState(isEditing);
     }, [isEditing]);
 
-    const isMetadataReadOnly = readOnly || (!isNew && !isEditingState);
+    // Metadata (title, location, etc.) only editable by managers.
+    // Members can still enter edit mode to update their own status/remarks in the discussion table.
+    const isMetadataReadOnly = readOnly || (!isNew && (!isEditingState || !canManageMeeting));
 
     const { mutateAsync: createMeeting, isPending: isCreating } = useCreateMeeting();
     const { mutateAsync: updateMeeting, isPending: isUpdating } = useUpdateMeeting();
@@ -402,7 +404,7 @@ export function MeetingForm({
                 });
                 success('Meeting created successfully');
                 onCreated?.(newMeeting);
-            } else {
+            } else if (canManageMeeting) {
                 await updateMeeting({
                     id: meetingId!,
                     title: formData.title,
@@ -418,9 +420,17 @@ export function MeetingForm({
                 });
                 success('Meeting saved successfully');
                 dirtyRef.current = false;
-                if (!isNew) {
-                    setIsEditingState(false);
-                }
+                setIsEditingState(false);
+                onSaved?.();
+            } else {
+                // Members: content-only (status/remarks on rows they are assigned to)
+                await updateMeeting({
+                    id: meetingId!,
+                    content: formData.content,
+                });
+                success('Status & remarks saved');
+                dirtyRef.current = false;
+                setIsEditingState(false);
                 onSaved?.();
             }
         } catch (error) {
@@ -503,7 +513,7 @@ export function MeetingForm({
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs bg-[#091590] flex-shrink-0">
                         M
                     </div>
-                    {!isEditingState && !isNew ? (
+                    {isMetadataReadOnly && !isNew ? (
                         <h1 className="text-lg font-bold text-gray-900 truncate">
                             {formData.title || 'Untitled Meeting'}
                         </h1>
@@ -588,14 +598,15 @@ export function MeetingForm({
                                 )}
                             </div>
 
-                            {!readOnly && canManageMeeting && (
+                            {!readOnly && (
                                 <button
                                     type="button"
                                     onClick={() => setIsEditingState(true)}
                                     className="inline-flex items-center justify-center gap-1.5 h-7 px-3 bg-[#091590] text-white hover:bg-[#071170] font-bold text-[10px] uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer"
+                                    title={canManageMeeting ? 'Edit meeting' : 'Edit your status & remarks'}
                                 >
                                     <Pencil className="w-3.5 h-3.5" />
-                                    <span>Edit</span>
+                                    <span>{canManageMeeting ? 'Edit' : 'Edit Status / Remarks'}</span>
                                 </button>
                             )}
                         </>

@@ -678,6 +678,7 @@ export default function PhaseTaskListTab({
             field: 'name',
             flex: 2,
             minWidth: 320,
+            maxWidth: 520,
             cellRenderer: TaskNameCell,
             cellClass: '!p-0',
             filter: 'agTextColumnFilter',
@@ -1029,6 +1030,13 @@ export default function PhaseTaskListTab({
                         font-size: 13px;
                         color: #1e293b;
                         overflow: hidden !important;
+                    }
+                    .phase-grid-v2 .ag-cell[col-id="name"] .ag-cell-wrapper,
+                    .phase-grid-v2 .ag-cell[col-id="name"] .ag-cell-value {
+                        width: 100%;
+                        max-width: 100%;
+                        min-width: 0;
+                        overflow: hidden;
                     }
                     .phase-grid-v2 .ag-body-viewport { overflow-y: auto !important; }
                 `}</style>
@@ -1523,13 +1531,13 @@ function TaskNameCell(params: ICellRendererParams) {
     if (row.rowType === 'phase') {
         return (
             <div
-                className="flex items-center h-full w-full px-2 pr-3 group/phase cursor-pointer select-none"
+                className="flex items-center h-full w-full max-w-full min-w-0 overflow-hidden px-2 pr-3 group/phase cursor-pointer select-none"
                 onClick={() => { if (row.hasChildren) ctx.togglePhase(row.phaseId); }}
             >
                 {row.hasChildren ? (
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.togglePhase(row.phaseId); }}
-                        className="p-1 mr-1 hover:bg-white/60 rounded transition-colors"
+                        className="p-1 mr-1 hover:bg-white/60 rounded transition-colors flex-shrink-0"
                     >
                         {row.isExpanded
                             ? <ChevronDown className="w-4 h-4 text-indigo-600 stroke-[2.5]" />
@@ -1537,13 +1545,13 @@ function TaskNameCell(params: ICellRendererParams) {
                         }
                     </button>
                 ) : (
-                    <div className="w-6 mr-1" />
+                    <div className="w-6 mr-1 flex-shrink-0" />
                 )}
                 <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center mr-2 flex-shrink-0 shadow-sm">
                     <Layers className="w-3.5 h-3.5 text-white" />
                 </div>
                 <span className="font-bold text-xs text-gray-800 truncate uppercase tracking-wide flex-1 min-w-0" title={row.name}>
-                    {row.name.length > 20 ? row.name.substring(0, 20) + '...' : row.name}
+                    {row.name}
                 </span>
                 {ctx.isEditable && (
                     <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/phase:opacity-100 transition-opacity">
@@ -1573,14 +1581,14 @@ function TaskNameCell(params: ICellRendererParams) {
         const indent = row.level * 24 + 8;
         return (
             <div
-                className="flex items-center h-full w-full pr-3 group/tl cursor-pointer select-none"
+                className="flex items-center h-full w-full max-w-full min-w-0 overflow-hidden pr-3 group/tl cursor-pointer select-none"
                 style={{ paddingLeft: `${indent}px` }}
                 onClick={() => { if (row.hasChildren) ctx.toggleTaskList(row.taskListId!); }}
             >
                 {row.hasChildren ? (
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.toggleTaskList(row.taskListId!); }}
-                        className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors"
+                        className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
                     >
                         {row.isExpanded
                             ? <ChevronDown className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
@@ -1588,13 +1596,13 @@ function TaskNameCell(params: ICellRendererParams) {
                         }
                     </button>
                 ) : (
-                    <div className="w-6 mr-1" />
+                    <div className="w-6 mr-1 flex-shrink-0" />
                 )}
                 <div className="w-6 h-6 rounded bg-emerald-500 flex items-center justify-center mr-2 flex-shrink-0 shadow-sm">
                     <ListTodo className="w-3.5 h-3.5 text-white" />
                 </div>
                 <span className="font-semibold text-xs text-gray-700 truncate flex-1 min-w-0" title={row.name}>
-                    {row.name.length > 60 ? row.name.substring(0, 60) + '...' : row.name}
+                    {row.name}
                 </span>
                 {row.childCount !== undefined && (
                     <span className="ml-1.5 text-[10px] text-gray-400 font-bold">
@@ -1660,7 +1668,7 @@ function TaskNameCell(params: ICellRendererParams) {
     };
 
     return (
-        <div className="flex items-center h-full w-full pr-3 group/task relative" style={{ paddingLeft: `${indent}px` }}>
+        <div className="flex items-center h-full w-full max-w-full min-w-0 overflow-hidden pr-3 group/task relative" style={{ paddingLeft: `${indent}px` }}>
             {taskIdToCopy && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1 group/copy shrink-0 z-10">
                     <button
@@ -1684,7 +1692,7 @@ function TaskNameCell(params: ICellRendererParams) {
             {row.hasChildren ? (
                 <button
                     onClick={(e) => { e.stopPropagation(); ctx.toggleTask(row.taskId!); }}
-                    className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors"
+                    className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
                 >
                     {row.isExpanded
                         ? <ChevronDown className="w-4 h-4 text-gray-500 stroke-[2.5]" />
@@ -1692,7 +1700,7 @@ function TaskNameCell(params: ICellRendererParams) {
                     }
                 </button>
             ) : (
-                <div className="w-6 mr-1 flex items-center justify-center">
+                <div className="w-6 mr-1 flex items-center justify-center flex-shrink-0">
                     <FileText className="w-3.5 h-3.5 text-gray-300" />
                 </div>
             )}
@@ -1710,7 +1718,7 @@ function TaskNameCell(params: ICellRendererParams) {
                 }}
                 title={row.name}
             >
-                {row.name.length > 60 ? row.name.substring(0, 60) + '...' : row.name}
+                {row.name}
             </span>
             {row.hasChildren && row.childCount! > 0 && (
                 <span className="ml-1.5 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded font-bold">
