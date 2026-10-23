@@ -172,17 +172,17 @@ export function MeetingModal({
                     </div>
                     <div className="flex items-center gap-2">
                         {!isCreateMode && activeMeetingId && (() => {
+                            if (isEditing) return null;
                             const activeMeeting = meetings.find((m: any) => m.id === activeMeetingId);
                             const canManage = canManageMeetingItem(activeMeeting);
-                            if (!canManage) return null;
-                            if (isEditing) return <div />;
                             return (
                                 <button
                                     onClick={() => setIsEditing(true)}
                                     className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold uppercase tracking-wider text-white bg-[#091590] hover:bg-[#071170] active:scale-[0.98] transition-all shadow-sm"
+                                    title={canManage ? 'Edit meeting' : 'Edit your status & remarks'}
                                 >
                                     <Pencil className="w-3.5 h-3.5" />
-                                    Edit
+                                    {canManage ? 'Edit' : 'Edit Status / Remarks'}
                                 </button>
                             );
                         })()}

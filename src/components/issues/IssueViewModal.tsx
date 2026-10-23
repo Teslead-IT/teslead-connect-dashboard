@@ -274,7 +274,9 @@ export function IssueViewModal({
     const [showPhasePop, setShowPhasePop] = useState(false);
     const [phaseSearch, setPhaseSearch] = useState('');
     const [showTaskListPop, setShowTaskListPop] = useState(false);
+    const [taskListSearch, setTaskListSearch] = useState('');
     const [showTaskPop, setShowTaskPop] = useState(false);
+    const [taskSearch, setTaskSearch] = useState('');
     const [showAssigneePop, setShowAssigneePop] = useState(false);
     const [assigneeSearch, setAssigneeSearch] = useState('');
     const [showTesterPop, setShowTesterPop] = useState(false);
@@ -335,12 +337,26 @@ export function IssueViewModal({
         return phases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
     }, [phases, phaseSearch]);
 
-    const filteredTaskLists = availableTaskLists;
+    const filteredTaskLists = useMemo(() => {
+        if (!taskListSearch.trim()) return availableTaskLists;
+        const q = taskListSearch.toLowerCase();
+        return availableTaskLists.filter(tl => tl.name.toLowerCase().includes(q));
+    }, [availableTaskLists, taskListSearch]);
 
     const filteredTasks = useMemo(() => {
-        if (!formData.phaseId) return tasks;
-        return tasks.filter(t => t.phaseId === formData.phaseId);
-    }, [tasks, formData.phaseId]);
+        let list = tasks;
+        if (formData.phaseId) {
+            list = list.filter(t => t.phaseId === formData.phaseId);
+        }
+        if (formData.taskListId) {
+            list = list.filter(t => t.taskListId === formData.taskListId);
+        }
+        if (taskSearch.trim()) {
+            const q = taskSearch.toLowerCase();
+            list = list.filter(t => t.title?.toLowerCase().includes(q));
+        }
+        return list;
+    }, [tasks, formData.phaseId, formData.taskListId, taskSearch]);
 
     const filteredMembers = useMemo(() => {
         if (!assigneeSearch.trim()) return members;
@@ -689,17 +705,16 @@ export function IssueViewModal({
                                                 </span>
                                                 {!isReadOnly && phases.length > 0 && (
                                                     <button
-                                                        disabled
                                                         type="button"
                                                         onClick={() => setShowPhasePop(!showPhasePop)}
-                                                        className="text-[10px] text-indigo-600 font-semibold"
+                                                        className="text-[10px] text-indigo-600 font-semibold hover:underline cursor-pointer"
                                                     >
                                                         Change
                                                     </button>
                                                 )}
                                             </div>
                                             <span className="font-bold text-gray-800 uppercase block truncate">
-                                                {selectedPhase?.name || issue.phaseName || '—'}
+                                                {selectedPhase?.name || (formData.phaseId ? issue.phaseName : null) || '—'}
                                             </span>
 
                                             {showPhasePop && (
@@ -718,8 +733,14 @@ export function IssueViewModal({
                                                                 key={p.id}
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    setFormData({ ...formData, phaseId: p.id, taskListId: undefined });
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        phaseId: p.id,
+                                                                        taskListId: undefined,
+                                                                        taskId: undefined,
+                                                                    });
                                                                     setShowPhasePop(false);
+                                                                    setShowTaskListPop(false);
                                                                 }}
                                                                 className={cn(
                                                                     'w-full px-2 py-1 text-left text-xs rounded hover:bg-indigo-50 block truncate',
@@ -742,39 +763,56 @@ export function IssueViewModal({
                                                 </span>
                                                 {!isReadOnly && availableTaskLists.length > 0 && (
                                                     <button
-                                                        disabled
                                                         type="button"
-                                                        onClick={() => setShowTaskListPop(!showTaskListPop)}
-                                                        className="text-[10px] text-emerald-600 font-semibold"
+                                                        onClick={() => {
+                                                            setShowTaskListPop(!showTaskListPop);
+                                                            setTaskListSearch('');
+                                                        }}
+                                                        className="text-[10px] text-emerald-600 font-semibold hover:underline cursor-pointer"
                                                     >
                                                         Change
                                                     </button>
                                                 )}
                                             </div>
                                             <span className="font-bold text-gray-800 uppercase block truncate">
-                                                {selectedTaskList?.name || issue.taskListName || '—'}
+                                                {selectedTaskList?.name || (formData.taskListId ? issue.taskListName : null) || '—'}
                                             </span>
 
                                             {showTaskListPop && (
                                                 <>
-                                                    <div className="fixed inset-0 z-10" onClick={() => setShowTaskListPop(false)} />
-                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl p-2 max-h-48 overflow-y-auto">
-                                                        {filteredTaskLists.map(tl => (
-                                                            <button
-                                                                key={tl.id}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setFormData({ ...formData, taskListId: tl.id });
-                                                                    setShowTaskListPop(false);
-                                                                }}
-                                                                className={cn(
-                                                                    'w-full px-2 py-1 text-left text-xs rounded hover:bg-emerald-50 block truncate',
-                                                                    formData.taskListId === tl.id && 'font-bold text-emerald-600'
-                                                                )}
-                                                            >
-                                                                {tl.name}
-                                                            </button>
-                                                        ))}
+                                                    <div className="fixed inset-0 z-10" onClick={() => { setShowTaskListPop(false); setTaskListSearch(''); }} />
+                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl p-2 max-h-52 overflow-hidden flex flex-col">
+                                                        <input
+                                                            type="text"
+                                                            autoFocus
+                                                            placeholder="Filter task list..."
+                                                            value={taskListSearch}
+                                                            onChange={e => setTaskListSearch(e.target.value)}
+                                                            className="w-full px-2 py-1 text-xs border rounded mb-1 focus:outline-none shrink-0"
+                                                        />
+                                                        <div className="overflow-y-auto flex-1">
+                                                            {filteredTaskLists.length === 0 ? (
+                                                                <div className="px-2 py-3 text-center text-xs text-gray-400 italic">No task lists found</div>
+                                                            ) : (
+                                                                filteredTaskLists.map(tl => (
+                                                                    <button
+                                                                        key={tl.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setFormData({ ...formData, taskListId: tl.id, taskId: undefined });
+                                                                            setShowTaskListPop(false);
+                                                                            setTaskListSearch('');
+                                                                        }}
+                                                                        className={cn(
+                                                                            'w-full px-2 py-1 text-left text-xs rounded hover:bg-emerald-50 block truncate',
+                                                                            formData.taskListId === tl.id && 'font-bold text-emerald-600'
+                                                                        )}
+                                                                    >
+                                                                        {tl.name}
+                                                                    </button>
+                                                                ))
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -788,12 +826,14 @@ export function IssueViewModal({
                                                 </span>
                                                 {!isReadOnly && tasks.length > 0 && (
                                                     <button
-                                                        disabled
                                                         type="button"
-                                                        onClick={() => setShowTaskPop(!showTaskPop)}
-                                                        className="text-[10px] text-blue-600 font-semibold"
+                                                        onClick={() => {
+                                                            setShowTaskPop(!showTaskPop);
+                                                            setTaskSearch('');
+                                                        }}
+                                                        className="text-[10px] text-blue-600 font-semibold hover:underline cursor-pointer"
                                                     >
-                                                        Link
+                                                        Change
                                                     </button>
                                                 )}
                                             </div>
@@ -803,34 +843,47 @@ export function IssueViewModal({
 
                                             {showTaskPop && (
                                                 <>
-                                                    <div className="fixed inset-0 z-10" onClick={() => setShowTaskPop(false)} />
-                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl p-2 max-h-48 overflow-y-auto">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setFormData({ ...formData, taskId: undefined });
-                                                                setShowTaskPop(false);
-                                                            }}
-                                                            className="w-full px-2 py-1 text-left text-xs text-red-600 hover:bg-red-50 rounded italic"
-                                                        >
-                                                            Unlink task
-                                                        </button>
-                                                        {filteredTasks.map(t => (
-                                                            <button
-                                                                key={t.id}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setFormData({ ...formData, taskId: t.id });
-                                                                    setShowTaskPop(false);
-                                                                }}
-                                                                className={cn(
-                                                                    'w-full px-2 py-1 text-left text-xs rounded hover:bg-blue-50 block truncate',
-                                                                    formData.taskId === t.id && 'font-bold text-blue-600'
-                                                                )}
-                                                            >
-                                                                {t.title}
-                                                            </button>
-                                                        ))}
+                                                    <div className="fixed inset-0 z-10" onClick={() => { setShowTaskPop(false); setTaskSearch(''); }} />
+                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl p-2 max-h-52 overflow-hidden flex flex-col">
+                                                        <div className="relative mb-1 shrink-0">
+                                                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                                            <input
+                                                                type="text"
+                                                                autoFocus
+                                                                placeholder="Search tasks..."
+                                                                value={taskSearch}
+                                                                onChange={e => setTaskSearch(e.target.value)}
+                                                                className="w-full pl-7 pr-2 py-1 text-xs border rounded focus:outline-none"
+                                                            />
+                                                        </div>
+                                                        <div className="overflow-y-auto flex-1">
+                                                            {filteredTasks.length === 0 ? (
+                                                                <div className="px-2 py-3 text-center text-xs text-gray-400 italic">No tasks found</div>
+                                                            ) : (
+                                                                filteredTasks.map(t => (
+                                                                    <button
+                                                                        key={t.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setFormData({
+                                                                                ...formData,
+                                                                                taskId: t.id,
+                                                                                phaseId: t.phaseId || formData.phaseId,
+                                                                                taskListId: t.taskListId || formData.taskListId,
+                                                                            });
+                                                                            setShowTaskPop(false);
+                                                                            setTaskSearch('');
+                                                                        }}
+                                                                        className={cn(
+                                                                            'w-full px-2 py-1 text-left text-xs rounded hover:bg-blue-50 block truncate',
+                                                                            formData.taskId === t.id && 'font-bold text-blue-600'
+                                                                        )}
+                                                                    >
+                                                                        {t.title}
+                                                                    </button>
+                                                                ))
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </>
                                             )}

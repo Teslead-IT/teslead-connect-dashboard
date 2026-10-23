@@ -86,6 +86,69 @@ const PRIORITY_OPTIONS: { value: IssuePriority; label: string; color: string; bg
     { value: 5, label: 'Critical', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: '⬆' },
 ];
 
+/** Resolve phase + task list for a task from task fields or structured phases tree. */
+function findTaskLocation(
+    taskId: string,
+    tasks: Task[],
+    phases: PhaseWithTaskLists[],
+    visited: Set<string> = new Set(),
+): { phaseId: string; taskListId: string } {
+    if (!taskId || visited.has(taskId)) return { phaseId: '', taskListId: '' };
+    visited.add(taskId);
+
+    const fromTask = tasks.find((t) => t.id === taskId);
+    let phaseId =
+        fromTask?.phaseId ||
+        (fromTask as any)?.phase?.id ||
+        '';
+    let taskListId =
+        fromTask?.taskListId ||
+        (fromTask as any)?.taskList?.id ||
+        '';
+
+    if (phaseId && taskListId) {
+        return { phaseId, taskListId };
+    }
+
+    const walk = (
+        items: any[] | undefined,
+        pId: string,
+        tlId: string,
+    ): { phaseId: string; taskListId: string } | null => {
+        if (!Array.isArray(items)) return null;
+        for (const item of items) {
+            if (item?.id === taskId) return { phaseId: pId, taskListId: tlId };
+            const kids = item?.children || item?.subtasks;
+            const found = walk(kids, pId, tlId);
+            if (found) return found;
+        }
+        return null;
+    };
+
+    for (const phase of phases) {
+        for (const tl of phase.taskLists || []) {
+            const found = walk(tl.tasks, phase.id, tl.id);
+            if (found) return found;
+        }
+    }
+
+    // taskListId known but phase missing → derive from phases
+    if (taskListId && !phaseId) {
+        for (const phase of phases) {
+            if ((phase.taskLists || []).some((tl) => tl.id === taskListId)) {
+                return { phaseId: phase.id, taskListId };
+            }
+        }
+    }
+
+    // Parent task location for subtasks missing own phase/list
+    if (fromTask?.parentId) {
+        return findTaskLocation(fromTask.parentId, tasks, phases, visited);
+    }
+
+    return { phaseId: phaseId || '', taskListId: taskListId || '' };
+}
+
 export function CreateIssueModal({
     isOpen,
     onClose,
@@ -336,31 +399,53 @@ export function CreateIssueModal({
     const currentPriority = PRIORITY_OPTIONS.find(p => p.value === formData.priority) || PRIORITY_OPTIONS[2];
 
     useEffect(() => {
-        if (formData.taskId && activeTasks.length > 0) {
-            const t = activeTasks.find(item => item.id === formData.taskId);
-            if (t && t.expectedOutput) {
-                setFormData(prev => {
-                    if (!prev.expectedOutput) {
-                        return {
-                            ...prev,
-                            expectedOutput: t.expectedOutput || '',
-                        };
-                    }
-                    return prev;
-                });
+        if (!formData.taskId) return;
+        if (activeTasks.length === 0 && activePhases.length === 0) return;
+
+        const loc = findTaskLocation(formData.taskId, activeTasks, activePhases);
+        const t = activeTasks.find((item) => item.id === formData.taskId);
+
+        setFormData((prev) => {
+            const nextPhase = loc.phaseId || prev.phaseId;
+            const nextList = loc.taskListId || prev.taskListId;
+            const nextExpected =
+                !prev.expectedOutput && t?.expectedOutput
+                    ? t.expectedOutput
+                    : prev.expectedOutput;
+
+            if (
+                nextPhase === prev.phaseId &&
+                nextList === prev.taskListId &&
+                nextExpected === prev.expectedOutput
+            ) {
+                return prev;
             }
-        }
-    }, [formData.taskId, activeTasks]);
+
+            return {
+                ...prev,
+                phaseId: nextPhase,
+                taskListId: nextList,
+                expectedOutput: nextExpected || '',
+            };
+        });
+    }, [formData.taskId, activeTasks, activePhases]);
 
     const handleTaskSelect = (taskId: string) => {
         if (!taskId) {
-            setFormData(prev => ({ ...prev, taskId: '' }));
+            setFormData(prev => ({ ...prev, taskId: '', phaseId: '', taskListId: '' }));
             return;
         }
 
         const t = activeTasks.find(item => item.id === taskId);
+        const loc = findTaskLocation(taskId, activeTasks, activePhases);
+
         if (!t) {
-            setFormData(prev => ({ ...prev, taskId }));
+            setFormData(prev => ({
+                ...prev,
+                taskId,
+                phaseId: loc.phaseId || prev.phaseId,
+                taskListId: loc.taskListId || prev.taskListId,
+            }));
             return;
         }
 
@@ -385,8 +470,8 @@ export function CreateIssueModal({
         setFormData(prev => ({
             ...prev,
             taskId: t.id,
-            phaseId: t.phaseId || prev.phaseId,
-            taskListId: t.taskListId || prev.taskListId,
+            phaseId: loc.phaseId || t.phaseId || '',
+            taskListId: loc.taskListId || t.taskListId || '',
             expectedOutput: t.expectedOutput || prev.expectedOutput || '',
             assigneeIds: taskAssigneeIds.length > 0 ? taskAssigneeIds : prev.assigneeIds,
             testerIds: taskTesterIds.length > 0 ? taskTesterIds : prev.testerIds,

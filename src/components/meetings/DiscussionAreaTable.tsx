@@ -665,7 +665,7 @@ export function DiscussionAreaTable({
                             </th>
                             <th className="py-2.5 px-3 w-32 min-w-[125px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Status</th>
                             <th className="py-2.5 px-3 w-120 min-w-[260px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Remarks</th>
-                            {!readOnly && <th className="py-2.5 px-2 w-12 text-center sticky top-0 bg-[#091590]">Action</th>}
+                            {!readOnly && canFullyManage && <th className="py-2.5 px-2 w-12 text-center sticky top-0 bg-[#091590]">Action</th>}
                         </tr>
                     </thead>
 
@@ -673,7 +673,7 @@ export function DiscussionAreaTable({
                     <tbody className="divide-y divide-gray-200 text-xs">
                         {rows.length === 0 ? (
                             <tr>
-                                <td colSpan={readOnly ? 6 : 7} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
+                                <td colSpan={!readOnly && canFullyManage ? 7 : 6} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <span>No discussion points added yet.</span>
                                     </div>
@@ -681,7 +681,7 @@ export function DiscussionAreaTable({
                             </tr>
                         ) : filteredRows.length === 0 ? (
                             <tr>
-                                <td colSpan={readOnly ? 6 : 7} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
+                                <td colSpan={!readOnly && canFullyManage ? 7 : 6} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
                                     No rows match &quot;{userFilter.trim()}&quot;
                                 </td>
                             </tr>
@@ -1104,8 +1104,8 @@ export function DiscussionAreaTable({
                                         )}
                                     </td>
 
-                                    {/* Action Column */}
-                                    {!readOnly && (
+                                    {/* Action Column — managers only */}
+                                    {!readOnly && canFullyManage && (
                                         <td className="py-2 px-2 w-12 text-center align-top pt-3">
                                             {canDeleteThisRow ? (
                                                 <button
@@ -1131,7 +1131,7 @@ export function DiscussionAreaTable({
             {/* Bottom Footer */}
             <div className="p-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-shrink-0 z-10 gap-2">
                 <div className="flex items-center gap-2">
-                    {!readOnly && (
+                    {!readOnly && canFullyManage && (
                         <button
                             type="button"
                             onClick={handleAddRow}
