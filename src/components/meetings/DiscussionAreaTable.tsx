@@ -14,6 +14,7 @@ import {
     Maximize2,
     Minimize2,
     Save,
+    Pencil,
     Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -182,6 +183,9 @@ interface DiscussionAreaTableProps {
     onSave?: () => void;
     isSaving?: boolean;
     isNew?: boolean;
+    /** Enter edit mode from expanded view (view-state → editable without exiting) */
+    onEnableEdit?: () => void;
+    editButtonLabel?: string;
     /** Soft-lock remote focus map from useMeetingCollab */
     remoteFocusByCell?: Record<string, RemoteFocus>;
     /** Other users currently in this meeting (Sheets-style presence) */
@@ -191,6 +195,8 @@ interface DiscussionAreaTableProps {
     onCellFocus?: (rowId: string, field: string) => void;
     /** Blur with value — Sheets-style cell commit */
     onCellBlur?: (rowId: string, field: string, value: string) => void;
+    /** Mark a cell as intentionally edited for dirty-cell PATCH merge */
+    onCellDirty?: (rowId: string, field: string) => void;
 }
 
 const STATUS_OPTIONS = [
@@ -307,11 +313,14 @@ export function DiscussionAreaTable({
     onSave,
     isSaving = false,
     isNew = false,
+    onEnableEdit,
+    editButtonLabel = 'Edit',
     remoteFocusByCell,
     otherViewers = [],
     flashCellKey = null,
     onCellFocus,
     onCellBlur,
+    onCellDirty,
 }: DiscussionAreaTableProps) {
     const [rows, setRows] = useState<DiscussionRow[]>(() => parseInitialRows(content));
 
@@ -528,7 +537,24 @@ export function DiscussionAreaTable({
     // Row field change handler
     const handleRowChange = (index: number, field: keyof DiscussionRow, value: any) => {
         const updated = [...rows];
-        updated[index] = { ...updated[index], [field]: value };
+        const row = updated[index];
+        updated[index] = { ...row, [field]: value };
+        const collabField =
+            field === 'userId' || field === 'userIds' || field === 'userItems'
+                ? 'user'
+                : field === 'projectId'
+                  ? 'project'
+                  : field;
+        if (
+            row?.id &&
+            (collabField === 'user' ||
+                collabField === 'project' ||
+                collabField === 'discussionPoints' ||
+                collabField === 'status' ||
+                collabField === 'remarks')
+        ) {
+            onCellDirty?.(row.id, collabField);
+        }
         updateRowsAndNotify(updated);
     };
 
@@ -561,6 +587,7 @@ export function DiscussionAreaTable({
         setPopupPos(null);
         setUserQuery('');
         setTypedUserQuery((prev) => ({ ...prev, [currentItem.id]: '' }));
+        if (currentItem.id) onCellDirty?.(currentItem.id, 'user');
         updateRowsAndNotify(updated);
     };
 
@@ -584,6 +611,7 @@ export function DiscussionAreaTable({
             userIds: ids,
             userItems: currentItems,
         };
+        if (currentItem.id) onCellDirty?.(currentItem.id, 'user');
         updateRowsAndNotify(updated);
     };
 
@@ -604,6 +632,7 @@ export function DiscussionAreaTable({
             delete next[currentItem.id];
             return next;
         });
+        if (currentItem.id) onCellDirty?.(currentItem.id, 'project');
         updateRowsAndNotify(updated);
     };
 
@@ -1177,6 +1206,17 @@ export function DiscussionAreaTable({
                             <div className="flex items-center gap-3 flex-shrink-0">
                                 {/* Sheets-style collaborator avatars in expand header */}
                                 <CollaboratorsPresenceBar viewers={otherViewers} compact />
+                                {readOnly && onEnableEdit && (
+                                    <button
+                                        type="button"
+                                        onClick={onEnableEdit}
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#091590] hover:bg-[#071170] text-white font-bold text-xs rounded-lg transition-colors shadow-sm cursor-pointer"
+                                        title={editButtonLabel}
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                        <span>{editButtonLabel}</span>
+                                    </button>
+                                )}
                                 {!readOnly && onSave && (
                                     <button
                                         type="button"

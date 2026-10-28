@@ -50,22 +50,26 @@ export function useCreateIssue(projectId: string) {
     });
 }
 
-export function useUpdateIssue(projectId: string) {
+export function useUpdateIssue(projectId?: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: ({ issueId, data }: { issueId: string; data: UpdateIssuePayload }) =>
             issueService.updateIssue(issueId, data),
         onSuccess: (updated, variables) => {
-            // Patch cache in place — full list invalidate remounts grid and jumps scroll to top
-            queryClient.setQueryData(issueKeys.all(projectId), (old: unknown) => {
-                if (!Array.isArray(old)) return old;
-                return old.map((issue: any) =>
-                    issue.id === variables.issueId
-                        ? { ...issue, ...updated, status: updated?.status ?? issue.status }
-                        : issue
-                );
-            });
+            const targetProjectId = projectId || updated?.projectId;
+            if (targetProjectId) {
+                // Patch cache in place — full list invalidate remounts grid and jumps scroll to top
+                queryClient.setQueryData(issueKeys.all(targetProjectId), (old: unknown) => {
+                    if (!Array.isArray(old)) return old;
+                    return old.map((issue: any) =>
+                        issue.id === variables.issueId
+                            ? { ...issue, ...updated, status: updated?.status ?? issue.status }
+                            : issue
+                    );
+                });
+                queryClient.invalidateQueries({ queryKey: issueKeys.all(targetProjectId) });
+            }
             if (updated) {
                 queryClient.setQueryData(issueKeys.detail(variables.issueId), updated);
             } else {
