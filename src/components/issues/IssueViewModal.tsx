@@ -55,6 +55,7 @@ interface IssueViewModalProps {
     tasks?: Task[];
     phases?: PhaseWithTaskLists[];
     isReadOnly?: boolean;
+    onUpdate?: (updated: Issue) => void;
 }
 
 const ISSUE_TYPE_OPTIONS: { value: IssueType; label: string; icon: any; color: string; bg: string }[] = [
@@ -227,6 +228,7 @@ export function IssueViewModal({
     tasks = [],
     phases = [],
     isReadOnly = false,
+    onUpdate,
 }: IssueViewModalProps) {
     const toast = useToast();
     const { data: user } = useUser();
@@ -421,7 +423,7 @@ export function IssueViewModal({
         }
 
         try {
-            await updateMutation.mutateAsync({
+            const updated = await updateMutation.mutateAsync({
                 issueId,
                 data: {
                     ...formData,
@@ -429,6 +431,7 @@ export function IssueViewModal({
                 },
             });
             toast.success('Issue updated successfully');
+            onUpdate?.(updated);
             onClose();
         } catch (err: any) {
             toast.error('Failed to update issue', err.message);

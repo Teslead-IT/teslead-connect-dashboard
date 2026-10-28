@@ -41,6 +41,19 @@ import {
 
 const COLLAB_FLUSH_MS = 1200;
 
+const COLLAB_FIELDS = ['user', 'project', 'discussionPoints', 'status', 'remarks'] as const;
+
+function cellDirtyKey(rowId: string, field: string) {
+    return `${rowId}::${field}`;
+}
+
+function dirtyCellsFromSet(keys: Set<string>): { rowId: string; field: string }[] {
+    return [...keys].map((key) => {
+        const idx = key.lastIndexOf('::');
+        return { rowId: key.slice(0, idx), field: key.slice(idx + 2) };
+    });
+}
+
 function applyCellToDiscussionContent(content: any, payload: CellCommitPayload) {
     if (!content || typeof content !== 'object' || !Array.isArray(content.rows)) {
         return content;
@@ -51,6 +64,96 @@ function applyCellToDiscussionContent(content: any, payload: CellCommitPayload) 
         i === idx ? { ...r, [payload.field]: payload.value } : r
     );
     return { ...content, rows };
+}
+
+/** Merge remote content_updated into local, keeping focused/dirty cell drafts. */
+function mergeRemoteDiscussionContent(
+    localContent: any,
+    remoteContent: any,
+    preserveKeys: Set<string>,
+) {
+    if (!remoteContent || typeof remoteContent !== 'object' || !Array.isArray(remoteContent.rows)) {
+        return remoteContent ?? localContent;
+    }
+    const localRows = Array.isArray(localContent?.rows) ? localContent.rows : [];
+    const localById = new Map<string, any>(
+        localRows.filter((r: any) => r?.id != null).map((r: any) => [String(r.id), r]),
+    );
+
+    const rows = remoteContent.rows.map((remoteRow: any) => {
+        if (remoteRow?.id == null) return remoteRow;
+        const id = String(remoteRow.id);
+        const local = localById.get(id);
+        if (!local) return remoteRow;
+        const next: any = { ...remoteRow };
+        for (const field of COLLAB_FIELDS) {
+            if (!preserveKeys.has(cellDirtyKey(id, field))) continue;
+            next[field] = local[field];
+            if (field === 'user') {
+                next.userId = local.userId;
+                next.userIds = local.userIds;
+                next.userItems = local.userItems;
+            }
+            if (field === 'project') {
+                next.projectId = local.projectId;
+            }
+        }
+        return next;
+    });
+
+    const remoteIds = new Set(rows.map((r: any) => (r?.id != null ? String(r.id) : '')).filter(Boolean));
+    for (const local of localRows) {
+        if (local?.id != null && !remoteIds.has(String(local.id))) {
+            rows.push(local);
+        }
+    }
+
+    return { ...remoteContent, rows };
+}
+
+/** Build PATCH content = server baseline + only dirty local overlays. */
+function applyDirtyOverlays(baseline: any, localContent: any, dirtyKeys: Set<string>) {
+    const baseRows = Array.isArray(baseline?.rows) ? baseline.rows.map((r: any) => ({ ...r })) : [];
+    const localRows = Array.isArray(localContent?.rows) ? localContent.rows : [];
+    const localById = new Map<string, any>(
+        localRows.filter((r: any) => r?.id != null).map((r: any) => [String(r.id), r]),
+    );
+    const baseById = new Map<string, any>(
+        baseRows.filter((r: any) => r?.id != null).map((r: any) => [String(r.id), r]),
+    );
+
+    const rows = baseRows.map((row: any) => {
+        const id = String(row.id);
+        const local = localById.get(id);
+        if (!local) return row;
+        const next: any = { ...row };
+        for (const field of COLLAB_FIELDS) {
+            if (!dirtyKeys.has(cellDirtyKey(id, field))) continue;
+            next[field] = local[field];
+            if (field === 'user') {
+                next.userId = local.userId;
+                next.userIds = local.userIds;
+                next.userItems = local.userItems;
+            }
+            if (field === 'project') {
+                next.projectId = local.projectId;
+            }
+        }
+        return next;
+    });
+
+    for (const local of localRows) {
+        if (local?.id != null && !baseById.has(String(local.id))) {
+            rows.push({ ...local });
+        }
+    }
+
+    return {
+        ...(baseline && typeof baseline === 'object' ? baseline : {}),
+        type: localContent?.type ?? baseline?.type ?? 'discussionTable',
+        content: localContent?.content !== undefined ? localContent.content : baseline?.content,
+        rows,
+    };
 }
 
 interface MeetingFormProps {
@@ -142,7 +245,25 @@ export function MeetingForm({
     const isInitializedRef = useRef(false);
     const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const formDataRef = useRef<any>(null);
+    const dirtyCellsRef = useRef<Set<string>>(new Set());
+    const localFocusRef = useRef<{ rowId: string; field: string } | null>(null);
+    const contentBaselineRef = useRef<any>(null);
     const [flashCellKey, setFlashCellKey] = useState<string | null>(null);
+
+    const markCellDirty = useCallback((rowId: string, field: string) => {
+        dirtyCellsRef.current.add(cellDirtyKey(rowId, field));
+    }, []);
+
+    const clearDirtyKeys = useCallback((keys: string[]) => {
+        for (const key of keys) dirtyCellsRef.current.delete(key);
+    }, []);
+
+    const getPreserveKeys = useCallback(() => {
+        const keys = new Set(dirtyCellsRef.current);
+        const focus = localFocusRef.current;
+        if (focus) keys.add(cellDirtyKey(focus.rowId, focus.field));
+        return keys;
+    }, []);
 
     const [formData, setFormData] = useState<{
         title: string;
@@ -175,11 +296,25 @@ export function MeetingForm({
         if (payload.updatedBy && payload.updatedBy === currentUser?.id) return;
         if (applyingRemoteRef.current) return;
 
-        // Sheets-style LWW — apply silently, no conflict banner
         applyingRemoteRef.current = true;
-        setFormData((prev) => ({ ...prev, content: payload.content ?? prev.content }));
-        dirtyRef.current = false;
-    }, [currentUser?.id]);
+        const preserveKeys = getPreserveKeys();
+        setFormData((prev) => {
+            const merged = mergeRemoteDiscussionContent(
+                prev.content,
+                payload.content ?? prev.content,
+                preserveKeys,
+            );
+            return { ...prev, content: merged };
+        });
+        // Update baseline to remote for non-preserved cells (server truth)
+        if (payload.content) {
+            contentBaselineRef.current = payload.content;
+        }
+        // Keep dirty if local drafts remain
+        if (preserveKeys.size === 0) {
+            dirtyRef.current = false;
+        }
+    }, [currentUser?.id, getPreserveKeys]);
 
     /** A1: remote cell commit overwrites local value even if focused */
     const handleRemoteCellCommit = useCallback((payload: CellCommitPayload) => {
@@ -226,18 +361,35 @@ export function MeetingForm({
         flushTimerRef.current = setTimeout(async () => {
             const data = formDataRef.current;
             if (!data?.content) return;
+            const dirtyKeys = new Set(dirtyCellsRef.current);
+            if (dirtyKeys.size === 0) return;
+            const dirtyCells = dirtyCellsFromSet(dirtyKeys);
+            const content = applyDirtyOverlays(
+                contentBaselineRef.current,
+                data.content,
+                dirtyKeys,
+            );
             try {
-                await updateMeeting({
+                const saved = await updateMeeting({
                     id: meetingId,
-                    content: data.content,
+                    content,
+                    dirtyCells,
                 });
-                dirtyRef.current = false;
+                if (saved?.content) {
+                    contentBaselineRef.current = saved.content;
+                } else {
+                    contentBaselineRef.current = content;
+                }
+                clearDirtyKeys([...dirtyKeys]);
+                if (dirtyCellsRef.current.size === 0) {
+                    dirtyRef.current = false;
+                }
             } catch (err) {
                 console.error('Collab durable flush failed:', err);
                 showError('Sync failed', 'Could not save live cell changes. Click Update to retry.');
             }
         }, COLLAB_FLUSH_MS);
-    }, [meetingId, isNew, updateMeeting, showError]);
+    }, [meetingId, isNew, updateMeeting, showError, clearDirtyKeys]);
 
     useEffect(() => {
         return () => {
@@ -245,12 +397,27 @@ export function MeetingForm({
         };
     }, []);
 
+    const handleCellFocus = useCallback(
+        (rowId: string, field: string) => {
+            localFocusRef.current = { rowId, field };
+            setFocus(rowId, field);
+        },
+        [setFocus],
+    );
+
     const handleCellBlurCommit = useCallback(
         (rowId: string, field: string, value: string) => {
+            if (
+                localFocusRef.current?.rowId === rowId &&
+                localFocusRef.current?.field === field
+            ) {
+                localFocusRef.current = null;
+            }
+            markCellDirty(rowId, field);
             const didCommit = commitCell(rowId, field, value);
             if (didCommit) scheduleDurableFlush();
         },
-        [commitCell, scheduleDurableFlush],
+        [commitCell, scheduleDurableFlush, markCellDirty],
     );
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -300,6 +467,13 @@ export function MeetingForm({
                 },
             };
         });
+        // Mark all imported collab fields dirty so Save persists full row values
+        for (const row of importedData.rows) {
+            if (!row?.id) continue;
+            for (const field of COLLAB_FIELDS) {
+                dirtyCellsRef.current.add(cellDirtyKey(String(row.id), field));
+            }
+        }
         success(`Imported ${importedData.rows.length} item(s) from previous meeting (completed items ignored)`);
     };
 
@@ -354,6 +528,8 @@ export function MeetingForm({
                     : '',
                 time: meeting.time || '',
             });
+            contentBaselineRef.current = meeting.content || null;
+            dirtyCellsRef.current.clear();
             dirtyRef.current = false;
             isInitializedRef.current = true;
         }
@@ -388,6 +564,9 @@ export function MeetingForm({
             }
         }
 
+        const dirtyKeysSnapshot = new Set(dirtyCellsRef.current);
+        const dirtyCells = dirtyCellsFromSet(dirtyKeysSnapshot);
+
         try {
             if (isNew) {
                 const newMeeting = await createMeeting({
@@ -405,10 +584,11 @@ export function MeetingForm({
                 success('Meeting created successfully');
                 onCreated?.(newMeeting);
             } else if (canManageMeeting) {
-                await updateMeeting({
+                const saved = await updateMeeting({
                     id: meetingId!,
                     title: formData.title,
                     content: formData.content,
+                    dirtyCells,
                     location: formData.location || undefined,
                     purpose: formData.purpose || undefined,
                     numberOfPeople: computedPeopleCount,
@@ -418,16 +598,26 @@ export function MeetingForm({
                     time: formData.time,
                     projectId: primaryProjectId || null as any,
                 });
+                contentBaselineRef.current = saved?.content ?? formData.content;
+                clearDirtyKeys([...dirtyKeysSnapshot]);
                 success('Meeting saved successfully');
                 dirtyRef.current = false;
                 setIsEditingState(false);
                 onSaved?.();
             } else {
-                // Members: content-only (status/remarks on rows they are assigned to)
-                await updateMeeting({
+                // Members: only dirty status/remarks merge on assigned rows
+                const content = applyDirtyOverlays(
+                    contentBaselineRef.current,
+                    formData.content,
+                    dirtyKeysSnapshot,
+                );
+                const saved = await updateMeeting({
                     id: meetingId!,
-                    content: formData.content,
+                    content,
+                    dirtyCells,
                 });
+                contentBaselineRef.current = saved?.content ?? content;
+                dirtyCellsRef.current.clear();
                 success('Status & remarks saved');
                 dirtyRef.current = false;
                 setIsEditingState(false);
@@ -458,6 +648,9 @@ export function MeetingForm({
                         : '',
                     time: meeting.time || '',
                 });
+                contentBaselineRef.current = meeting.content || null;
+                dirtyCellsRef.current.clear();
+                dirtyRef.current = false;
             }
             setIsEditingState(false);
         }
@@ -1041,11 +1234,20 @@ export function MeetingForm({
                             onSave={handleSave}
                             isSaving={isSaving}
                             isNew={isNew}
+                            onEnableEdit={
+                                !readOnly && !isNew && !isEditingState
+                                    ? () => setIsEditingState(true)
+                                    : undefined
+                            }
+                            editButtonLabel={
+                                canManageMeeting ? 'Edit' : 'Edit Status / Remarks'
+                            }
                             remoteFocusByCell={remoteFocusByCell}
                             otherViewers={otherViewers}
                             flashCellKey={flashCellKey}
-                            onCellFocus={setFocus}
+                            onCellFocus={handleCellFocus}
                             onCellBlur={handleCellBlurCommit}
+                            onCellDirty={markCellDirty}
                         />
                     </div>
                 </div>
