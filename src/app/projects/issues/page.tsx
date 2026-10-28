@@ -39,6 +39,10 @@ function IssueStatusDropdownWrapper({ issue, onInteraction }: { issue: Issue; on
     const toast = useToast();
     const [localStatusId, setLocalStatusId] = useState(issue.status?.id || '');
 
+    useEffect(() => {
+        setLocalStatusId(issue.status?.id || '');
+    }, [issue.status?.id]);
+
     const allStatuses = useMemo(() =>
         workflow.flatMap((stage: any) => (stage.statuses || []).map((st: any) => ({ ...st, stageName: stage.name }))),
         [workflow]
@@ -544,6 +548,12 @@ export default function MyIssuesPage() {
         headerClass: 'bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
     }), []);
 
+    useEffect(() => {
+        if (gridRef.current?.api) {
+            gridRef.current.api.refreshCells({ force: true });
+        }
+    }, [issues]);
+
     return (
         <div className="h-full flex flex-col bg-white">
             {/* Header Toolbar */}
@@ -763,6 +773,9 @@ export default function MyIssuesPage() {
                     projectId={selectedIssue.projectId}
                     isOpen={!!selectedIssue}
                     onClose={() => setSelectedIssue(null)}
+                    onUpdate={() => {
+                        gridRef.current?.api?.refreshCells({ force: true });
+                    }}
                     workflow={workflow}
                     members={members}
                 />

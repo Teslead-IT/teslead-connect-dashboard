@@ -48,7 +48,11 @@ function IssueStatusDropdown({
     const { data: workflow = [] } = useProjectWorkflow(projectId);
     const updateIssueMutation = useUpdateIssue(projectId);
     const toast = useToast();
-    const [localStatusId, setLocalStatusId] = useState(currentStatus.id);
+    const [localStatusId, setLocalStatusId] = useState(currentStatus?.id || '');
+
+    useEffect(() => {
+        setLocalStatusId(currentStatus?.id || '');
+    }, [currentStatus?.id]);
 
     const allStatuses = useMemo(() =>
         workflow.flatMap((stage: any) => (stage.statuses || []).map((st: any) => ({ ...st, stageName: stage.name }))),
@@ -56,8 +60,8 @@ function IssueStatusDropdown({
     );
 
     const selectedStatus = useMemo(() => {
-        if (localStatusId === currentStatus.id) return currentStatus;
-        return allStatuses.find(s => s.id === localStatusId) || currentStatus;
+        if (localStatusId === currentStatus?.id) return currentStatus;
+        return allStatuses.find((s: any) => s.id === localStatusId) || currentStatus;
     }, [localStatusId, currentStatus, allStatuses]);
 
     const handleStatusChange = async (newStatusId: string) => {
@@ -68,7 +72,7 @@ function IssueStatusDropdown({
             await updateIssueMutation.mutateAsync({ issueId, data: { statusId: newStatusId } });
             toast.success('Issue status updated');
         } catch (error) {
-            setLocalStatusId(currentStatus.id);
+            setLocalStatusId(currentStatus?.id || '');
             toast.error('Failed to update status');
         }
     };
@@ -118,7 +122,7 @@ function IssueStatusDropdown({
                         </option>
                     ))
                 ) : (
-                    <option value={currentStatus.id} className="uppercase text-left">{currentStatus.name}</option>
+                    <option value={currentStatus?.id} className="uppercase text-left">{currentStatus?.name}</option>
                 )}
             </select>
             <div className="absolute right-2 pointer-events-none opacity-80">
@@ -479,6 +483,14 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
         }
     }, [filteredIssues, limit, page]);
 
+    // Force refresh AG Grid cells when issues update (e.g. from modal)
+    useEffect(() => {
+        const api = gridRef.current?.api;
+        if (api) {
+            api.refreshCells({ force: true });
+        }
+    }, [issues]);
+
     return (
         <div className="h-full flex flex-col bg-white">
             {/* Header Toolbar */}
@@ -711,6 +723,9 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                 projectId={projectId}
                 isOpen={!!selectedIssueId}
                 onClose={() => setSelectedIssueId(null)}
+                onUpdate={() => {
+                    gridRef.current?.api?.refreshCells({ force: true });
+                }}
                 workflow={workflow}
                 members={members}
                 tasks={tasks}
