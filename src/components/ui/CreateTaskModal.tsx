@@ -1,18 +1,20 @@
 import { TaskPriority, CreateTaskPayload, Task, WorkflowStage, TaskType } from '@/types/task';
-import type { ProjectMember } from '@/types/project';
+import type { ProjectMember, Project } from '@/types/project';
 import type { PhaseWithTaskLists, TaskList } from '@/types/phase';
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Flag, Calendar, Users, AlignLeft, CheckCircle2, Layers, ListTodo, Search, Check, AlertCircle, Stars, Bug, Zap, RefreshCw, FlaskConical, FileText, Settings, ClipboardCheck, Flame, Tag } from 'lucide-react';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { X, Flag, Calendar, Users, AlignLeft, CheckCircle2, Layers, ListTodo, Search, Check, AlertCircle, Stars, Bug, Zap, RefreshCw, FlaskConical, FileText, Settings, ClipboardCheck, Flame, Tag, Folder, ChevronDown } from 'lucide-react';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Plus, CheckCircle2 as CheckCircleIcon } from 'lucide-react';
-import { useCreateStatus } from '@/hooks/use-tasks';
+import { useCreateStatus, useProjectWorkflow } from '@/hooks/use-tasks';
+import { useProjects, useProjectMembers } from '@/hooks/use-projects';
+import { useStructuredPhases } from '@/hooks/use-phases';
 import { useToast } from '@/components/ui/Toast';
 
 interface CreateTaskModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: CreateTaskPayload) => Promise<void>;
-    workflow: WorkflowStage[];
+    onSubmit: (data: CreateTaskPayload, targetProjectId?: string) => Promise<void>;
+    workflow?: WorkflowStage[];
     parentTask?: Task | any | null;
     initialData?: Task | any;
     isReadOnly?: boolean;
@@ -22,7 +24,7 @@ interface CreateTaskModalProps {
     phases?: PhaseWithTaskLists[];
     projectName?: string;
     projectColor?: string | null;
-    projectId: string;
+    projectId?: string;
 }
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string; color: string; bg: string; icon: string }[] = [
@@ -32,6 +34,8 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string; color: string; bg:
     { value: 4, label: 'High', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', icon: '↑' },
     { value: 5, label: 'Critical', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: '⬆' },
 ];
+
+const STATUS_COLOR_PRESETS = ['#D946EF', '#8B5CF6', '#A25DDC', '#3B82F6', '#FDAB3D', '#00C875', '#E85D75', '#06B6D4', '#64748b'];
 
 const TASK_TYPE_OPTIONS: { value: TaskType; label: string; color: string; bg: string; icon: any }[] = [
     { value: 'FEAT', label: 'Feature', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200', icon: Stars },
@@ -45,18 +49,20 @@ const TASK_TYPE_OPTIONS: { value: TaskType; label: string; color: string; bg: st
     { value: 'HOT', label: 'Hotfix', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', icon: Flame },
 ];
 
+const EMPTY_ARRAY: any[] = [];
+
 export function CreateTaskModal({
     isOpen,
     onClose,
     onSubmit,
-    workflow,
+    workflow = EMPTY_ARRAY,
     parentTask,
     initialData,
     isReadOnly = false,
     taskListId,
     phaseId,
-    members = [],
-    phases = [],
+    members = EMPTY_ARRAY,
+    phases = EMPTY_ARRAY,
     projectName,
     projectColor,
     projectId,
@@ -64,6 +70,7 @@ export function CreateTaskModal({
     const [formData, setFormData] = useState<CreateTaskPayload>({
         title: '',
         description: '',
+        expectedOutput: '',
         priority: 3,
         statusId: '',
         dueDate: '',
@@ -82,15 +89,60 @@ export function CreateTaskModal({
     const [statusSearch, setStatusSearch] = useState('');
     const [isCreatingStatus, setIsCreatingStatus] = useState(false);
     const [newStatusName, setNewStatusName] = useState('');
+    const [newStatusColor, setNewStatusColor] = useState('#8B5CF6');
+    const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+    const [projectSearch, setProjectSearch] = useState('');
 
     const toast = useToast();
-    const createStatusMutation = useCreateStatus(projectId);
+
+    const { data: projectsData } = useProjects({ limit: 100 });
+    const projects: Project[] = useMemo(() => projectsData?.data ?? EMPTY_ARRAY, [projectsData]);
+
+    const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
+    const prevIsOpenRef = React.useRef(false);
+
+    useEffect(() => {
+        if (isOpen && !prevIsOpenRef.current) {
+            setSelectedProjectId(projectId || '');
+        }
+        prevIsOpenRef.current = isOpen;
+    }, [isOpen, projectId]);
+
+    const activeProject = useMemo(() => {
+        const idToFind = selectedProjectId || projectId;
+        if (!idToFind) return null;
+        return projects.find((p: any) => p.id === idToFind) || null;
+    }, [projects, selectedProjectId, projectId]);
+
+    const currentProjectId = selectedProjectId || activeProject?.id || projectId || '';
+    const currentProjectName = activeProject?.name || (currentProjectId ? projectName : '');
+    const currentProjectColor = activeProject?.color || (currentProjectId ? projectColor : null);
+
+    const { data: fetchedWorkflow = EMPTY_ARRAY } = useProjectWorkflow(currentProjectId);
+    const { data: fetchedPhases = EMPTY_ARRAY } = useStructuredPhases(currentProjectId);
+    const { data: fetchedMembers = EMPTY_ARRAY } = useProjectMembers(currentProjectId);
+
+    const activeWorkflow = (workflow && workflow.length > 0 && currentProjectId === projectId) ? workflow : fetchedWorkflow;
+    const activePhases = (phases && phases.length > 0 && currentProjectId === projectId) ? phases : fetchedPhases;
+    const activeMembers = (members && members.length > 0 && currentProjectId === projectId) ? members : fetchedMembers;
+
+    const createStatusMutation = useCreateStatus(currentProjectId);
+
+    const filteredProjects = useMemo(() => {
+        if (!projectSearch.trim()) return projects;
+        const q = projectSearch.toLowerCase();
+        return projects.filter((p: any) => {
+            const name = (p.name || '').toLowerCase();
+            const pid = (p.projectId || '').toLowerCase();
+            return name.includes(q) || pid.includes(q);
+        });
+    }, [projects, projectSearch]);
 
     const allStatuses = useMemo(() =>
-        workflow.flatMap(stage =>
-            stage.statuses.map(status => ({ ...status, stageName: stage.name }))
+        activeWorkflow.flatMap((stage: any) =>
+            stage.statuses.map((status: any) => ({ ...status, stageName: stage.name }))
         ),
-        [workflow]
+        [activeWorkflow]
     );
 
     const defaultStatusId = useMemo(() =>
@@ -104,10 +156,12 @@ export function CreateTaskModal({
                 setFormData({
                     title: initialData.title,
                     description: initialData.description || '',
+                    expectedOutput: initialData.expectedOutput || '',
                     priority: initialData.priority,
                     statusId: initialData.status?.id || defaultStatusId,
                     dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : '',
                     assigneeIds: initialData.assigneeIds || initialData.assignees?.map((a: any) => a.id || a.userId) || [],
+                    testerIds: initialData.testerIds || initialData.testers?.map((t: any) => t.id || t.userId) || [],
                     parentId: initialData.parentId,
                     type: initialData.type || 'FEAT',
                     taskListId: taskListId || '',
@@ -117,10 +171,12 @@ export function CreateTaskModal({
                 setFormData({
                     title: '',
                     description: '',
+                    expectedOutput: '',
                     priority: 3,
                     statusId: defaultStatusId,
                     dueDate: '',
                     assigneeIds: [],
+                    testerIds: [],
                     parentId: parentTask?.id || null,
                     type: 'FEAT',
                     taskListId: taskListId || '',
@@ -131,21 +187,46 @@ export function CreateTaskModal({
             setSubmitted(false);
             setShowAssigneePicker(false);
             setAssigneeSearch('');
+            setShowTesterPicker(false);
+            setTesterSearch('');
         }
-    }, [isOpen, initialData, parentTask, workflow, taskListId, phaseId, defaultStatusId]);
+    }, [isOpen, initialData, parentTask?.id, taskListId, phaseId]);
+
+    useEffect(() => {
+        if (isOpen && defaultStatusId && !formData.statusId) {
+            setFormData(prev => prev.statusId ? prev : { ...prev, statusId: defaultStatusId });
+        }
+    }, [isOpen, defaultStatusId, formData.statusId]);
+
+    const [showTesterPicker, setShowTesterPicker] = useState(false);
+    const [testerSearch, setTesterSearch] = useState('');
 
     const filteredMembers = useMemo(() => {
-        if (!assigneeSearch.trim()) return members;
+        if (!assigneeSearch.trim()) return activeMembers;
         const q = assigneeSearch.toLowerCase();
-        return members.filter(m =>
+        return activeMembers.filter(m =>
             m.user.name.toLowerCase().includes(q) ||
             m.user.email.toLowerCase().includes(q)
         );
-    }, [members, assigneeSearch]);
+    }, [activeMembers, assigneeSearch]);
 
     const selectedMembers = useMemo(() =>
-        members.filter(m => formData.assigneeIds?.includes(m.user.id)),
-        [members, formData.assigneeIds]
+        activeMembers.filter(m => formData.assigneeIds?.includes(m.user.id)),
+        [activeMembers, formData.assigneeIds]
+    );
+
+    const filteredTesterMembers = useMemo(() => {
+        if (!testerSearch.trim()) return activeMembers;
+        const q = testerSearch.toLowerCase();
+        return activeMembers.filter(m =>
+            m.user.name.toLowerCase().includes(q) ||
+            m.user.email.toLowerCase().includes(q)
+        );
+    }, [activeMembers, testerSearch]);
+
+    const selectedTesterMembers = useMemo(() =>
+        activeMembers.filter(m => formData.testerIds?.includes(m.user.id)),
+        [activeMembers, formData.testerIds]
     );
 
     const toggleAssignee = (userId: string) => {
@@ -158,6 +239,16 @@ export function CreateTaskModal({
         });
     };
 
+    const toggleTester = (userId: string) => {
+        setFormData(prev => {
+            const current = prev.testerIds || [];
+            const next = current.includes(userId)
+                ? current.filter(id => id !== userId)
+                : [...current, userId];
+            return { ...prev, testerIds: next };
+        });
+    };
+
     const currentPriority = PRIORITY_OPTIONS.find(p => p.value === formData.priority) || PRIORITY_OPTIONS[2];
 
     const currentStatus = allStatuses.find(s => s.id === formData.statusId);
@@ -167,13 +258,18 @@ export function CreateTaskModal({
         setSubmitted(true);
         setError(null);
 
+        if (!currentProjectId) {
+            setError('Project is required. Please select a project.');
+            return;
+        }
+
         if (!formData.title.trim() || !formData.phaseId || !formData.taskListId) {
             return;
         }
 
         setIsSubmitting(true);
         try {
-            await onSubmit(formData);
+            await onSubmit(formData, currentProjectId);
         } catch {
             setError('Failed to save task. Please try again.');
         } finally {
@@ -181,7 +277,7 @@ export function CreateTaskModal({
         }
     };
 
-    const selectedPhase = phases.find(p => p.id === formData.phaseId);
+    const selectedPhase = activePhases.find(p => p.id === formData.phaseId);
     const availableTaskLists = selectedPhase?.taskLists || [];
 
     const [showPhaseDropdown, setShowPhaseDropdown] = useState(false);
@@ -190,13 +286,13 @@ export function CreateTaskModal({
     const [taskListSearch, setTaskListSearch] = useState('');
 
     const filteredPhases = useMemo(() => {
-        if (!phaseSearch.trim()) return phases;
-        return phases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
-    }, [phases, phaseSearch]);
+        if (!phaseSearch.trim()) return activePhases;
+        return activePhases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
+    }, [activePhases, phaseSearch]);
 
     const filteredTaskLists = useMemo(() => {
         if (!taskListSearch.trim()) return availableTaskLists;
-        return availableTaskLists.filter(tl => tl.name.toLowerCase().includes(taskListSearch.toLowerCase()));
+        return availableTaskLists.filter((tl: any) => tl.name.toLowerCase().includes(taskListSearch.toLowerCase()));
     }, [availableTaskLists, taskListSearch]);
 
     const isFormValid = !!(formData.title.trim() && formData.phaseId && formData.taskListId);
@@ -217,16 +313,18 @@ export function CreateTaskModal({
         if (!newStatusName.trim() || !workflow.length) return;
 
         const firstStage = workflow[0];
+        const statusColor = getTaskStatusHexColor(newStatusName.trim(), newStatusColor);
         try {
             const newStatus = await createStatusMutation.mutateAsync({
                 stageId: firstStage.id,
                 name: newStatusName.trim(),
-                color: '#64748b', // Default status color
+                color: statusColor,
             });
 
             setFormData(prev => ({ ...prev, statusId: newStatus.id }));
             setIsCreatingStatus(false);
             setNewStatusName('');
+            setNewStatusColor('#8B5CF6');
             setShowStatusDropdown(false);
             toast.success('New status created');
         } catch (err: any) {
@@ -255,19 +353,20 @@ export function CreateTaskModal({
                         )}
                     </div>
                     <div className="flex items-center gap-3">
-                        {projectName && (
+                        {currentProjectName && (
                             <span
                                 className="text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-tight shadow-sm transition-all"
                                 style={{
-                                    backgroundColor: projectColor ? `${projectColor}15` : '#f3f4f6',
-                                    color: projectColor || '#6b7280',
-                                    borderColor: projectColor ? `${projectColor}30` : '#e5e7eb'
+                                    backgroundColor: currentProjectColor ? `${currentProjectColor}15` : '#f3f4f6',
+                                    color: currentProjectColor || '#6b7280',
+                                    borderColor: currentProjectColor ? `${currentProjectColor}30` : '#e5e7eb'
                                 }}
                             >
-                                {projectName}
+                                {currentProjectName}
                             </span>
                         )}
                         <button
+                            type="button"
                             onClick={onClose}
                             className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
                         >
@@ -279,6 +378,112 @@ export function CreateTaskModal({
                 {/* Form Body */}
                 <div className="flex-1 overflow-y-auto">
                     <form className="p-5 space-y-5" onSubmit={handleSubmit}>
+                        {error && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-xs text-red-700">
+                                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        {/* Project Selection */}
+                        <div className="relative">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <Folder className="w-3.5 h-3.5 text-indigo-500" /> Project <span className="text-red-400">*</span>
+                            </label>
+
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    disabled={isReadOnly || !!projectId}
+                                    onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                                    className={cn(
+                                        "w-full px-3 py-2.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 bg-white transition-all text-left flex items-center justify-between gap-2 uppercase cursor-pointer",
+                                        submitted && !currentProjectId
+                                            ? "border-red-500 ring-red-500/10 focus:ring-red-500/20 focus:border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
+                                            : "border-gray-200 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]",
+                                        (isReadOnly || !!projectId) && "bg-gray-50 text-gray-500 cursor-default"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2 truncate flex-1">
+                                        {currentProjectColor && (
+                                            <div
+                                                className="w-2.5 h-2.5 rounded-full shrink-0"
+                                                style={{ backgroundColor: currentProjectColor }}
+                                            />
+                                        )}
+                                        <span className={cn("truncate font-bold", currentProjectName ? "text-gray-900" : "text-gray-400 font-medium")}>
+                                            {currentProjectName || "Select Project..."}
+                                        </span>
+                                    </div>
+                                    {!projectId && (
+                                        <ChevronDown className={cn("w-3.5 h-3.5 text-gray-400 transition-transform", showProjectDropdown && "rotate-180")} />
+                                    )}
+                                </button>
+
+                                {showProjectDropdown && !isReadOnly && !projectId && (
+                                    <>
+                                        <div className="fixed inset-0 z-10" onClick={() => setShowProjectDropdown(false)} />
+                                        <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-60 overflow-hidden flex flex-col">
+                                            {projects.length > 5 && (
+                                                <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            placeholder="Search projects..."
+                                                            value={projectSearch}
+                                                            onChange={(e) => setProjectSearch(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 bg-white"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="overflow-y-auto max-h-48 p-1">
+                                                {filteredProjects.length === 0 ? (
+                                                    <div className="p-2 text-center text-xs text-gray-400">No projects found</div>
+                                                ) : (
+                                                    filteredProjects.map((p: any) => {
+                                                        const pName = p.name || 'Project';
+                                                        const pColor = p.color || '#3b82f6';
+                                                        return (
+                                                            <button
+                                                                key={p.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedProjectId(p.id);
+                                                                    setFormData(prev => ({
+                                                                        ...prev,
+                                                                        phaseId: '',
+                                                                        taskListId: '',
+                                                                        assigneeIds: [],
+                                                                        testerIds: [],
+                                                                    }));
+                                                                    setShowProjectDropdown(false);
+                                                                    setProjectSearch('');
+                                                                }}
+                                                                className={cn(
+                                                                    "w-full text-left px-3 py-2 rounded-md text-xs transition-colors flex items-center justify-between uppercase font-semibold cursor-pointer",
+                                                                    currentProjectId === p.id
+                                                                        ? "bg-indigo-50 text-indigo-700 font-bold"
+                                                                        : "hover:bg-gray-50 text-gray-800"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-2 truncate">
+                                                                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: pColor }} />
+                                                                    <span className="truncate">{pName}</span>
+                                                                </div>
+                                                                {currentProjectId === p.id && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                                                            </button>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
                         {/* Phase & Task List Selection */}
                         <div className="grid grid-cols-2 gap-3">
                             {/* Phase Dropdown */}
@@ -388,7 +593,7 @@ export function CreateTaskModal({
                                         )}
                                     >
                                         <span className="truncate flex-1">
-                                            {availableTaskLists.find(tl => tl.id === formData.taskListId)?.name || "Select Task List"}
+                                            {availableTaskLists.find((tl: any) => tl.id === formData.taskListId)?.name || "Select Task List"}
                                         </span>
                                         <ListTodo className={cn("w-3.5 h-3.5 text-gray-400 transition-transform", showTaskListDropdown && "rotate-180")} />
                                     </button>
@@ -414,7 +619,7 @@ export function CreateTaskModal({
                                                     {filteredTaskLists.length === 0 ? (
                                                         <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No task lists found</div>
                                                     ) : (
-                                                        filteredTaskLists.map((tl) => (
+                                                        filteredTaskLists.map((tl: any) => (
                                                             <button
                                                                 key={tl.id}
                                                                 type="button"
@@ -521,6 +726,230 @@ export function CreateTaskModal({
                             </div>
                         </div>
 
+                        {/* Assignees */}
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <Users className="w-3 h-3" /> Assignees
+                            </label>
+
+                            {/* Selected Assignees */}
+                            {selectedMembers.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {selectedMembers.map((m) => (
+                                        <span
+                                            key={m.user.id}
+                                            className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-medium text-blue-700"
+                                        >
+                                            <div className={cn(
+                                                "w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white",
+                                                m.user.avatarUrl ? '' : getAvatarColor(m.user.name)
+                                            )}>
+                                                {m.user.avatarUrl ? (
+                                                    <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                                ) : (
+                                                    m.user.name.charAt(0).toUpperCase()
+                                                )}
+                                            </div>
+                                            {m.user.name}
+                                            {!isReadOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleAssignee(m.user.id)}
+                                                    className="ml-0.5 p-0.5 hover:bg-blue-100 rounded-full transition-colors"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            )}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {!isReadOnly && (
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAssigneePicker(!showAssigneePicker)}
+                                        className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                    >
+                                        <Users className="w-3.5 h-3.5" />
+                                        {selectedMembers.length === 0 ? 'Click to assign team members...' : 'Add more...'}
+                                    </button>
+
+                                    {showAssigneePicker && (
+                                        <>
+                                            <div className="fixed inset-0 z-20" onClick={() => setShowAssigneePicker(false)} />
+                                            <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-56 overflow-hidden">
+                                                <div className="p-2 border-b border-gray-100">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            placeholder="Search members..."
+                                                            value={assigneeSearch}
+                                                            onChange={(e) => setAssigneeSearch(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 bg-gray-50"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="overflow-y-auto max-h-44">
+                                                    {filteredMembers.length === 0 ? (
+                                                        <div className="p-4 text-center text-xs text-gray-400">No members found</div>
+                                                    ) : (
+                                                        filteredMembers.map((m) => {
+                                                            const isSelected = formData.assigneeIds?.includes(m.user.id);
+                                                            return (
+                                                                <button
+                                                                    key={m.user.id}
+                                                                    type="button"
+                                                                    onClick={() => toggleAssignee(m.user.id)}
+                                                                    className={cn(
+                                                                        "w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 transition-colors",
+                                                                        isSelected && "bg-blue-50/50"
+                                                                    )}
+                                                                >
+                                                                    <div className={cn(
+                                                                        "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0",
+                                                                        m.user.avatarUrl ? '' : getAvatarColor(m.user.name)
+                                                                    )}>
+                                                                        {m.user.avatarUrl ? (
+                                                                            <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                                                        ) : (
+                                                                            m.user.name.charAt(0).toUpperCase()
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="text-xs font-medium text-gray-800 truncate">{m.user.name}</div>
+                                                                        <div className="text-[10px] text-gray-400 truncate">{m.user.email}</div>
+                                                                    </div>
+                                                                    {isSelected && (
+                                                                        <Check className="w-4 h-4 text-[var(--primary)] flex-shrink-0" />
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Tested By */}
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <Users className="w-3 h-3 text-emerald-500" /> Tested By
+                            </label>
+
+                            {/* Selected Testers */}
+                            {selectedTesterMembers.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {selectedTesterMembers.map((m) => (
+                                        <span
+                                            key={m.user.id}
+                                            className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-xs font-medium text-emerald-700"
+                                        >
+                                            <div className={cn(
+                                                "w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white",
+                                                m.user.avatarUrl ? '' : getAvatarColor(m.user.name)
+                                            )}>
+                                                {m.user.avatarUrl ? (
+                                                    <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                                ) : (
+                                                    m.user.name.charAt(0).toUpperCase()
+                                                )}
+                                            </div>
+                                            {m.user.name}
+                                            {!isReadOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleTester(m.user.id)}
+                                                    className="ml-0.5 p-0.5 hover:bg-emerald-100 rounded-full transition-colors text-emerald-600"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            )}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {!isReadOnly && (
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowTesterPicker(!showTesterPicker)}
+                                        className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                    >
+                                        <Users className="w-3.5 h-3.5 text-emerald-500" />
+                                        {selectedTesterMembers.length === 0 ? 'Click to select testers...' : 'Add more testers...'}
+                                    </button>
+
+                                    {showTesterPicker && (
+                                        <>
+                                            <div className="fixed inset-0 z-20" onClick={() => setShowTesterPicker(false)} />
+                                            <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-56 overflow-hidden">
+                                                <div className="p-2 border-b border-gray-100">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            placeholder="Search testers..."
+                                                            value={testerSearch}
+                                                            onChange={(e) => setTesterSearch(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500/30 bg-gray-50"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="overflow-y-auto max-h-44">
+                                                    {filteredTesterMembers.length === 0 ? (
+                                                        <div className="p-4 text-center text-xs text-gray-400">No members found</div>
+                                                    ) : (
+                                                        filteredTesterMembers.map((m) => {
+                                                            const isSelected = formData.testerIds?.includes(m.user.id);
+                                                            return (
+                                                                <button
+                                                                    key={m.user.id}
+                                                                    type="button"
+                                                                    onClick={() => toggleTester(m.user.id)}
+                                                                    className={cn(
+                                                                        "w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-emerald-50/50 transition-colors",
+                                                                        isSelected && "bg-emerald-50 text-emerald-700 font-semibold"
+                                                                    )}
+                                                                >
+                                                                    <div className={cn(
+                                                                        "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0",
+                                                                        m.user.avatarUrl ? '' : getAvatarColor(m.user.name)
+                                                                    )}>
+                                                                        {m.user.avatarUrl ? (
+                                                                            <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                                                        ) : (
+                                                                            m.user.name.charAt(0).toUpperCase()
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="text-xs font-medium text-gray-800 truncate">{m.user.name}</div>
+                                                                        <div className="text-[10px] text-gray-400 truncate">{m.user.email}</div>
+                                                                    </div>
+                                                                    {isSelected && (
+                                                                        <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         {/* Description */}
                         <div>
                             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
@@ -532,6 +961,21 @@ export function CreateTaskModal({
                                 rows={3}
                                 className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] resize-none disabled:bg-gray-50 disabled:text-gray-500 placeholder:text-gray-300 transition-all"
                                 placeholder="Add more details..."
+                                disabled={isReadOnly}
+                            />
+                        </div>
+
+                        {/* Expected Output */}
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <ClipboardCheck className="w-3 h-3 text-purple-500" /> Expected Output
+                            </label>
+                            <textarea
+                                value={formData.expectedOutput || ''}
+                                onChange={(e) => setFormData({ ...formData, expectedOutput: e.target.value })}
+                                rows={2}
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] resize-none disabled:bg-gray-50 disabled:text-gray-500 placeholder:text-gray-300 transition-all"
+                                placeholder="e.g. Expected output criteria for testing..."
                                 disabled={isReadOnly}
                             />
                         </div>
@@ -569,8 +1013,8 @@ export function CreateTaskModal({
 
                                     {showStatusDropdown && !isReadOnly && (
                                         <>
-                                            <div className="fixed inset-0 z-10" onClick={() => setShowStatusDropdown(false)} />
-                                            <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-64 overflow-hidden flex flex-col">
+                                            <div className="fixed inset-0 z-20" onClick={() => setShowStatusDropdown(false)} />
+                                            <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-64 overflow-hidden flex flex-col">
                                                 <div className="p-2 border-b border-gray-50 bg-gray-50/50">
                                                     <div className="relative">
                                                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -601,7 +1045,7 @@ export function CreateTaskModal({
                                                                 )}
                                                             >
                                                                 <div className="flex items-center gap-2 truncate">
-                                                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
+                                                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getTaskStatusHexColor(status.name, status.color) }} />
                                                                     <span className="truncate">{status.name}</span>
                                                                 </div>
                                                                 {formData.statusId === status.id && <Check className="w-3 h-3 text-indigo-600" />}
@@ -613,34 +1057,61 @@ export function CreateTaskModal({
                                                 {/* Add Custom Status Section */}
                                                 <div className="border-t border-gray-100 p-1.5 bg-gray-50/50">
                                                     {isCreatingStatus ? (
-                                                        <div className="flex items-center gap-1.5 animate-in slide-in-from-bottom-2">
-                                                            <input
-                                                                autoFocus
-                                                                type="text"
-                                                                placeholder="New status name..."
-                                                                value={newStatusName}
-                                                                onChange={(e) => setNewStatusName(e.target.value)}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') handleCreateCustomStatus();
-                                                                    if (e.key === 'Escape') setIsCreatingStatus(false);
-                                                                }}
-                                                                className="flex-1 px-2 py-1.5 text-[11px] border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleCreateCustomStatus}
-                                                                disabled={!newStatusName.trim() || createStatusMutation.isPending}
-                                                                className="p-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-                                                            >
-                                                                {createStatusMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setIsCreatingStatus(false)}
-                                                                className="p-1.5 text-gray-400 hover:text-gray-600"
-                                                            >
-                                                                <X className="w-3 h-3" />
-                                                            </button>
+                                                        <div className="flex flex-col gap-2 p-1.5 animate-in slide-in-from-bottom-2">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div
+                                                                    className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm border border-black/10"
+                                                                    style={{ backgroundColor: newStatusColor }}
+                                                                    title="Status color"
+                                                                />
+                                                                <input
+                                                                    autoFocus
+                                                                    type="text"
+                                                                    placeholder="New status name..."
+                                                                    value={newStatusName}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        setNewStatusName(val);
+                                                                        setNewStatusColor(getTaskStatusHexColor(val, null));
+                                                                    }}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') handleCreateCustomStatus();
+                                                                        if (e.key === 'Escape') setIsCreatingStatus(false);
+                                                                    }}
+                                                                    className="flex-1 px-2 py-1.5 text-[11px] border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleCreateCustomStatus}
+                                                                    disabled={!newStatusName.trim() || createStatusMutation.isPending}
+                                                                    className="p-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+                                                                >
+                                                                    {createStatusMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setIsCreatingStatus(false)}
+                                                                    className="p-1.5 text-gray-400 hover:text-gray-600"
+                                                                >
+                                                                    <X className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                            {/* Color Presets */}
+                                                            <div className="flex items-center gap-1.5 px-0.5 pt-0.5">
+                                                                <span className="text-[10px] text-gray-400 font-medium mr-1">Color:</span>
+                                                                {STATUS_COLOR_PRESETS.map((c) => (
+                                                                    <button
+                                                                        key={c}
+                                                                        type="button"
+                                                                        onClick={() => setNewStatusColor(c)}
+                                                                        className={cn(
+                                                                            "w-3.5 h-3.5 rounded-full transition-transform hover:scale-110",
+                                                                            newStatusColor === c ? "ring-2 ring-offset-1 ring-indigo-500 scale-110" : ""
+                                                                        )}
+                                                                        style={{ backgroundColor: c }}
+                                                                    />
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     ) : (
                                                         <button
@@ -695,115 +1166,6 @@ export function CreateTaskModal({
                                 disabled={isReadOnly}
                                 className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] disabled:bg-gray-50 disabled:text-gray-500 transition-all"
                             />
-                        </div>
-
-                        {/* Assignees */}
-                        <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                                <Users className="w-3 h-3" /> Assignees
-                            </label>
-
-                            {/* Selected Assignees */}
-                            {selectedMembers.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                    {selectedMembers.map((m) => (
-                                        <span
-                                            key={m.user.id}
-                                            className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-medium text-blue-700"
-                                        >
-                                            <div className={cn(
-                                                "w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white",
-                                                m.user.avatarUrl ? '' : getAvatarColor(m.user.name)
-                                            )}>
-                                                {m.user.avatarUrl ? (
-                                                    <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                                                ) : (
-                                                    m.user.name.charAt(0).toUpperCase()
-                                                )}
-                                            </div>
-                                            {m.user.name}
-                                            {!isReadOnly && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleAssignee(m.user.id)}
-                                                    className="ml-0.5 p-0.5 hover:bg-blue-100 rounded-full transition-colors"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                </button>
-                                            )}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-
-                            {!isReadOnly && (
-                                <div className="relative">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAssigneePicker(!showAssigneePicker)}
-                                        className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
-                                    >
-                                        <Users className="w-3.5 h-3.5" />
-                                        {selectedMembers.length === 0 ? 'Click to assign team members...' : 'Add more...'}
-                                    </button>
-
-                                    {showAssigneePicker && (
-                                        <div className="absolute z-20 mt-1 w-full bg-white rounded-md border border-gray-200 shadow-lg max-h-56 overflow-hidden">
-                                            <div className="p-2 border-b border-gray-100">
-                                                <div className="relative">
-                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
-                                                    <input
-                                                        autoFocus
-                                                        type="text"
-                                                        placeholder="Search members..."
-                                                        value={assigneeSearch}
-                                                        onChange={(e) => setAssigneeSearch(e.target.value)}
-                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 bg-gray-50"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="overflow-y-auto max-h-44">
-                                                {filteredMembers.length === 0 ? (
-                                                    <div className="p-4 text-center text-xs text-gray-400">No members found</div>
-                                                ) : (
-                                                    filteredMembers.map((m) => {
-                                                        const isSelected = formData.assigneeIds?.includes(m.user.id);
-                                                        return (
-                                                            <button
-                                                                key={m.user.id}
-                                                                type="button"
-                                                                onClick={() => toggleAssignee(m.user.id)}
-                                                                className={cn(
-                                                                    "w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 transition-colors",
-                                                                    isSelected && "bg-blue-50/50"
-                                                                )}
-                                                            >
-                                                                <div className={cn(
-                                                                    "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0",
-                                                                    m.user.avatarUrl ? '' : getAvatarColor(m.user.name)
-                                                                )}>
-                                                                    {m.user.avatarUrl ? (
-                                                                        <img src={m.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                                                                    ) : (
-                                                                        m.user.name.charAt(0).toUpperCase()
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="text-xs font-medium text-gray-800 truncate">{m.user.name}</div>
-                                                                    <div className="text-[10px] text-gray-400 truncate">{m.user.email}</div>
-                                                                </div>
-                                                                {isSelected && (
-                                                                    <Check className="w-4 h-4 text-[var(--primary)] flex-shrink-0" />
-                                                                )}
-                                                            </button>
-                                                        );
-                                                    })
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
 
                         {error && (

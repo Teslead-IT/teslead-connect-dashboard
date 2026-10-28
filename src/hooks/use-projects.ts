@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { projectsApi } from '@/services/projects.service';
 import { useOrgStore } from '@/stores/orgStore';
 
@@ -18,13 +18,14 @@ export function useProjectMembers(projectId: string) {
     });
 }
 
-export function useProjects(params?: { page?: number; limit?: number }) {
+export function useProjects(params?: { page?: number; limit?: number; search?: string }) {
     const activeOrgId = useOrgStore((s) => s.activeOrgId);
 
     return useQuery({
-        queryKey: [...projectKeys.all(activeOrgId), params?.page, params?.limit],
+        queryKey: [...projectKeys.all(activeOrgId), params?.page, params?.limit, params?.search],
         queryFn: () => projectsApi.getAllProjects(params),
         enabled: activeOrgId !== null,
+        placeholderData: keepPreviousData,
     });
 }
 
@@ -71,6 +72,31 @@ export function useDeleteProject() {
         mutationFn: projectsApi.deleteProject,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: projectKeys.all(activeOrgId) });
+        },
+    });
+}
+
+export function useUpdateProjectMemberRole(projectId: string) {
+    const queryClient = useQueryClient();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+
+    return useMutation({
+        mutationFn: ({ userId, role }: { userId: string; role: 'ADMIN' | 'MEMBER' | 'VIEWER' }) =>
+            projectsApi.updateProjectMemberRole(projectId, userId, role),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: projectKeys.members(activeOrgId, projectId) });
+        },
+    });
+}
+
+export function useRemoveProjectMember(projectId: string) {
+    const queryClient = useQueryClient();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+
+    return useMutation({
+        mutationFn: (userId: string) => projectsApi.removeProjectMember(projectId, userId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: projectKeys.members(activeOrgId, projectId) });
         },
     });
 }

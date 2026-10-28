@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     Plus,
     Trash2,
@@ -11,9 +11,137 @@ import {
     ChevronDown,
     X,
     MessageSquare,
+    Maximize2,
+    Minimize2,
+    Save,
+    Pencil,
+    Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Dialog from '@/components/ui/Dialog';
 import { meetingsApi, SuggestUserItem, SuggestProjectItem } from '@/services/meetings.service';
+import type { MeetingCollabViewer, RemoteFocus } from '@/hooks/use-meeting-collab';
+
+export type DiscussionUserItem = { id: string; name: string; email?: string };
+
+const COLLAB_AVATAR_COLORS = [
+    'bg-[#091590]',
+    'bg-emerald-600',
+    'bg-amber-600',
+    'bg-rose-600',
+    'bg-violet-600',
+    'bg-cyan-600',
+];
+
+function collabAvatarColor(userId: string) {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) hash = (hash + userId.charCodeAt(i) * (i + 1)) % COLLAB_AVATAR_COLORS.length;
+    return COLLAB_AVATAR_COLORS[hash] || COLLAB_AVATAR_COLORS[0];
+}
+
+/** Sheets-style “who’s working” avatar stack */
+export function CollaboratorsPresenceBar({
+    viewers,
+    compact = false,
+    className,
+}: {
+    viewers: MeetingCollabViewer[];
+    compact?: boolean;
+    className?: string;
+}) {
+    if (!viewers.length) return null;
+    const shown = viewers.slice(0, 5);
+    const extra = viewers.length - shown.length;
+    const names = viewers.map((v) => v.userName).join(', ');
+    const statusText =
+        viewers.length === 1
+            ? `${viewers[0].userName} is working`
+            : `${names} are working`;
+
+    return (
+        <div
+            className={cn(
+                'flex items-center gap-2 min-w-0',
+                compact ? 'px-0' : 'px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-100',
+                className,
+            )}
+            title={statusText}
+        >
+            <div className="flex items-center -space-x-1.5 flex-shrink-0">
+                {shown.map((v) => (
+                    <div
+                        key={v.userId}
+                        className={cn(
+                            'w-6 h-6 rounded-full border-2 border-white text-white text-[9px] font-bold flex items-center justify-center shadow-sm',
+                            collabAvatarColor(v.userId),
+                        )}
+                        title={
+                            v.focused
+                                ? `${v.userName} · editing ${v.focused.field}`
+                                : `${v.userName} is working`
+                        }
+                    >
+                        {(v.userName || '?').charAt(0).toUpperCase()}
+                    </div>
+                ))}
+                {extra > 0 && (
+                    <div className="w-6 h-6 rounded-full border-2 border-white bg-slate-200 text-slate-700 text-[9px] font-bold flex items-center justify-center shadow-sm">
+                        +{extra}
+                    </div>
+                )}
+            </div>
+            {!compact && (
+                <span className="text-[11px] font-semibold text-sky-900 truncate">
+                    {viewers.length === 1
+                        ? `${viewers[0].userName} is working`
+                        : `${viewers.length} people working`}
+                </span>
+            )}
+        </div>
+    );
+}
+
+function collabCellKey(rowId: string, field: string) {
+    return `${rowId}::${field}`;
+}
+
+function CollabFieldShell({
+    rowId,
+    field,
+    remoteFocusByCell,
+    flashCellKey,
+    children,
+    className,
+}: {
+    rowId: string;
+    field: string;
+    remoteFocusByCell?: Record<string, RemoteFocus>;
+    flashCellKey?: string | null;
+    children: React.ReactNode;
+    className?: string;
+}) {
+    const key = collabCellKey(rowId, field);
+    const remote = remoteFocusByCell?.[key];
+    const flashing = flashCellKey === key;
+    return (
+        <div
+            className={cn(
+                'relative rounded-lg transition-shadow',
+                remote && 'ring-2 ring-amber-400 ring-offset-1 bg-amber-50/40',
+                flashing && 'ring-2 ring-sky-400 ring-offset-1 bg-sky-50/70',
+                className,
+            )}
+            title={remote ? `${remote.userName} is editing` : flashing ? 'Updated by collaborator' : undefined}
+        >
+            {remote && (
+                <span className="absolute -top-2.5 left-1 z-10 max-w-[140px] truncate px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-bold shadow-sm">
+                    {remote.userName}
+                </span>
+            )}
+            {children}
+        </div>
+    );
+}
 
 export interface DiscussionRow {
     id: string;
@@ -21,7 +149,7 @@ export interface DiscussionRow {
     user: string;
     userId?: string;
     userIds?: string[];
-    userItems?: Array<{ id: string; name: string }>;
+    userItems?: DiscussionUserItem[];
     project: string;
     projectId?: string;
     discussionPoints: string;
@@ -29,19 +157,53 @@ export interface DiscussionRow {
     remarks: string;
 }
 
+function rowMatchesUserFilter(row: DiscussionRow, query: string): boolean {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    if (row.user?.toLowerCase().includes(q)) return true;
+    if (row.userItems?.some((u) =>
+        u.name?.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
+    )) {
+        return true;
+    }
+    return false;
+}
+
 interface DiscussionAreaTableProps {
     content: any; // JSON or legacy TipTap JSON
     onChange: (jsonPayload: any) => void;
     readOnly?: boolean;
     userRole?: 'OWNER' | 'ADMIN' | 'MEMBER' | null;
+    /** OWNER, ADMIN, or meeting creator — full edit/delete on discussion rows */
+    canManageMeeting?: boolean;
     currentUserId?: string;
     currentUserName?: string;
+    isFullScreen?: boolean;
+    onExitFullScreen?: () => void;
+    onSave?: () => void;
+    isSaving?: boolean;
+    isNew?: boolean;
+    /** Enter edit mode from expanded view (view-state → editable without exiting) */
+    onEnableEdit?: () => void;
+    editButtonLabel?: string;
+    /** Soft-lock remote focus map from useMeetingCollab */
+    remoteFocusByCell?: Record<string, RemoteFocus>;
+    /** Other users currently in this meeting (Sheets-style presence) */
+    otherViewers?: MeetingCollabViewer[];
+    /** Brief highlight when A1 remote overwrite lands */
+    flashCellKey?: string | null;
+    onCellFocus?: (rowId: string, field: string) => void;
+    /** Blur with value — Sheets-style cell commit */
+    onCellBlur?: (rowId: string, field: string, value: string) => void;
+    /** Mark a cell as intentionally edited for dirty-cell PATCH merge */
+    onCellDirty?: (rowId: string, field: string) => void;
 }
 
 const STATUS_OPTIONS = [
     { value: 'OPEN', label: 'Open', color: 'bg-amber-100 text-amber-800 border-amber-200' },
     { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 text-blue-800 border-blue-200' },
     { value: 'HOLD', label: 'Hold', color: 'bg-red-100 text-red-800 border-red-200' },
+    { value: 'NOT_WORKED', label: 'Not Worked', color: 'bg-orange-100 text-orange-800 border-orange-200' },
     { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
     { value: 'RESOLVED', label: 'Resolved', color: 'bg-teal-100 text-teal-800 border-teal-200' },
     { value: 'PENDING', label: 'Pending', color: 'bg-purple-100 text-purple-800 border-purple-200' },
@@ -72,11 +234,11 @@ function createEmptyRow(sno: number): DiscussionRow {
  */
 function parseInitialRows(content: any): DiscussionRow[] {
     if (!content) {
-        return [createEmptyRow(1)];
+        return [];
     }
 
     // New format: { type: 'discussionTable', rows: [...] }
-    if (typeof content === 'object' && content.rows && Array.isArray(content.rows) && content.rows.length > 0) {
+    if (typeof content === 'object' && content.rows && Array.isArray(content.rows)) {
         return content.rows.map((r: any, idx: number) => ({
             id: r.id || `row-${idx + 1}`,
             sno: idx + 1,
@@ -135,7 +297,7 @@ function parseInitialRows(content: any): DiscussionRow[] {
         }
     }
 
-    return [createEmptyRow(1)];
+    return [];
 }
 
 export function DiscussionAreaTable({
@@ -143,16 +305,41 @@ export function DiscussionAreaTable({
     onChange,
     readOnly = false,
     userRole = 'MEMBER',
+    canManageMeeting = false,
     currentUserId,
     currentUserName,
+    isFullScreen = false,
+    onExitFullScreen,
+    onSave,
+    isSaving = false,
+    isNew = false,
+    onEnableEdit,
+    editButtonLabel = 'Edit',
+    remoteFocusByCell,
+    otherViewers = [],
+    flashCellKey = null,
+    onCellFocus,
+    onCellBlur,
+    onCellDirty,
 }: DiscussionAreaTableProps) {
     const [rows, setRows] = useState<DiscussionRow[]>(() => parseInitialRows(content));
 
     const isOwner = userRole === 'OWNER';
     const isAdmin = userRole === 'ADMIN';
+    const canFullyManage = canManageMeeting || isOwner || isAdmin;
+
+    // isFullscreen is now controlled by the parent via isFullScreen prop
+    const isFullscreen = isFullScreen;
 
     // Track rows added during current editing session
     const [newlyAddedRowIds, setNewlyAddedRowIds] = useState<Set<string>>(new Set());
+
+    const [userFilter, setUserFilter] = useState('');
+    const [deleteDialog, setDeleteDialog] = useState<{
+        isOpen: boolean;
+        index: number | null;
+        label: string;
+    }>({ isOpen: false, index: null, label: '' });
 
     // Mention suggestions popup states
     const [activeUserSearchRowId, setActiveUserSearchRowId] = useState<string | null>(null);
@@ -160,6 +347,12 @@ export function DiscussionAreaTable({
     const [userSuggestions, setUserSuggestions] = useState<SuggestUserItem[]>([]);
     const [isUserLoading, setIsUserLoading] = useState(false);
     const [typedUserQuery, setTypedUserQuery] = useState<Record<string, string>>({});
+
+    const filteredRows = useMemo(() => {
+        return rows
+            .map((row, index) => ({ row, index }))
+            .filter(({ row }) => rowMatchesUserFilter(row, userFilter));
+    }, [rows, userFilter]);
 
     const [activeProjectSearchRowId, setActiveProjectSearchRowId] = useState<string | null>(null);
     const [projectQuery, setProjectQuery] = useState('');
@@ -294,7 +487,7 @@ export function DiscussionAreaTable({
     }, [activeProjectSearchRowId, projectQuery]);
 
     const isMentionedInRow = (row: DiscussionRow): boolean => {
-        if (isOwner || isAdmin) return true;
+        if (canFullyManage) return true;
         if (!currentUserId && !currentUserName) return false;
 
         if (currentUserId) {
@@ -321,22 +514,47 @@ export function DiscussionAreaTable({
         updateRowsAndNotify(newRows);
     };
 
-    // Delete Row
+    // Delete Row with confirmation
     const handleDeleteRow = (index: number) => {
-        if (rows.length <= 1) {
-            // Keep at least one empty row
-            const resetRows = [createEmptyRow(1)];
-            updateRowsAndNotify(resetRows);
-            return;
-        }
-        const updated = rows.filter((_, i) => i !== index).map((r, idx) => ({ ...r, sno: idx + 1 }));
+        const targetRow = rows[index];
+        const rowNum = index + 1;
+        const points = targetRow?.discussionPoints?.trim();
+        const label = points
+            ? (points.length > 40 ? `${points.slice(0, 40)}...` : points)
+            : `Row #${rowNum}`;
+        setDeleteDialog({ isOpen: true, index, label });
+    };
+
+    const confirmDeleteRow = () => {
+        if (deleteDialog.index === null) return;
+        const updated = rows
+            .filter((_, i) => i !== deleteDialog.index)
+            .map((r, idx) => ({ ...r, sno: idx + 1 }));
         updateRowsAndNotify(updated);
+        setDeleteDialog({ isOpen: false, index: null, label: '' });
     };
 
     // Row field change handler
     const handleRowChange = (index: number, field: keyof DiscussionRow, value: any) => {
         const updated = [...rows];
-        updated[index] = { ...updated[index], [field]: value };
+        const row = updated[index];
+        updated[index] = { ...row, [field]: value };
+        const collabField =
+            field === 'userId' || field === 'userIds' || field === 'userItems'
+                ? 'user'
+                : field === 'projectId'
+                  ? 'project'
+                  : field;
+        if (
+            row?.id &&
+            (collabField === 'user' ||
+                collabField === 'project' ||
+                collabField === 'discussionPoints' ||
+                collabField === 'status' ||
+                collabField === 'remarks')
+        ) {
+            onCellDirty?.(row.id, collabField);
+        }
         updateRowsAndNotify(updated);
     };
 
@@ -344,14 +562,16 @@ export function DiscussionAreaTable({
     const handleSelectUser = (index: number, userItem: SuggestUserItem) => {
         const updated = [...rows];
         const currentItem = updated[index];
-        const existingItems: Array<{ id: string; name: string }> = currentItem.userItems
+        const existingItems: DiscussionUserItem[] = currentItem.userItems
             ? [...currentItem.userItems]
             : currentItem.user
             ? currentItem.user.split(',').map((s) => s.trim()).filter(Boolean).map((n) => ({ id: currentItem.userId || `user-${n}`, name: n }))
             : [];
 
         const exists = existingItems.some((it) => it.id === userItem.id || it.name.toLowerCase() === userItem.name.toLowerCase());
-        const newItems = exists ? existingItems : [...existingItems, { id: userItem.id, name: userItem.name }];
+        const newItems = exists
+            ? existingItems
+            : [...existingItems, { id: userItem.id, name: userItem.name, email: userItem.email || undefined }];
 
         const names = newItems.map((it) => it.name).join(', ');
         const ids = newItems.map((it) => it.id);
@@ -367,6 +587,7 @@ export function DiscussionAreaTable({
         setPopupPos(null);
         setUserQuery('');
         setTypedUserQuery((prev) => ({ ...prev, [currentItem.id]: '' }));
+        if (currentItem.id) onCellDirty?.(currentItem.id, 'user');
         updateRowsAndNotify(updated);
     };
 
@@ -390,6 +611,7 @@ export function DiscussionAreaTable({
             userIds: ids,
             userItems: currentItems,
         };
+        if (currentItem.id) onCellDirty?.(currentItem.id, 'user');
         updateRowsAndNotify(updated);
     };
 
@@ -410,408 +632,471 @@ export function DiscussionAreaTable({
             delete next[currentItem.id];
             return next;
         });
+        if (currentItem.id) onCellDirty?.(currentItem.id, 'project');
         updateRowsAndNotify(updated);
     };
 
-    return (
-        <div className="w-full space-y-3">
-            {/* Table Container */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col">
-                <div
-                    className="overflow-x-auto overflow-y-auto max-h-[400px] min-h-[400px] relative scrollbar-thin"
-                    onScroll={() => {
-                        if (popupPos) {
-                            setActiveUserSearchRowId(null);
-                            setActiveProjectSearchRowId(null);
-                            setPopupPos(null);
-                        }
-                    }}
-                >
-                    <table className="w-full text-left border-collapse min-w-[750px]">
-                        {/* Table Header */}
-                        <thead className="sticky top-0 z-20 bg-[#091590] shadow-2xs">
-                            <tr className="bg-[#091590] text-white text-[11px] font-bold uppercase tracking-wider">
-                                <th className="py-2.5 px-3 w-12 text-center border-r border-blue-900/40 sticky top-0 bg-[#091590]">S.No</th>
-                                <th className="py-2.5 px-3 w-48 border-r border-blue-900/40 sticky top-0 bg-[#091590]">User</th>
-                                <th className="py-2.5 px-3 w-48 border-r border-blue-900/40 sticky top-0 bg-[#091590]">Project</th>
-                                <th className="py-2.5 px-3 min-w-[280px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">
-                                    Inspection & Discussion Points
-                                </th>
-                                <th className="py-2.5 px-3 w-36 border-r border-blue-900/40 sticky top-0 bg-[#091590]">Status</th>
-                                <th className="py-2.5 px-3 w-44 border-r border-blue-900/40 sticky top-0 bg-[#091590]">Remarks</th>
-                                {!readOnly && <th className="py-2.5 px-2 w-10 text-center sticky top-0 bg-[#091590]">Action</th>}
+    const tableElement = (
+        <div className={cn(
+            "border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col transition-all",
+            isFullscreen ? "h-full w-full rounded-none border-none shadow-none flex-1" : ""
+        )}>
+            {/* User filter (sheet-style) */}
+            <div className="px-3 py-2 bg-slate-50 border-b border-gray-200 flex items-center gap-2 flex-shrink-0">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                        type="text"
+                        value={userFilter}
+                        onChange={(e) => setUserFilter(e.target.value)}
+                        placeholder="Filter by username or email..."
+                        className="w-full pl-8 pr-8 py-1.5 border border-gray-200 rounded-lg bg-white text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#091590] focus:ring-1 focus:ring-blue-100"
+                    />
+                    {userFilter && (
+                        <button
+                            type="button"
+                            onClick={() => setUserFilter('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                            title="Clear filter"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+                {userFilter.trim() && (
+                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                        Showing {filteredRows.length} of {rows.length}
+                    </span>
+                )}
+            </div>
+            <div
+                className={cn(
+                    "overflow-x-auto overflow-y-auto relative scrollbar-thin",
+                    isFullscreen ? "flex-1 h-full min-h-0" : "max-h-[400px] min-h-[400px]"
+                )}
+                onScroll={() => {   
+                    if (popupPos) {
+                        setActiveUserSearchRowId(null);
+                        setActiveProjectSearchRowId(null);
+                        setPopupPos(null);
+                    }
+                }}
+            >
+                <table className="w-full text-left border-collapse min-w-[980px]">
+                    {/* Table Header */}
+                    <thead className="sticky top-0 z-20 bg-[#091590] shadow-2xs">
+                        <tr className="bg-[#091590] text-white text-[11px] font-bold uppercase tracking-wider">
+                            <th className="py-2.5 px-3 w-12 text-center border-r border-blue-900/40 sticky top-0 bg-[#091590]">S.No</th>
+                            <th className="py-2.5 px-3 w-44 min-w-[150px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">User</th>
+                            <th className="py-2.5 px-2 w-20 min-w-[20px] max-w-[80px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Project</th>
+                            <th className="py-2.5 px-3 min-w-[150px] max-w-[180px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">
+                                Inspection & Discussion Points
+                            </th>
+                            <th className="py-2.5 px-3 w-32 min-w-[125px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Status</th>
+                            <th className="py-2.5 px-3 w-120 min-w-[260px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Remarks</th>
+                            {!readOnly && canFullyManage && <th className="py-2.5 px-2 w-12 text-center sticky top-0 bg-[#091590]">Action</th>}
+                        </tr>
+                    </thead>
+
+                    {/* Table Body */}
+                    <tbody className="divide-y divide-gray-200 text-xs">
+                        {rows.length === 0 ? (
+                            <tr>
+                                <td colSpan={!readOnly && canFullyManage ? 7 : 6} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
+                                    <div className="flex flex-col items-center justify-center space-y-2">
+                                        <span>No discussion points added yet.</span>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
+                        ) : filteredRows.length === 0 ? (
+                            <tr>
+                                <td colSpan={!readOnly && canFullyManage ? 7 : 6} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
+                                    No rows match &quot;{userFilter.trim()}&quot;
+                                </td>
+                            </tr>
+                        ) : (
+                            filteredRows.map(({ row, index }) => {
+                            const isNewlyAddedRow = newlyAddedRowIds.has(row.id);
+                            const canEditFullRow = !readOnly && (canFullyManage || isNewlyAddedRow);
+                            const canEditStatusRemark = !readOnly && (canFullyManage || isMentionedInRow(row) || isNewlyAddedRow);
+                            const canDeleteThisRow = !readOnly && (canFullyManage || isNewlyAddedRow);
 
-                        {/* Table Body */}
-                        <tbody className="divide-y divide-gray-200 text-xs">
-                            {rows.map((row, index) => {
-                                const isNewlyAddedRow = newlyAddedRowIds.has(row.id);
-                                const canEditFullRow = !readOnly && (isOwner || isNewlyAddedRow);
-                                const canEditStatusRemark = !readOnly && (isOwner || isAdmin || isMentionedInRow(row) || isNewlyAddedRow);
-                                const canDeleteThisRow = !readOnly && (isOwner || isNewlyAddedRow);
+                            return (
+                                <tr key={row.id} className="hover:bg-blue-50/20 transition-colors group">
+                                    {/* S.No */}
+                                    <td className="py-2 px-3 w-12 text-center font-bold text-gray-500 bg-gray-50/50 align-top pt-3">
+                                        {index + 1}
+                                    </td>
 
-                                return (
-                                    <tr key={row.id} className="hover:bg-blue-50/20 transition-colors group">
-                                        {/* S.No */}
-                                        <td className="py-2 px-3 text-center font-bold text-gray-500 bg-gray-50/50 align-top pt-3">
-                                            {index + 1}
-                                        </td>
-
-                                        {/* User Column */}
-                                        <td className="py-2 px-2 align-top relative">
-                                            {!canEditFullRow ? (
-                                                row.user ? (
-                                                    <div className="flex flex-wrap gap-1" title={row.user}>
-                                                        {row.user.split(',').map((u, i) => (
-                                                            <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-semibold text-xs">
-                                                                <AtSign className="w-3 h-3 text-amber-600" />
-                                                                {u.trim()}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <span title="No user assigned" className="text-gray-400 font-normal">-</span>
-                                                )
+                                    {/* User Column */}
+                                    <td className="py-2 px-2 w-44 min-w-[150px] align-top relative">
+                                        {!canEditFullRow ? (
+                                            row.user ? (
+                                                <div className="flex flex-wrap gap-1" title={row.user}>
+                                                    {row.user.split(',').map((u, i) => (
+                                                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-semibold text-xs">
+                                                            <AtSign className="w-3 h-3 text-amber-600" />
+                                                            {u.trim()}
+                                                        </span>
+                                                    ))}
+                                                </div>
                                             ) : (
-                                                <div className="relative space-y-1.5">
-                                                    {/* Selected User Tag Badges */}
-                                                    {row.user && (
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {row.user.split(',').map((u, uIdx) => {
-                                                                const trimmed = u.trim();
-                                                                if (!trimmed) return null;
-                                                                return (
-                                                                    <span key={uIdx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-semibold text-[11px] shadow-2xs">
-                                                                        <AtSign className="w-3 h-3 text-amber-600" />
-                                                                        {trimmed}
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleRemoveUserItem(index, uIdx)}
-                                                                            className="hover:bg-amber-200 rounded p-0.5 text-amber-700 hover:text-amber-900 transition-colors cursor-pointer"
-                                                                            title="Remove mention"
-                                                                        >
-                                                                            <X className="w-2.5 h-2.5" />
-                                                                        </button>
-                                                                    </span>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
+                                                <span title="No user assigned" className="text-gray-400 font-normal">-</span>
+                                            )
+                                        ) : (
+                                            <CollabFieldShell rowId={row.id} field="user" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
+                                            <div className="relative space-y-1.5">
+                                                {/* Selected User Tag Badges */}
+                                                {row.user && (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {row.user.split(',').map((u, uIdx) => {
+                                                            const trimmed = u.trim();
+                                                            if (!trimmed) return null;
+                                                            return (
+                                                                <span key={uIdx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-semibold text-[11px] shadow-2xs">
+                                                                    <AtSign className="w-3 h-3 text-amber-600" />
+                                                                    {trimmed}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleRemoveUserItem(index, uIdx)}
+                                                                        className="hover:bg-amber-200 rounded p-0.5 text-amber-700 hover:text-amber-900 transition-colors cursor-pointer"
+                                                                        title="Remove mention"
+                                                                    >
+                                                                        <X className="w-2.5 h-2.5" />
+                                                                    </button>
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
 
-                                                    <div className="flex items-center gap-1">
-                                                        <input
-                                                            type="text"
-                                                            value={typedUserQuery[row.id] ?? ''}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                calculatePopupPosition(e.currentTarget);
-                                                                setTypedUserQuery((prev) => ({ ...prev, [row.id]: val }));
-                                                                setUserQuery(val.replace(/^@/, ''));
-                                                                setActiveUserSearchRowId(row.id);
-                                                                setActiveProjectSearchRowId(null);
-                                                            }}
-                                                            onFocus={(e) => {
-                                                                calculatePopupPosition(e.currentTarget);
-                                                                setActiveUserSearchRowId(row.id);
-                                                                setUserQuery((typedUserQuery[row.id] ?? '').replace(/^@/, ''));
-                                                                setActiveProjectSearchRowId(null);
-                                                            }}
-                                                            onKeyDown={(e) => {
-                                                                if ((e.key === 'Enter' || e.key === ',') && typedUserQuery[row.id]?.trim()) {
-                                                                    e.preventDefault();
-                                                                    const customName = typedUserQuery[row.id].replace(/^@/, '').replace(/,$/, '').trim();
-                                                                    if (customName) {
-                                                                        handleSelectUser(index, { id: `custom-${Date.now()}`, name: customName, email: '' });
-                                                                    }
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="text"
+                                                        value={typedUserQuery[row.id] ?? ''}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            calculatePopupPosition(e.currentTarget);
+                                                            setTypedUserQuery((prev) => ({ ...prev, [row.id]: val }));
+                                                            setUserQuery(val.replace(/^@/, ''));
+                                                            setActiveUserSearchRowId(row.id);
+                                                            setActiveProjectSearchRowId(null);
+                                                        }}
+                                                        onFocus={(e) => {
+                                                            calculatePopupPosition(e.currentTarget);
+                                                            setActiveUserSearchRowId(row.id);
+                                                            setUserQuery((typedUserQuery[row.id] ?? '').replace(/^@/, ''));
+                                                            setActiveProjectSearchRowId(null);
+                                                            onCellFocus?.(row.id, 'user');
+                                                        }}
+                                                        onBlur={() => onCellBlur?.(row.id, 'user', row.user || '')}
+                                                        onKeyDown={(e) => {
+                                                            if ((e.key === 'Enter' || e.key === ',') && typedUserQuery[row.id]?.trim()) {
+                                                                e.preventDefault();
+                                                                const customName = typedUserQuery[row.id].replace(/^@/, '').replace(/,$/, '').trim();
+                                                                if (customName) {
+                                                                    handleSelectUser(index, { id: `custom-${Date.now()}`, name: customName, email: '' });
                                                                 }
+                                                            }
+                                                        }}
+                                                        placeholder={row.user ? "+ Add another @user..." : "Type @user name..."}
+                                                        className={cn(
+                                                            "w-full px-2.5 py-1.5 rounded-lg border text-xs font-medium focus:outline-none focus:ring-2 transition-all",
+                                                            row.userId || (row.userItems && row.userItems.length > 0)
+                                                                ? "border-amber-300 bg-white text-gray-900 focus:ring-amber-400 font-medium"
+                                                                : "border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-blue-100"
+                                                        )}
+                                                    />
+                                                    {(row.user || typedUserQuery[row.id]) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleRowChange(index, 'user', '');
+                                                                handleRowChange(index, 'userId', undefined);
+                                                                handleRowChange(index, 'userIds', undefined);
+                                                                handleRowChange(index, 'userItems', undefined);
+                                                                setTypedUserQuery((prev) => ({ ...prev, [row.id]: '' }));
                                                             }}
-                                                            placeholder={row.user ? "+ Add another @user..." : "Type @user name..."}
-                                                            className={cn(
-                                                                "w-full px-2.5 py-1.5 rounded-lg border text-xs font-medium focus:outline-none focus:ring-2 transition-all",
-                                                                row.userId || (row.userItems && row.userItems.length > 0)
-                                                                    ? "border-amber-300 bg-white text-gray-900 focus:ring-amber-400 font-medium"
-                                                                    : "border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-blue-100"
-                                                            )}
+                                                            className="text-gray-400 hover:text-red-500 p-0.5 cursor-pointer"
+                                                            title="Clear all users"
+                                                        >
+                                                            <X className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* User Mention Suggestions Popup */}
+                                                {activeUserSearchRowId === row.id && popupPos && (
+                                                    <>
+                                                        <div
+                                                            className="fixed inset-0 z-[99990]"
+                                                            onClick={() => {
+                                                                setActiveUserSearchRowId(null);
+                                                                setPopupPos(null);
+                                                            }}
                                                         />
-                                                        {(row.user || typedUserQuery[row.id]) && (
+                                                        <div
+                                                            className="fixed bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden max-h-60 overflow-y-auto"
+                                                            style={{
+                                                                top: popupPos.top,
+                                                                left: popupPos.left,
+                                                                width: popupPos.width,
+                                                                minWidth: '280px',
+                                                                transform: popupPos.openAbove ? 'translateY(-100%)' : 'none',
+                                                            }}
+                                                        >
+                                                            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
+                                                                <span>Select User (@)</span>
+                                                                <AtSign className="w-3.5 h-3.5 text-amber-600" />
+                                                            </div>
+                                                            {isUserLoading ? (
+                                                                <div className="p-4 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
+                                                                    <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                                                    <span>Loading users...</span>
+                                                                </div>
+                                                            ) : userSuggestions.length === 0 ? (
+                                                                <div className="p-4 text-center text-xs text-gray-400">
+                                                                    No matching users found
+                                                                </div>
+                                                            ) : (
+                                                                userSuggestions.map((u) => {
+                                                                    const isAlreadyAdded = (row.userItems || []).some(
+                                                                        (it) => it.id === u.id || it.name.toLowerCase() === u.name.toLowerCase()
+                                                                    );
+                                                                    return (
+                                                                        <button
+                                                                            key={u.id}
+                                                                            type="button"
+                                                                            onClick={() => handleSelectUser(index, u)}
+                                                                            className={cn(
+                                                                                "w-full text-left px-3.5 py-2.5 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none",
+                                                                                isAlreadyAdded ? "bg-amber-50/70" : "hover:bg-amber-50 cursor-pointer"
+                                                                            )}
+                                                                        >
+                                                                            <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-amber-300 shadow-2xs">
+                                                                                {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
+                                                                            </div>
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <p className="text-xs font-bold text-gray-900 truncate">{u.name}</p>
+                                                                                {u.email && <p className="text-[10px] text-gray-500 truncate">{u.email}</p>}
+                                                                            </div>
+                                                                            {isAlreadyAdded && (
+                                                                                <span className="text-[9px] font-extrabold text-amber-700 bg-amber-200/60 px-1.5 py-0.5 rounded uppercase">
+                                                                                    Added
+                                                                                </span>
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            </CollabFieldShell>
+                                        )}
+                                    </td>
+
+                                    {/* Project Column */}
+                                    <td className="py-2 px-1 w-60 min-w-[60px] max-w-[140px] align-top relative">
+                                        {!canEditFullRow ? (
+                                            row.project ? (
+                                                <span title={row.project} className="inline-flex items-center gap-1 px-1 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-xs truncate max-w-full">
+                                                    <Hash className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                                                    <span className="truncate">{row.project}</span>
+                                                </span>
+                                            ) : (
+                                                <span title="No project assigned" className="text-gray-400 font-normal">-</span>
+                                            )
+                                        ) : (
+                                            <CollabFieldShell rowId={row.id} field="project" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
+                                            <div className="relative space-y-1.5">
+                                                {/* Selected Project Badge */}
+                                                {row.project && (
+                                                    <div className="flex items-center gap-1">
+                                                        <span
+                                                            title={row.project}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold text-xs shadow-2xs max-w-full"
+                                                        >
+                                                            <Hash className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                                                            <span className="truncate">{row.project}</span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    handleRowChange(index, 'user', '');
-                                                                    handleRowChange(index, 'userId', undefined);
-                                                                    handleRowChange(index, 'userIds', undefined);
-                                                                    handleRowChange(index, 'userItems', undefined);
-                                                                    setTypedUserQuery((prev) => ({ ...prev, [row.id]: '' }));
+                                                                    const updated = [...rows];
+                                                                    updated[index] = { ...updated[index], project: '', projectId: undefined };
+                                                                    setTypedProjectQuery((prev) => {
+                                                                        const next = { ...prev };
+                                                                        delete next[row.id];
+                                                                        return next;
+                                                                    });
+                                                                    updateRowsAndNotify(updated);
                                                                 }}
-                                                                className="text-gray-400 hover:text-red-500 p-0.5 cursor-pointer"
-                                                                title="Clear all users"
+                                                                className="hover:bg-emerald-200 rounded p-0.5 text-emerald-700 hover:text-emerald-900 transition-colors cursor-pointer flex-shrink-0 ml-1"
+                                                                title="Remove project"
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {/* Project Input (when no project selected) */}
+                                                {!row.project && (
+                                                    <div className="flex items-center gap-1">
+                                                        <input
+                                                            type="text"
+                                                            value={typedProjectQuery[row.id] ?? ''}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                calculatePopupPosition(e.currentTarget);
+                                                                setTypedProjectQuery((prev) => ({ ...prev, [row.id]: val }));
+                                                                setProjectQuery(val.replace(/^[#@]/, ''));
+                                                                setActiveProjectSearchRowId(row.id);
+                                                                setActiveUserSearchRowId(null);
+                                                            }}
+                                                            onFocus={(e) => {
+                                                                calculatePopupPosition(e.currentTarget);
+                                                                setActiveProjectSearchRowId(row.id);
+                                                                setProjectQuery((typedProjectQuery[row.id] ?? '').replace(/^[#@]/, ''));
+                                                                setActiveUserSearchRowId(null);
+                                                                onCellFocus?.(row.id, 'project');
+                                                            }}
+                                                            onBlur={() => onCellBlur?.(row.id, 'project', row.project || '')}
+                                                            onKeyDown={(e) => {
+                                                                if ((e.key === 'Enter' || e.key === ',') && typedProjectQuery[row.id]?.trim()) {
+                                                                    e.preventDefault();
+                                                                    const customProject = typedProjectQuery[row.id].replace(/^[#@]/, '').trim();
+                                                                    if (customProject) {
+                                                                        handleSelectProject(index, { id: `custom-${Date.now()}`, name: customProject });
+                                                                    }
+                                                                }
+                                                            }}
+                                                            placeholder="Type #project name..."
+                                                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 transition-all"
+                                                        />
+                                                        {typedProjectQuery[row.id] && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setTypedProjectQuery((prev) => {
+                                                                        const next = { ...prev };
+                                                                        delete next[row.id];
+                                                                        return next;
+                                                                    });
+                                                                }}
+                                                                className="text-gray-400 hover:text-red-500 p-0.5 transition-colors cursor-pointer"
+                                                                title="Clear query"
                                                             >
                                                                 <X className="w-3.5 h-3.5" />
                                                             </button>
                                                         )}
                                                     </div>
+                                                )}
 
-                                                    {/* User Mention Suggestions Popup */}
-                                                    {activeUserSearchRowId === row.id && popupPos && (
-                                                        <>
-                                                            <div
-                                                                className="fixed inset-0 z-[99990]"
-                                                                onClick={() => {
-                                                                    setActiveUserSearchRowId(null);
-                                                                    setPopupPos(null);
-                                                                }}
-                                                            />
-                                                            <div
-                                                                className="fixed bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden max-h-60 overflow-y-auto"
-                                                                style={{
-                                                                    top: popupPos.top,
-                                                                    left: popupPos.left,
-                                                                    width: popupPos.width,
-                                                                    minWidth: '280px',
-                                                                    transform: popupPos.openAbove ? 'translateY(-100%)' : 'none',
-                                                                }}
-                                                            >
-                                                                <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
-                                                                    <span>Select User (@)</span>
-                                                                    <AtSign className="w-3.5 h-3.5 text-amber-600" />
-                                                                </div>
-                                                                {isUserLoading ? (
-                                                                    <div className="p-4 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
-                                                                        <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                                                                        <span>Loading users...</span>
-                                                                    </div>
-                                                                ) : userSuggestions.length === 0 ? (
-                                                                    <div className="p-4 text-center text-xs text-gray-400">
-                                                                        No matching users found
-                                                                    </div>
-                                                                ) : (
-                                                                    userSuggestions.map((u) => {
-                                                                        const isAlreadyAdded = (row.userItems || []).some(
-                                                                            (it) => it.id === u.id || it.name.toLowerCase() === u.name.toLowerCase()
-                                                                        );
-                                                                        return (
-                                                                            <button
-                                                                                key={u.id}
-                                                                                type="button"
-                                                                                onClick={() => handleSelectUser(index, u)}
-                                                                                className={cn(
-                                                                                    "w-full text-left px-3.5 py-2.5 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none",
-                                                                                    isAlreadyAdded ? "bg-amber-50/70" : "hover:bg-amber-50 cursor-pointer"
-                                                                                )}
-                                                                            >
-                                                                                <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-amber-300 shadow-2xs">
-                                                                                    {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
-                                                                                </div>
-                                                                                <div className="min-w-0 flex-1">
-                                                                                    <p className="text-xs font-bold text-gray-900 truncate">{u.name}</p>
-                                                                                    {u.email && <p className="text-[10px] text-gray-500 truncate">{u.email}</p>}
-                                                                                </div>
-                                                                                {isAlreadyAdded && (
-                                                                                    <span className="text-[9px] font-extrabold text-amber-700 bg-amber-200/60 px-1.5 py-0.5 rounded uppercase">
-                                                                                        Added
-                                                                                    </span>
-                                                                                )}
-                                                                            </button>
-                                                                        );
-                                                                    })
-                                                                )}
+                                                {/* Project Mention Suggestions Popup */}
+                                                {activeProjectSearchRowId === row.id && popupPos && (
+                                                    <>
+                                                        <div
+                                                            className="fixed inset-0 z-[99990]"
+                                                            onClick={() => {
+                                                                setActiveProjectSearchRowId(null);
+                                                                setPopupPos(null);
+                                                            }}
+                                                        />
+                                                        <div
+                                                            className="fixed bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden max-h-60 overflow-y-auto"
+                                                            style={{
+                                                                top: popupPos.top,
+                                                                left: popupPos.left,
+                                                                width: popupPos.width,
+                                                                minWidth: '280px',
+                                                                transform: popupPos.openAbove ? 'translateY(-100%)' : 'none',
+                                                            }}
+                                                        >
+                                                            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
+                                                                <span>Select Project (#)</span>
+                                                                <Hash className="w-3.5 h-3.5 text-emerald-600" />
                                                             </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </td>
-
-                                        {/* Project Column */}
-                                        <td className="py-2 px-2 align-top relative">
-                                            {!canEditFullRow ? (
-                                                row.project ? (
-                                                    <span title={row.project} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-xs">
-                                                        <Hash className="w-3 h-3 text-emerald-600" />
-                                                        {row.project}
-                                                    </span>
-                                                ) : (
-                                                    <span title="No project assigned" className="text-gray-400 font-normal">-</span>
-                                                )
-                                            ) : (
-                                                <div className="relative space-y-1.5">
-                                                    {/* Selected Project Badge */}
-                                                    {row.project && (
-                                                        <div className="flex items-center gap-1">
-                                                            <span
-                                                                title={row.project}
-                                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold text-xs shadow-2xs max-w-full"
-                                                            >
-                                                                <Hash className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                                                                <span className="truncate">{row.project}</span>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const updated = [...rows];
-                                                                        updated[index] = { ...updated[index], project: '', projectId: undefined };
-                                                                        setTypedProjectQuery((prev) => {
-                                                                            const next = { ...prev };
-                                                                            delete next[row.id];
-                                                                            return next;
-                                                                        });
-                                                                        updateRowsAndNotify(updated);
-                                                                    }}
-                                                                    className="hover:bg-emerald-200 rounded p-0.5 text-emerald-700 hover:text-emerald-900 transition-colors cursor-pointer flex-shrink-0 ml-1"
-                                                                    title="Remove project"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                </button>
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Project Input (when no project selected) */}
-                                                    {!row.project && (
-                                                        <div className="flex items-center gap-1">
-                                                            <input
-                                                                type="text"
-                                                                value={typedProjectQuery[row.id] ?? ''}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    calculatePopupPosition(e.currentTarget);
-                                                                    setTypedProjectQuery((prev) => ({ ...prev, [row.id]: val }));
-                                                                    setProjectQuery(val.replace(/^[#@]/, ''));
-                                                                    setActiveProjectSearchRowId(row.id);
-                                                                    setActiveUserSearchRowId(null);
-                                                                }}
-                                                                onFocus={(e) => {
-                                                                    calculatePopupPosition(e.currentTarget);
-                                                                    setActiveProjectSearchRowId(row.id);
-                                                                    setProjectQuery((typedProjectQuery[row.id] ?? '').replace(/^[#@]/, ''));
-                                                                    setActiveUserSearchRowId(null);
-                                                                }}
-                                                                onKeyDown={(e) => {
-                                                                    if ((e.key === 'Enter' || e.key === ',') && typedProjectQuery[row.id]?.trim()) {
-                                                                        e.preventDefault();
-                                                                        const customProject = typedProjectQuery[row.id].replace(/^[#@]/, '').trim();
-                                                                        if (customProject) {
-                                                                            handleSelectProject(index, { id: `custom-${Date.now()}`, name: customProject });
-                                                                        }
-                                                                    }
-                                                                }}
-                                                                placeholder="Type #project name..."
-                                                                className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 transition-all"
-                                                            />
-                                                            {typedProjectQuery[row.id] && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setTypedProjectQuery((prev) => {
-                                                                            const next = { ...prev };
-                                                                            delete next[row.id];
-                                                                            return next;
-                                                                        });
-                                                                    }}
-                                                                    className="text-gray-400 hover:text-red-500 p-0.5 transition-colors cursor-pointer"
-                                                                    title="Clear query"
-                                                                >
-                                                                    <X className="w-3.5 h-3.5" />
-                                                                </button>
+                                                            {isProjectLoading ? (
+                                                                <div className="p-4 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
+                                                                    <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                                                                    <span>Loading projects...</span>
+                                                                </div>
+                                                            ) : projectSuggestions.length === 0 ? (
+                                                                <div className="p-4 text-center text-xs text-gray-400">
+                                                                    No matching projects found
+                                                                </div>
+                                                            ) : (
+                                                                projectSuggestions.map((p) => (
+                                                                    <button
+                                                                        key={p.id}
+                                                                        type="button"
+                                                                        onClick={() => handleSelectProject(index, p)}
+                                                                        className="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none cursor-pointer"
+                                                                    >
+                                                                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-emerald-300 shadow-2xs">
+                                                                            <FolderIcon className="w-3.5 h-3.5" />
+                                                                        </div>
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
+                                                                        </div>
+                                                                    </button>
+                                                                ))
                                                             )}
                                                         </div>
-                                                    )}
+                                                    </>
+                                                )}
+                                            </div>
+                                            </CollabFieldShell>
+                                        )}
+                                    </td>
 
-                                                    {/* Project Mention Suggestions Popup */}
-                                                    {activeProjectSearchRowId === row.id && popupPos && (
-                                                        <>
-                                                            <div
-                                                                className="fixed inset-0 z-[99990]"
-                                                                onClick={() => {
-                                                                    setActiveProjectSearchRowId(null);
-                                                                    setPopupPos(null);
-                                                                }}
-                                                            />
-                                                            <div
-                                                                className="fixed bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden max-h-60 overflow-y-auto"
-                                                                style={{
-                                                                    top: popupPos.top,
-                                                                    left: popupPos.left,
-                                                                    width: popupPos.width,
-                                                                    minWidth: '280px',
-                                                                    transform: popupPos.openAbove ? 'translateY(-100%)' : 'none',
-                                                                }}
-                                                            >
-                                                                <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
-                                                                    <span>Select Project (#)</span>
-                                                                    <Hash className="w-3.5 h-3.5 text-emerald-600" />
-                                                                </div>
-                                                                {isProjectLoading ? (
-                                                                    <div className="p-4 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
-                                                                        <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                                                                        <span>Loading projects...</span>
-                                                                    </div>
-                                                                ) : projectSuggestions.length === 0 ? (
-                                                                    <div className="p-4 text-center text-xs text-gray-400">
-                                                                        No matching projects found
-                                                                    </div>
-                                                                ) : (
-                                                                    projectSuggestions.map((p) => (
-                                                                        <button
-                                                                            key={p.id}
-                                                                            type="button"
-                                                                            onClick={() => handleSelectProject(index, p)}
-                                                                            className="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none cursor-pointer"
-                                                                        >
-                                                                            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-emerald-300 shadow-2xs">
-                                                                                <FolderIcon className="w-3.5 h-3.5" />
-                                                                            </div>
-                                                                            <div className="min-w-0 flex-1">
-                                                                                <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
-                                                                            </div>
-                                                                        </button>
-                                                                    ))
-                                                                )}
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </td>
-
-                                        {/* Discussion Points Column */}
-                                        <td className="py-2 px-2 align-top">
-                                            {!canEditFullRow ? (
-                                                <p title={row.discussionPoints} className="text-xs text-gray-900 whitespace-pre-wrap leading-relaxed py-1 px-1">
-                                                    {row.discussionPoints || '-'}
-                                                </p>
-                                            ) : (
+                                    {/* Discussion Points Column */}
+                                    <td className="py-2 px-2 min-w-[280px] align-top">
+                                        {!canEditFullRow ? (
+                                            <p title={row.discussionPoints} className="text-xs text-gray-900 whitespace-pre-wrap leading-relaxed py-1 px-1">
+                                                {row.discussionPoints || '-'}
+                                            </p>
+                                        ) : (
+                                            <CollabFieldShell rowId={row.id} field="discussionPoints" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
                                                 <textarea
                                                     value={row.discussionPoints}
                                                     title={row.discussionPoints}
                                                     onChange={(e) => handleRowChange(index, 'discussionPoints', e.target.value)}
+                                                    onFocus={() => onCellFocus?.(row.id, 'discussionPoints')}
+                                                    onBlur={() => onCellBlur?.(row.id, 'discussionPoints', row.discussionPoints || '')}
                                                     placeholder="Enter inspection & discussion details..."
                                                     rows={2}
                                                     className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
                                                 />
-                                            )}
-                                        </td>
+                                            </CollabFieldShell>
+                                        )}
+                                    </td>
 
-                                        {/* Status Column */}
-                                        <td className="py-2 px-2 align-top">
-                                            {!canEditStatusRemark ? (
-                                                <span
-                                                    title={STATUS_OPTIONS.find((s) => s.value === row.status)?.label}
-                                                    className={cn(
-                                                        "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border shadow-2xs mt-1",
-                                                        STATUS_OPTIONS.find((s) => s.value === row.status)?.color ||
-                                                        "bg-gray-100 text-gray-700 border-gray-200"
-                                                    )}
-                                                >
-                                                    {STATUS_OPTIONS.find((s) => s.value === row.status)?.label || row.status}
-                                                </span>
-                                            ) : (
+                                    {/* Status Column */}
+                                    <td className="py-2 px-2 w-32 min-w-[125px] align-top">
+                                        {!canEditStatusRemark ? (
+                                            <span
+                                                title={STATUS_OPTIONS.find((s) => s.value === row.status)?.label}
+                                                className={cn(
+                                                    "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border shadow-2xs mt-1",
+                                                    STATUS_OPTIONS.find((s) => s.value === row.status)?.color ||
+                                                    "bg-gray-100 text-gray-700 border-gray-200"
+                                                )}
+                                            >
+                                                {STATUS_OPTIONS.find((s) => s.value === row.status)?.label || row.status}
+                                            </span>
+                                        ) : (
+                                            <CollabFieldShell rowId={row.id} field="status" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
                                                 <select
                                                     value={row.status}
                                                     title={STATUS_OPTIONS.find((s) => s.value === row.status)?.label}
                                                     onChange={(e) => handleRowChange(index, 'status', e.target.value)}
+                                                    onFocus={() => onCellFocus?.(row.id, 'status')}
+                                                    onBlur={() => onCellBlur?.(row.id, 'status', row.status || '')}
                                                     className={cn(
-                                                        "w-full px-2 py-1.5 rounded-lg border text-xs font-bold focus:outline-none transition-all cursor-pointer",
+                                                        "w-full px-2 py-1.5 rounded-lg border text-xs font-bold focus:outline-none transition-all cursor-pointer truncate",
                                                         STATUS_OPTIONS.find((s) => s.value === row.status)?.color ||
                                                         "bg-white border-gray-200 text-gray-900"
                                                     )}
@@ -822,68 +1107,169 @@ export function DiscussionAreaTable({
                                                         </option>
                                                     ))}
                                                 </select>
-                                            )}
-                                        </td>
+                                            </CollabFieldShell>
+                                        )}
+                                    </td>
 
-                                        {/* Remarks Column */}
-                                        <td className="py-2 px-2 align-top">
-                                            {!canEditStatusRemark ? (
-                                                <p title={row.remarks} className="text-xs text-gray-600 py-1 px-1 mt-1">
-                                                    {row.remarks || '-'}
-                                                </p>
-                                            ) : (
-                                                <input
-                                                    type="text"
+                                    {/* Remarks Column */}
+                                    <td className="py-2 px-2 w-72 min-w-[260px] align-top">
+                                        {!canEditStatusRemark ? (
+                                            <p title={row.remarks} className="text-xs text-gray-600 py-1 px-1 mt-1 whitespace-pre-wrap leading-relaxed">
+                                                {row.remarks || '-'}
+                                            </p>
+                                        ) : (
+                                            <CollabFieldShell rowId={row.id} field="remarks" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
+                                                <textarea
                                                     value={row.remarks}
                                                     title={row.remarks}
                                                     onChange={(e) => handleRowChange(index, 'remarks', e.target.value)}
+                                                    onFocus={() => onCellFocus?.(row.id, 'remarks')}
+                                                    onBlur={() => onCellBlur?.(row.id, 'remarks', row.remarks || '')}
                                                     placeholder="Remarks / notes..."
-                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all"
+                                                    rows={2}
+                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
                                                 />
+                                            </CollabFieldShell>
+                                        )}
+                                    </td>
+
+                                    {/* Action Column — managers only */}
+                                    {!readOnly && canFullyManage && (
+                                        <td className="py-2 px-2 w-12 text-center align-top pt-3">
+                                            {canDeleteThisRow ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteRow(index)}
+                                                    className="text-gray-300 hover:text-red-500 p-1 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                                    title="Delete row"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            ) : (
+                                                <span className="text-gray-300 text-xs font-bold cursor-default" title="Only Owner can delete existing rows">-</span>
                                             )}
                                         </td>
+                                    )}
+                                </tr>
+                            );
+                        }))}
+                    </tbody>
+                </table>
+            </div>
 
-                                        {/* Action Column */}
-                                        {!readOnly && (
-                                            <td className="py-2 px-2 text-center align-top pt-3">
-                                                {canDeleteThisRow ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDeleteRow(index)}
-                                                        className="text-gray-300 hover:text-red-500 p-1 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                                        title="Delete row"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-gray-300 text-xs font-bold cursor-default" title="Only Owner can delete existing rows">-</span>
-                                                )}
-                                            </td>
-                                        )}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Bottom Add Row Button (Fixed Footer) */}
-                {!readOnly && (
-                    <div className="p-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-shrink-0 z-10">
-                       {isOwner && ( <button
+            {/* Bottom Footer */}
+            <div className="p-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-shrink-0 z-10 gap-2">
+                <div className="flex items-center gap-2">
+                    {!readOnly && canFullyManage && (
+                        <button
                             type="button"
                             onClick={handleAddRow}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#091590] border border-blue-200 hover:border-[#091590] font-bold text-xs rounded-lg transition-all shadow-2xs cursor-pointer"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Add Discussion Point Row</span>
-                        </button> )}
-                        <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-                            Total Items: {rows.length}
-                        </span>
-                    </div>
-                )}
+                        </button>
+                    )}
+                </div>
+                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
+                    {userFilter.trim()
+                        ? `Showing ${filteredRows.length} of ${rows.length}`
+                        : `Total Items: ${rows.length}`}
+                </span>
             </div>
+        </div>
+    );
+
+    return (
+        <div className="w-full space-y-3">
+            {isFullscreen ? (
+                <div className="fixed inset-0 z-[9990] bg-slate-900/60 backdrop-blur-xs flex flex-col p-2 md:p-5 animate-in fade-in duration-150">
+                    <div className="w-full h-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+                        {/* Fullscreen Modal Header */}
+                        <div className="px-5 py-3 bg-white border-b border-gray-200 flex items-center justify-between flex-shrink-0 gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-[#091590]/10 text-[#091590] flex items-center justify-center font-bold flex-shrink-0">
+                                    <MessageSquare className="w-4 h-4 text-[#091590]" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Discussion Area Table</h2>
+                                    <p className="text-[10px] text-gray-400 truncate">
+                                        Full Screen View • Press ESC to exit
+                                        {otherViewers.length > 0
+                                            ? ` • ${otherViewers.length === 1
+                                                ? `${otherViewers[0].userName} is working`
+                                                : `${otherViewers.length} people working`}`
+                                            : ''}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                                {/* Sheets-style collaborator avatars in expand header */}
+                                <CollaboratorsPresenceBar viewers={otherViewers} compact />
+                                {readOnly && onEnableEdit && (
+                                    <button
+                                        type="button"
+                                        onClick={onEnableEdit}
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#091590] hover:bg-[#071170] text-white font-bold text-xs rounded-lg transition-colors shadow-sm cursor-pointer"
+                                        title={editButtonLabel}
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                        <span>{editButtonLabel}</span>
+                                    </button>
+                                )}
+                                {!readOnly && onSave && (
+                                    <button
+                                        type="button"
+                                        onClick={onSave}
+                                        disabled={isSaving}
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#091590] hover:bg-[#071170] text-white font-bold text-xs rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title={isNew ? "Create Meeting" : "Save / Update Changes"}
+                                    >
+                                        {isSaving ? (
+                                            <>
+                                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <span>{isNew ? 'Creating...' : 'Saving...'}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="w-3.5 h-3.5" />
+                                                <span>{isNew ? 'Create' : 'Update'}</span>
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => onExitFullScreen?.()}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-lg transition-colors cursor-pointer border border-gray-200"
+                                    title="Exit Full Screen (ESC)"
+                                >
+                                    <Minimize2 className="w-4 h-4 text-gray-700" />
+                                    <span>Exit Full Screen</span>
+                                </button>
+                            </div>
+                        </div>
+                        {/* Table Content Container */}
+                        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                            {tableElement}
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                tableElement
+            )}
+
+            <Dialog
+                isOpen={deleteDialog.isOpen}
+                onClose={() => setDeleteDialog({ isOpen: false, index: null, label: '' })}
+                type="warning"
+                title="Delete Discussion Point"
+                message={`Are you sure you want to delete "${deleteDialog.label}"?`}
+                description="This action cannot be undone."
+                confirmText="Delete"
+                confirmVariant="destructive"
+                onConfirm={confirmDeleteRow}
+            />
         </div>
     );
 }

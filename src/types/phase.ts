@@ -58,10 +58,11 @@ export interface StructuredTask {
     taskId: string;
     title: string;
     description?: string;
+    expectedOutput?: string | null;
     priority: number;
     order: number;
     dueDate: string | null;
-    startDate: string | null;
+    startDateTime?: string | null;
     completionPercentage: number;
     parentId: string | null;
     type: TaskType;
@@ -76,6 +77,25 @@ export interface StructuredTask {
         email: string;
         avatarUrl?: string;
     }>;
+    testers?: Array<{
+        id: string;
+        name: string;
+        email: string;
+        avatarUrl?: string;
+    }>;
+    createdById?: string | null;
+    createdBy?: {
+        id: string;
+        name: string;
+        email?: string;
+        avatarUrl?: string;
+    } | null;
+    assignedBy?: {
+        id: string;
+        name: string;
+        email?: string;
+        avatarUrl?: string;
+    } | null;
     tags: Array<{
         id: string;
         name: string;

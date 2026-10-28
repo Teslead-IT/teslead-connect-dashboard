@@ -738,7 +738,15 @@ function TaskRow({
     const typeConfig = TASK_TYPE_CONFIG[typeKey] || TASK_TYPE_CONFIG['FEAT'];
     const TypeIcon = typeConfig.icon;
 
-    const startDateFormatted = task.startDate ? new Date(task.startDate).toLocaleDateString('en-US') : '-';
+    const startDateFormatted = task.startDateTime
+        ? new Date(task.startDateTime).toLocaleString('en-US', {
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        })
+        : '-';
 
     let dueDateFormatted = '-';
     let isPast = false;

@@ -1,5 +1,104 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { API_CONFIG } from './config';
+
+/**
+ * Get full file/attachment URL (prepends API_CONFIG.BASE_URL if relative path)
+ */
+export function getFileUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  const baseUrl = API_CONFIG.BASE_URL.replace(/\/$/, '');
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${baseUrl}${path}`;
+}
+
+/**
+ * Triggers a force download for a file URL rather than opening in a new browser tab.
+ */
+export async function downloadFile(fileUrl: string | null | undefined, fileName: string): Promise<void> {
+  if (!fileUrl) return;
+  const resolved = getFileUrl(fileUrl);
+  const cleanName = fileName || 'download';
+
+  // 1. Data URLs can be downloaded directly
+  if (resolved.startsWith('data:')) {
+    const link = document.createElement('a');
+    link.href = resolved;
+    link.download = cleanName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return;
+  }
+
+  // 2. Fetch blob & trigger blob URL download (Same-Origin blob: URL prevents navigation)
+  try {
+    const response = await fetch(resolved, { mode: 'cors' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = cleanName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
+    return;
+  } catch (err) {
+    console.warn('Direct fetch failed for file download, attempting canvas/img fallback:', err);
+  }
+
+  // 3. Offscreen canvas fallback for image files if fetch is blocked
+  const isImage = /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(resolved) || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(cleanName);
+  if (isImage) {
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject('No canvas context');
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => reject('Image load failed');
+        img.src = resolved;
+      });
+
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = cleanName.endsWith('.png') ? cleanName : `${cleanName}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    } catch (err) {
+      console.warn('Canvas image download fallback failed:', err);
+    }
+  }
+
+  // 4. Hidden iframe fallback to prevent full-page navigation
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = resolved;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 60000);
+  } catch {
+    window.open(resolved, '_blank');
+  }
+}
 
 /**
  * Utility function to merge Tailwind CSS classes with clsx
@@ -66,11 +165,57 @@ export function getStatusColor(status: string): string {
     active: 'bg-green-500',
     'in-progress': 'bg-blue-500',
     testing: 'bg-yellow-500',
+    'testing in-progress': 'bg-pink-500',
+    'testing in progress': 'bg-pink-500',
+    'testing in-prograss': 'bg-pink-500',
     completed: 'bg-green-600',
     overdue: 'bg-red-500',
     pending: 'bg-gray-500',
   };
   return statusMap[status.toLowerCase()] || 'bg-gray-500';
+}
+
+/**
+ * Resolve hex color for a task status, with smart defaults for testing in-progress, etc.
+ */
+export function getTaskStatusHexColor(statusName?: string, existingColor?: string | null): string {
+  const lower = (statusName || '').trim().toLowerCase();
+
+  // If testing in-progress, prefer Magenta/Bright Pink (#D946EF) over legacy purple (#8B5CF6)
+  if (
+    lower.includes('testing in-progress') ||
+    lower.includes('testing in progress') ||
+    lower.includes('testing in-prograss') ||
+    lower.includes('testing inprogress')
+  ) {
+    if (existingColor && existingColor !== '#64748b' && existingColor !== '#8B5CF6' && existingColor.trim() !== '') {
+      return existingColor;
+    }
+    return '#D946EF';
+  }
+
+  if (existingColor && existingColor !== '#64748b' && existingColor.trim() !== '') {
+    return existingColor;
+  }
+  if (lower.includes('ready for testing')) {
+    return '#A25DDC';
+  }
+  if (lower.includes('testing') || lower.includes('test')) {
+    return '#D946EF';
+  }
+  if (lower.includes('working on it') || lower.includes('in progress') || lower.includes('in-progress')) {
+    return '#FDAB3D';
+  }
+  if (lower.includes('stuck') || lower.includes('blocked')) {
+    return '#E85D75';
+  }
+  if (lower.includes('completed') || lower.includes('done')) {
+    return '#00C875';
+  }
+  if (lower.includes('not started') || lower.includes('to do') || lower.includes('todo')) {
+    return '#94A3B8';
+  }
+  return existingColor || '#64748b';
 }
 
 /**

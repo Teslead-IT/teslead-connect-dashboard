@@ -28,9 +28,11 @@ import {
     Bell,
     Calendar,
     ListTodo,
+    Bug,
     Building2,
     Clock,
     ClipboardCheck,
+    ClipboardList,
 } from 'lucide-react';
 
 interface NavItemBase {
@@ -62,12 +64,18 @@ const navItems: NavItem[] = [
         children: [
             { label: 'Projects', href: '/projects', icon: <FolderKanban className="w-3 h-3 flex-shrink-0" /> },
             { label: 'Tasks', href: '/projects/tasks', icon: <ListTodo className="w-3 h-3 flex-shrink-0" /> },
+            { label: 'Issues', href: '/projects/issues', icon: <Bug className="w-3 h-3 flex-shrink-0" /> },
         ],
     },
     {
         label: 'Meetings',
         href: '/meetings',
         icon: <Calendar className="w-4 h-4 flex-shrink-0" />,
+    },
+    {
+        label: 'Support Forms',
+        href: '/support-forms',
+        icon: <ClipboardList className="w-4 h-4 flex-shrink-0" />,
     },
     // {
     //     label: 'Timesheet',

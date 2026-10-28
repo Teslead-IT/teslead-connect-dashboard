@@ -53,6 +53,13 @@ export function MeetingModal({
 
     const meetings = meetingsData?.data || [];
 
+    const canManageMeetingItem = (meeting: any) => {
+        if (activeOrgRole === 'OWNER' || activeOrgRole === 'ADMIN') return true;
+        const userId = currentUser?.id;
+        if (!userId) return false;
+        return meeting?.createdById === userId || meeting?.createdBy?.id === userId;
+    };
+
     // Sync props to state when modal opens
     useEffect(() => {
         if (isOpen) {
@@ -164,19 +171,21 @@ export function MeetingModal({
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        {!isCreateMode && activeMeetingId && (
-                            isEditing ? (
-                                <div></div>
-                            ) : (
+                        {!isCreateMode && activeMeetingId && (() => {
+                            if (isEditing) return null;
+                            const activeMeeting = meetings.find((m: any) => m.id === activeMeetingId);
+                            const canManage = canManageMeetingItem(activeMeeting);
+                            return (
                                 <button
                                     onClick={() => setIsEditing(true)}
                                     className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold uppercase tracking-wider text-white bg-[#091590] hover:bg-[#071170] active:scale-[0.98] transition-all shadow-sm"
+                                    title={canManage ? 'Edit meeting' : 'Edit your status & remarks'}
                                 >
                                     <Pencil className="w-3.5 h-3.5" />
-                                    Edit
+                                    {canManage ? 'Edit' : 'Edit Status / Remarks'}
                                 </button>
-                            )
-                        )}
+                            );
+                        })()}
                         <button
                             onClick={onClose}
                             className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
@@ -259,8 +268,8 @@ export function MeetingModal({
                                                     )}
                                                 </div>
 
-                                                {/* Delete button when viewing (not in create mode); restricted to OWNER or creator */}
-                                                {!isCreateMode && activeOrgRole === 'OWNER' && (
+                                                {/* Delete: OWNER, ADMIN, or meeting creator */}
+                                                {!isCreateMode && canManageMeetingItem(meeting) && (
                                                     <button
                                                         onClick={(e) => {
                                                              e.stopPropagation();

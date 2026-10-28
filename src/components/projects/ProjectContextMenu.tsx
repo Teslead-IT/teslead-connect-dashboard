@@ -6,7 +6,7 @@
 'use client';
 
 import React from 'react';
-import { UserPlus, Pencil, Trash2, Eye } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Eye, Users } from 'lucide-react';
 import { useContextMenuPosition } from '@/hooks/use-context-menu-position';
 
 interface ProjectContextMenuProps {
@@ -15,6 +15,7 @@ interface ProjectContextMenuProps {
     onClose: () => void;
     onViewDetails?: () => void;
     onInvite?: () => void;
+    onEditMembers?: () => void;
     onEdit?: () => void;
     onDelete?: () => void;
 }
@@ -25,6 +26,7 @@ export function ProjectContextMenu({
     onClose,
     onViewDetails,
     onInvite,
+    onEditMembers,
     onEdit,
     onDelete,
 }: ProjectContextMenuProps) {
@@ -60,6 +62,19 @@ export function ProjectContextMenu({
                     >
                         <UserPlus className="w-4 h-4 text-[#091590]" />
                         <span>Add Member / Collaborate</span>
+                    </button>
+                )}
+
+                {onEditMembers && (
+                    <button
+                        className="w-full px-4 py-2.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2.5 text-gray-700 transition-colors"
+                        onClick={() => {
+                            onEditMembers();
+                            onClose();
+                        }}
+                    >
+                        <Users className="w-4 h-4 text-indigo-600" />
+                        <span>Edit Members</span>
                     </button>
                 )}
 

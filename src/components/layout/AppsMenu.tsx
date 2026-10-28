@@ -36,6 +36,7 @@ export function AppsMenu() {
     return (
         <div id="apps-menu-container" className="relative group">
             <button
+                disabled
                 onClick={() => setIsOpen(!isOpen)}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
