@@ -49,8 +49,6 @@ export function ProjectSearchBox({ value, onChange, placeholder = 'Search...' }:
                 initial={false}
                 animate={{
                     width: showFullInput ? (typeof window !== 'undefined' && window.innerWidth < 640 ? 180 : 240) : 36,
-                    backgroundColor: isFocused ? '#ffffff' : '#f9fafb',
-                    borderColor: isFocused ? '#091590' : '#e5e7eb',
                 }}
                 transition={{
                     type: 'spring',
@@ -60,7 +58,9 @@ export function ProjectSearchBox({ value, onChange, placeholder = 'Search...' }:
                 }}
                 className={cn(
                     "flex items-center h-9 rounded-xl border overflow-hidden shadow-sm transition-colors",
-                    isFocused ? "shadow-md ring-1 ring-[#091590]/10" : "hover:border-gray-300"
+                    isFocused
+                        ? "bg-white dark:bg-slate-900 border-[#091590] dark:border-blue-500 shadow-md ring-1 ring-[#091590]/10 dark:ring-blue-500/20"
+                        : "bg-gray-50 dark:bg-slate-800/80 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600"
                 )}
             >
                 <button
@@ -71,7 +71,7 @@ export function ProjectSearchBox({ value, onChange, placeholder = 'Search...' }:
                     }}
                     className={cn(
                         "flex items-center justify-center w-9 h-9 flex-shrink-0 transition-colors",
-                        isFocused ? "text-[#091590]" : "text-gray-500 hover:text-gray-700"
+                        isFocused ? "text-[#091590] dark:text-blue-400" : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                     )}
                     aria-label="Search"
                 >
@@ -96,13 +96,13 @@ export function ProjectSearchBox({ value, onChange, placeholder = 'Search...' }:
                                     onFocus={() => setIsFocused(true)}
                                     onBlur={handleBlur}
                                     placeholder={placeholder}
-                                    className="flex-1 min-w-0 h-full text-xs text-gray-900 placeholder:text-gray-400 bg-transparent border-none outline-none focus:ring-0 p-0"
+                                    className="flex-1 min-w-0 h-full text-xs text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 bg-transparent border-none outline-none focus:ring-0 p-0"
                                 />
                                 {searchQuery && (
                                     <button
                                         type="button"
                                         onClick={handleClear}
-                                        className="p-1 ml-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0"
+                                        className="p-1 ml-1 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
                                     >
                                         <X className="w-3.5 h-3.5" />
                                     </button>

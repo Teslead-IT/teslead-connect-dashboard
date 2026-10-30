@@ -638,25 +638,25 @@ export function DiscussionAreaTable({
 
     const tableElement = (
         <div className={cn(
-            "border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col transition-all",
+            "border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm flex flex-col transition-all",
             isFullscreen ? "h-full w-full rounded-none border-none shadow-none flex-1" : ""
         )}>
             {/* User filter (sheet-style) */}
-            <div className="px-3 py-2 bg-slate-50 border-b border-gray-200 flex items-center gap-2 flex-shrink-0">
+            <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800 flex items-center gap-2 flex-shrink-0">
                 <div className="relative flex-1 max-w-sm">
-                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                         type="text"
                         value={userFilter}
                         onChange={(e) => setUserFilter(e.target.value)}
                         placeholder="Filter by username or email..."
-                        className="w-full pl-8 pr-8 py-1.5 border border-gray-200 rounded-lg bg-white text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#091590] focus:ring-1 focus:ring-blue-100"
+                        className="w-full pl-8 pr-8 py-1.5 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-xs font-medium text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#091590] dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-900/40"
                     />
                     {userFilter && (
                         <button
                             type="button"
                             onClick={() => setUserFilter('')}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 p-0.5"
                             title="Clear filter"
                         >
                             <X className="w-3.5 h-3.5" />
@@ -664,7 +664,7 @@ export function DiscussionAreaTable({
                     )}
                 </div>
                 {userFilter.trim() && (
-                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <span className="text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                         Showing {filteredRows.length} of {rows.length}
                     </span>
                 )}
@@ -684,25 +684,25 @@ export function DiscussionAreaTable({
             >
                 <table className="w-full text-left border-collapse min-w-[980px]">
                     {/* Table Header */}
-                    <thead className="sticky top-0 z-20 bg-[#091590] shadow-2xs">
-                        <tr className="bg-[#091590] text-white text-[11px] font-bold uppercase tracking-wider">
-                            <th className="py-2.5 px-3 w-12 text-center border-r border-blue-900/40 sticky top-0 bg-[#091590]">S.No</th>
-                            <th className="py-2.5 px-3 w-44 min-w-[150px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">User</th>
-                            <th className="py-2.5 px-2 w-20 min-w-[20px] max-w-[80px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Project</th>
-                            <th className="py-2.5 px-3 min-w-[150px] max-w-[180px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">
+                    <thead className="sticky top-0 z-20 bg-[#091590] dark:bg-slate-800 shadow-2xs">
+                        <tr className="bg-[#091590] dark:bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider">
+                            <th className="py-2.5 px-3 w-12 text-center border-r border-blue-900/40 dark:border-slate-700 sticky top-0 bg-[#091590] dark:bg-slate-800">S.No</th>
+                            <th className="py-2.5 px-3 w-44 min-w-[150px] border-r border-blue-900/40 dark:border-slate-700 sticky top-0 bg-[#091590] dark:bg-slate-800">User</th>
+                            <th className="py-2.5 px-2 w-20 min-w-[20px] max-w-[80px] border-r border-blue-900/40 dark:border-slate-700 sticky top-0 bg-[#091590] dark:bg-slate-800">Project</th>
+                            <th className="py-2.5 px-3 min-w-[150px] max-w-[180px] border-r border-blue-900/40 dark:border-slate-700 sticky top-0 bg-[#091590] dark:bg-slate-800">
                                 Inspection & Discussion Points
                             </th>
-                            <th className="py-2.5 px-3 w-32 min-w-[125px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Status</th>
-                            <th className="py-2.5 px-3 w-120 min-w-[260px] border-r border-blue-900/40 sticky top-0 bg-[#091590]">Remarks</th>
-                            {!readOnly && canFullyManage && <th className="py-2.5 px-2 w-12 text-center sticky top-0 bg-[#091590]">Action</th>}
+                            <th className="py-2.5 px-3 w-32 min-w-[125px] border-r border-blue-900/40 dark:border-slate-700 sticky top-0 bg-[#091590] dark:bg-slate-800">Status</th>
+                            <th className="py-2.5 px-3 w-120 min-w-[260px] border-r border-blue-900/40 dark:border-slate-700 sticky top-0 bg-[#091590] dark:bg-slate-800">Remarks</th>
+                            {!readOnly && canFullyManage && <th className="py-2.5 px-2 w-12 text-center sticky top-0 bg-[#091590] dark:bg-slate-800">Action</th>}
                         </tr>
                     </thead>
 
                     {/* Table Body */}
-                    <tbody className="divide-y divide-gray-200 text-xs">
+                    <tbody className="divide-y divide-gray-200 dark:divide-slate-800 text-xs">
                         {rows.length === 0 ? (
                             <tr>
-                                <td colSpan={!readOnly && canFullyManage ? 7 : 6} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
+                                <td colSpan={!readOnly && canFullyManage ? 7 : 6} className="py-10 text-center text-xs text-gray-400 dark:text-slate-500 italic bg-gray-50/50 dark:bg-slate-900/50">
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <span>No discussion points added yet.</span>
                                     </div>
@@ -710,7 +710,7 @@ export function DiscussionAreaTable({
                             </tr>
                         ) : filteredRows.length === 0 ? (
                             <tr>
-                                <td colSpan={!readOnly && canFullyManage ? 7 : 6} className="py-10 text-center text-xs text-gray-400 italic bg-gray-50/50">
+                                <td colSpan={!readOnly && canFullyManage ? 7 : 6} className="py-10 text-center text-xs text-gray-400 dark:text-slate-500 italic bg-gray-50/50 dark:bg-slate-900/50">
                                     No rows match &quot;{userFilter.trim()}&quot;
                                 </td>
                             </tr>
@@ -722,9 +722,9 @@ export function DiscussionAreaTable({
                             const canDeleteThisRow = !readOnly && (canFullyManage || isNewlyAddedRow);
 
                             return (
-                                <tr key={row.id} className="hover:bg-blue-50/20 transition-colors group">
+                                <tr key={row.id} className="hover:bg-blue-50/20 dark:hover:bg-slate-800/40 transition-colors group">
                                     {/* S.No */}
-                                    <td className="py-2 px-3 w-12 text-center font-bold text-gray-500 bg-gray-50/50 align-top pt-3">
+                                    <td className="py-2 px-3 w-12 text-center font-bold text-gray-500 dark:text-slate-400 bg-gray-50/50 dark:bg-slate-900/50 align-top pt-3">
                                         {index + 1}
                                     </td>
 
@@ -734,14 +734,14 @@ export function DiscussionAreaTable({
                                             row.user ? (
                                                 <div className="flex flex-wrap gap-1" title={row.user}>
                                                     {row.user.split(',').map((u, i) => (
-                                                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-semibold text-xs">
-                                                            <AtSign className="w-3 h-3 text-amber-600" />
+                                                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800/40 font-semibold text-xs">
+                                                            <AtSign className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                                                             {u.trim()}
                                                         </span>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <span title="No user assigned" className="text-gray-400 font-normal">-</span>
+                                                <span title="No user assigned" className="text-gray-400 dark:text-slate-500 font-normal">-</span>
                                             )
                                         ) : (
                                             <CollabFieldShell rowId={row.id} field="user" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
@@ -753,13 +753,13 @@ export function DiscussionAreaTable({
                                                             const trimmed = u.trim();
                                                             if (!trimmed) return null;
                                                             return (
-                                                                <span key={uIdx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-semibold text-[11px] shadow-2xs">
-                                                                    <AtSign className="w-3 h-3 text-amber-600" />
+                                                                <span key={uIdx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800/40 font-semibold text-[11px] shadow-2xs">
+                                                                    <AtSign className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                                                                     {trimmed}
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleRemoveUserItem(index, uIdx)}
-                                                                        className="hover:bg-amber-200 rounded p-0.5 text-amber-700 hover:text-amber-900 transition-colors cursor-pointer"
+                                                                        className="hover:bg-amber-200 dark:hover:bg-amber-900/60 rounded p-0.5 text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 transition-colors cursor-pointer"
                                                                         title="Remove mention"
                                                                     >
                                                                         <X className="w-2.5 h-2.5" />
@@ -803,8 +803,8 @@ export function DiscussionAreaTable({
                                                         className={cn(
                                                             "w-full px-2.5 py-1.5 rounded-lg border text-xs font-medium focus:outline-none focus:ring-2 transition-all",
                                                             row.userId || (row.userItems && row.userItems.length > 0)
-                                                                ? "border-amber-300 bg-white text-gray-900 focus:ring-amber-400 font-medium"
-                                                                : "border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-blue-100"
+                                                                ? "border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 focus:ring-amber-400 font-medium"
+                                                                : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 focus:border-[#091590] dark:focus:border-blue-400 focus:ring-blue-100 dark:focus:ring-blue-900/40"
                                                         )}
                                                     />
                                                     {(row.user || typedUserQuery[row.id]) && (
@@ -817,7 +817,7 @@ export function DiscussionAreaTable({
                                                                 handleRowChange(index, 'userItems', undefined);
                                                                 setTypedUserQuery((prev) => ({ ...prev, [row.id]: '' }));
                                                             }}
-                                                            className="text-gray-400 hover:text-red-500 p-0.5 cursor-pointer"
+                                                            className="text-gray-400 dark:text-slate-500 hover:text-red-500 p-0.5 cursor-pointer"
                                                             title="Clear all users"
                                                         >
                                                             <X className="w-3.5 h-3.5" />
@@ -836,7 +836,7 @@ export function DiscussionAreaTable({
                                                             }}
                                                         />
                                                         <div
-                                                            className="fixed bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden max-h-60 overflow-y-auto"
+                                                            className="fixed bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-2xl z-[99999] overflow-hidden max-h-60 overflow-y-auto"
                                                             style={{
                                                                 top: popupPos.top,
                                                                 left: popupPos.left,
@@ -845,17 +845,17 @@ export function DiscussionAreaTable({
                                                                 transform: popupPos.openAbove ? 'translateY(-100%)' : 'none',
                                                             }}
                                                         >
-                                                            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
+                                                            <div className="px-3 py-2 bg-gray-50 dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700 text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
                                                                 <span>Select User (@)</span>
-                                                                <AtSign className="w-3.5 h-3.5 text-amber-600" />
+                                                                <AtSign className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                                                             </div>
                                                             {isUserLoading ? (
-                                                                <div className="p-4 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
+                                                                <div className="p-4 text-center text-xs text-gray-500 dark:text-slate-400 flex items-center justify-center gap-2">
                                                                     <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
                                                                     <span>Loading users...</span>
                                                                 </div>
                                                             ) : userSuggestions.length === 0 ? (
-                                                                <div className="p-4 text-center text-xs text-gray-400">
+                                                                <div className="p-4 text-center text-xs text-gray-400 dark:text-slate-500">
                                                                     No matching users found
                                                                 </div>
                                                             ) : (
@@ -869,19 +869,19 @@ export function DiscussionAreaTable({
                                                                             type="button"
                                                                             onClick={() => handleSelectUser(index, u)}
                                                                             className={cn(
-                                                                                "w-full text-left px-3.5 py-2.5 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none",
-                                                                                isAlreadyAdded ? "bg-amber-50/70" : "hover:bg-amber-50 cursor-pointer"
+                                                                                "w-full text-left px-3.5 py-2.5 flex items-center gap-3 transition-colors border-b border-gray-50 dark:border-slate-800 last:border-none",
+                                                                                isAlreadyAdded ? "bg-amber-50/70 dark:bg-amber-950/40" : "hover:bg-amber-50 dark:hover:bg-slate-800 cursor-pointer"
                                                                             )}
                                                                         >
-                                                                            <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-amber-300 shadow-2xs">
+                                                                            <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-amber-300 dark:border-amber-700 shadow-2xs">
                                                                                 {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
                                                                             </div>
                                                                             <div className="min-w-0 flex-1">
-                                                                                <p className="text-xs font-bold text-gray-900 truncate">{u.name}</p>
-                                                                                {u.email && <p className="text-[10px] text-gray-500 truncate">{u.email}</p>}
+                                                                                <p className="text-xs font-bold text-gray-900 dark:text-slate-100 truncate">{u.name}</p>
+                                                                                {u.email && <p className="text-[10px] text-gray-500 dark:text-slate-400 truncate">{u.email}</p>}
                                                                             </div>
                                                                             {isAlreadyAdded && (
-                                                                                <span className="text-[9px] font-extrabold text-amber-700 bg-amber-200/60 px-1.5 py-0.5 rounded uppercase">
+                                                                                <span className="text-[9px] font-extrabold text-amber-700 dark:text-amber-300 bg-amber-200/60 dark:bg-amber-900/60 px-1.5 py-0.5 rounded uppercase">
                                                                                     Added
                                                                                 </span>
                                                                             )}
@@ -901,12 +901,12 @@ export function DiscussionAreaTable({
                                     <td className="py-2 px-1 w-60 min-w-[60px] max-w-[140px] align-top relative">
                                         {!canEditFullRow ? (
                                             row.project ? (
-                                                <span title={row.project} className="inline-flex items-center gap-1 px-1 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-xs truncate max-w-full">
-                                                    <Hash className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                                                <span title={row.project} className="inline-flex items-center gap-1 px-1 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800/40 font-semibold text-xs truncate max-w-full">
+                                                    <Hash className="w-3 h-3 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                                                     <span className="truncate">{row.project}</span>
                                                 </span>
                                             ) : (
-                                                <span title="No project assigned" className="text-gray-400 font-normal">-</span>
+                                                <span title="No project assigned" className="text-gray-400 dark:text-slate-500 font-normal">-</span>
                                             )
                                         ) : (
                                             <CollabFieldShell rowId={row.id} field="project" remoteFocusByCell={remoteFocusByCell} flashCellKey={flashCellKey}>
@@ -916,9 +916,9 @@ export function DiscussionAreaTable({
                                                     <div className="flex items-center gap-1">
                                                         <span
                                                             title={row.project}
-                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold text-xs shadow-2xs max-w-full"
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800/40 font-bold text-xs shadow-2xs max-w-full"
                                                         >
-                                                            <Hash className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                                                            <Hash className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                                                             <span className="truncate">{row.project}</span>
                                                             <button
                                                                 type="button"
@@ -932,7 +932,7 @@ export function DiscussionAreaTable({
                                                                     });
                                                                     updateRowsAndNotify(updated);
                                                                 }}
-                                                                className="hover:bg-emerald-200 rounded p-0.5 text-emerald-700 hover:text-emerald-900 transition-colors cursor-pointer flex-shrink-0 ml-1"
+                                                                className="hover:bg-emerald-200 dark:hover:bg-emerald-900/60 rounded p-0.5 text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-100 transition-colors cursor-pointer flex-shrink-0 ml-1"
                                                                 title="Remove project"
                                                             >
                                                                 <X className="w-3 h-3" />
@@ -973,7 +973,7 @@ export function DiscussionAreaTable({
                                                                 }
                                                             }}
                                                             placeholder="Type #project name..."
-                                                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 transition-all"
+                                                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-gray-900 dark:text-slate-100 focus:border-[#091590] dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/40 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-500"
                                                         />
                                                         {typedProjectQuery[row.id] && (
                                                             <button
@@ -985,7 +985,7 @@ export function DiscussionAreaTable({
                                                                         return next;
                                                                     });
                                                                 }}
-                                                                className="text-gray-400 hover:text-red-500 p-0.5 transition-colors cursor-pointer"
+                                                                className="text-gray-400 dark:text-slate-500 hover:text-red-500 p-0.5 transition-colors cursor-pointer"
                                                                 title="Clear query"
                                                             >
                                                                 <X className="w-3.5 h-3.5" />
@@ -1005,7 +1005,7 @@ export function DiscussionAreaTable({
                                                             }}
                                                         />
                                                         <div
-                                                            className="fixed bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden max-h-60 overflow-y-auto"
+                                                            className="fixed bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-2xl z-[99999] overflow-hidden max-h-60 overflow-y-auto"
                                                             style={{
                                                                 top: popupPos.top,
                                                                 left: popupPos.left,
@@ -1014,17 +1014,17 @@ export function DiscussionAreaTable({
                                                                 transform: popupPos.openAbove ? 'translateY(-100%)' : 'none',
                                                             }}
                                                         >
-                                                            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
+                                                            <div className="px-3 py-2 bg-gray-50 dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700 text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
                                                                 <span>Select Project (#)</span>
-                                                                <Hash className="w-3.5 h-3.5 text-emerald-600" />
+                                                                <Hash className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                                                             </div>
                                                             {isProjectLoading ? (
-                                                                <div className="p-4 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
+                                                                <div className="p-4 text-center text-xs text-gray-500 dark:text-slate-400 flex items-center justify-center gap-2">
                                                                     <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
                                                                     <span>Loading projects...</span>
                                                                 </div>
                                                             ) : projectSuggestions.length === 0 ? (
-                                                                <div className="p-4 text-center text-xs text-gray-400">
+                                                                <div className="p-4 text-center text-xs text-gray-400 dark:text-slate-500">
                                                                     No matching projects found
                                                                 </div>
                                                             ) : (
@@ -1033,13 +1033,13 @@ export function DiscussionAreaTable({
                                                                         key={p.id}
                                                                         type="button"
                                                                         onClick={() => handleSelectProject(index, p)}
-                                                                        className="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none cursor-pointer"
+                                                                        className="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-gray-50 dark:border-slate-800 last:border-none cursor-pointer"
                                                                     >
-                                                                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-emerald-300 shadow-2xs">
+                                                                        <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-emerald-300 dark:border-emerald-700 shadow-2xs">
                                                                             <FolderIcon className="w-3.5 h-3.5" />
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
-                                                                            <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
+                                                                            <p className="text-xs font-bold text-gray-900 dark:text-slate-100 truncate">{p.name}</p>
                                                                         </div>
                                                                     </button>
                                                                 ))
@@ -1055,7 +1055,7 @@ export function DiscussionAreaTable({
                                     {/* Discussion Points Column */}
                                     <td className="py-2 px-2 min-w-[280px] align-top">
                                         {!canEditFullRow ? (
-                                            <p title={row.discussionPoints} className="text-xs text-gray-900 whitespace-pre-wrap leading-relaxed py-1 px-1">
+                                            <p title={row.discussionPoints} className="text-xs text-gray-900 dark:text-slate-100 whitespace-pre-wrap leading-relaxed py-1 px-1">
                                                 {row.discussionPoints || '-'}
                                             </p>
                                         ) : (
@@ -1068,7 +1068,7 @@ export function DiscussionAreaTable({
                                                     onBlur={() => onCellBlur?.(row.id, 'discussionPoints', row.discussionPoints || '')}
                                                     placeholder="Enter inspection & discussion details..."
                                                     rows={2}
-                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
+                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:border-[#091590] dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/40 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
                                                 />
                                             </CollabFieldShell>
                                         )}
@@ -1082,7 +1082,7 @@ export function DiscussionAreaTable({
                                                 className={cn(
                                                     "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border shadow-2xs mt-1",
                                                     STATUS_OPTIONS.find((s) => s.value === row.status)?.color ||
-                                                    "bg-gray-100 text-gray-700 border-gray-200"
+                                                    "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
                                                 )}
                                             >
                                                 {STATUS_OPTIONS.find((s) => s.value === row.status)?.label || row.status}
@@ -1098,11 +1098,11 @@ export function DiscussionAreaTable({
                                                     className={cn(
                                                         "w-full px-2 py-1.5 rounded-lg border text-xs font-bold focus:outline-none transition-all cursor-pointer truncate",
                                                         STATUS_OPTIONS.find((s) => s.value === row.status)?.color ||
-                                                        "bg-white border-gray-200 text-gray-900"
+                                                        "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100"
                                                     )}
                                                 >
                                                     {STATUS_OPTIONS.map((opt) => (
-                                                        <option key={opt.value} value={opt.value} className="bg-white text-gray-900 font-medium">
+                                                        <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 font-medium">
                                                             {opt.label}
                                                         </option>
                                                     ))}
@@ -1114,7 +1114,7 @@ export function DiscussionAreaTable({
                                     {/* Remarks Column */}
                                     <td className="py-2 px-2 w-72 min-w-[260px] align-top">
                                         {!canEditStatusRemark ? (
-                                            <p title={row.remarks} className="text-xs text-gray-600 py-1 px-1 mt-1 whitespace-pre-wrap leading-relaxed">
+                                            <p title={row.remarks} className="text-xs text-gray-600 dark:text-slate-300 py-1 px-1 mt-1 whitespace-pre-wrap leading-relaxed">
                                                 {row.remarks || '-'}
                                             </p>
                                         ) : (
@@ -1127,7 +1127,7 @@ export function DiscussionAreaTable({
                                                     onBlur={() => onCellBlur?.(row.id, 'remarks', row.remarks || '')}
                                                     placeholder="Remarks / notes..."
                                                     rows={2}
-                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-[#091590] focus:ring-2 focus:ring-blue-100 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
+                                                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:border-[#091590] dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/40 text-xs font-medium outline-none transition-all resize-y min-h-[42px]"
                                                 />
                                             </CollabFieldShell>
                                         )}
@@ -1140,13 +1140,13 @@ export function DiscussionAreaTable({
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDeleteRow(index)}
-                                                    className="text-gray-300 hover:text-red-500 p-1 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                                    className="text-gray-300 dark:text-slate-600 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
                                                     title="Delete row"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             ) : (
-                                                <span className="text-gray-300 text-xs font-bold cursor-default" title="Only Owner can delete existing rows">-</span>
+                                                <span className="text-gray-300 dark:text-slate-600 text-xs font-bold cursor-default" title="Only Owner can delete existing rows">-</span>
                                             )}
                                         </td>
                                     )}
@@ -1158,20 +1158,20 @@ export function DiscussionAreaTable({
             </div>
 
             {/* Bottom Footer */}
-            <div className="p-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-shrink-0 z-10 gap-2">
+            <div className="p-2.5 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0 z-10 gap-2">
                 <div className="flex items-center gap-2">
                     {!readOnly && canFullyManage && (
                         <button
                             type="button"
                             onClick={handleAddRow}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#091590] border border-blue-200 hover:border-[#091590] font-bold text-xs rounded-lg transition-all shadow-2xs cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-[#091590] dark:text-blue-400 border border-blue-200 dark:border-slate-700 hover:border-[#091590] dark:hover:border-blue-400 font-bold text-xs rounded-lg transition-all shadow-2xs cursor-pointer"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Add Discussion Point Row</span>
                         </button>
                     )}
                 </div>
-                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
+                <span className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider">
                     {userFilter.trim()
                         ? `Showing ${filteredRows.length} of ${rows.length}`
                         : `Total Items: ${rows.length}`}
@@ -1184,16 +1184,16 @@ export function DiscussionAreaTable({
         <div className="w-full space-y-3">
             {isFullscreen ? (
                 <div className="fixed inset-0 z-[9990] bg-slate-900/60 backdrop-blur-xs flex flex-col p-2 md:p-5 animate-in fade-in duration-150">
-                    <div className="w-full h-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+                    <div className="w-full h-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-slate-800">
                         {/* Fullscreen Modal Header */}
-                        <div className="px-5 py-3 bg-white border-b border-gray-200 flex items-center justify-between flex-shrink-0 gap-3">
+                        <div className="px-5 py-3 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0 gap-3">
                             <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-lg bg-[#091590]/10 text-[#091590] flex items-center justify-center font-bold flex-shrink-0">
-                                    <MessageSquare className="w-4 h-4 text-[#091590]" />
+                                <div className="w-7 h-7 rounded-lg bg-[#091590]/10 dark:bg-blue-950/40 text-[#091590] dark:text-blue-400 flex items-center justify-center font-bold flex-shrink-0">
+                                    <MessageSquare className="w-4 h-4 text-[#091590] dark:text-blue-400" />
                                 </div>
                                 <div className="min-w-0">
-                                    <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Discussion Area Table</h2>
-                                    <p className="text-[10px] text-gray-400 truncate">
+                                    <h2 className="text-xs font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider">Discussion Area Table</h2>
+                                    <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">
                                         Full Screen View • Press ESC to exit
                                         {otherViewers.length > 0
                                             ? ` • ${otherViewers.length === 1
@@ -1241,10 +1241,10 @@ export function DiscussionAreaTable({
                                 <button
                                     type="button"
                                     onClick={() => onExitFullScreen?.()}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-lg transition-colors cursor-pointer border border-gray-200"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 font-bold text-xs rounded-lg transition-colors cursor-pointer border border-gray-200 dark:border-slate-700"
                                     title="Exit Full Screen (ESC)"
                                 >
-                                    <Minimize2 className="w-4 h-4 text-gray-700" />
+                                    <Minimize2 className="w-4 h-4 text-gray-700 dark:text-slate-300" />
                                     <span>Exit Full Screen</span>
                                 </button>
                             </div>

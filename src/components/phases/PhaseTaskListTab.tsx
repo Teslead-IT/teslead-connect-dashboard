@@ -842,20 +842,20 @@ export default function PhaseTaskListTab({
     const toolbarEl = (isEditable || canCreateTask) && (
         <div className="flex items-center gap-2">
             {/* Group By */}
-            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
-                <LayoutGrid className="w-3.5 h-3.5 text-gray-500" />
-                <span className="text-xs font-semibold text-gray-500">Group By:</span>
-                <span className="text-xs font-bold text-gray-800">Phases</span>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                <LayoutGrid className="w-3.5 h-3.5 text-gray-500 dark:text-slate-400" />
+                <span className="text-xs font-semibold text-gray-500 dark:text-slate-400">Group By:</span>
+                <span className="text-xs font-bold text-gray-800 dark:text-slate-200">Phases</span>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
             </div>
 
             {/* View Toggle - icons only */}
-            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-md overflow-hidden">
+            <div className="flex items-center bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md overflow-hidden">
                 <button
                     onClick={() => setViewMode('list')}
                     className={cn(
                         "p-1.5 transition-colors",
-                        viewMode === 'list' ? "bg-white text-[var(--primary)] shadow-sm" : "text-gray-500 hover:text-gray-700"
+                        viewMode === 'list' ? "bg-white dark:bg-slate-700 text-[var(--primary)] dark:text-blue-400 shadow-sm" : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                     )}
                     title="List view"
                 >
@@ -865,7 +865,7 @@ export default function PhaseTaskListTab({
                     onClick={() => setViewMode('board')}
                     className={cn(
                         "p-1.5 transition-colors",
-                        viewMode === 'board' ? "bg-white text-[var(--primary)] shadow-sm" : "text-gray-500 hover:text-gray-700"
+                        viewMode === 'board' ? "bg-white dark:bg-slate-700 text-[var(--primary)] dark:text-blue-400 shadow-sm" : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                     )}
                     title="Board view"
                 >
@@ -881,7 +881,7 @@ export default function PhaseTaskListTab({
                         Add
                         <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                     </button>
-                    <div className="absolute right-0 top-full pt-1 min-w-[160px] py-1 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 invisible group-hover/add:opacity-100 group-hover/add:visible transition-opacity z-50">
+                    <div className="absolute right-0 top-full pt-1 min-w-[160px] py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md shadow-lg opacity-0 invisible group-hover/add:opacity-100 group-hover/add:visible transition-opacity z-50">
                         {canCreateTask && (
                             <button
                                 onClick={() => {
@@ -895,7 +895,7 @@ export default function PhaseTaskListTab({
                                         toast.error('Create a Phase first', 'You need at least one phase before adding tasks.');
                                     }
                                 }}
-                                className="w-full px-3 py-2 text-left text-xs hover:bg-emerald-50 flex items-center gap-2 text-gray-700"
+                                className="w-full px-3 py-2 text-left text-xs hover:bg-emerald-50 dark:hover:bg-slate-700 flex items-center gap-2 text-gray-700 dark:text-slate-200"
                             >
                                 <Plus className="w-4 h-4 text-emerald-500" />
                                 Add Task
@@ -903,7 +903,7 @@ export default function PhaseTaskListTab({
                         )}
                         <button
                             onClick={() => setShowAddPhase(true)}
-                            className="w-full px-3 py-2 text-left text-xs hover:bg-indigo-50 flex items-center gap-2 text-gray-700"
+                            className="w-full px-3 py-2 text-left text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 flex items-center gap-2 text-gray-700 dark:text-slate-200"
                         >
                             <Layers className="w-4 h-4 text-indigo-500" />
                             Add Phase
@@ -919,7 +919,7 @@ export default function PhaseTaskListTab({
                                     toast.error('Create a Phase first', 'You need at least one phase before adding task lists.');
                                 }
                             }}
-                            className="w-full px-3 py-2 text-left text-xs hover:bg-emerald-50 flex items-center gap-2 text-gray-700"
+                            className="w-full px-3 py-2 text-left text-xs hover:bg-emerald-50 dark:hover:bg-slate-700 flex items-center gap-2 text-gray-700 dark:text-slate-200"
                         >
                             <ListTodo className="w-4 h-4 text-emerald-500" />
                             Add Task List
@@ -931,14 +931,14 @@ export default function PhaseTaskListTab({
     );
 
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-white dark:bg-slate-950">
             {toolbarSlot && createPortal(toolbarEl, toolbarSlot)}
 
             {/* Add Phase Input */}
             {showAddPhase && (
-                <div className="px-4 py-2.5 border-b border-gray-200 bg-indigo-50/40 flex items-center gap-2.5">
-                    <div className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                        <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                <div className="px-4 py-2.5 border-b border-gray-200 dark:border-slate-800 bg-indigo-50/40 dark:bg-indigo-950/20 flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center flex-shrink-0">
+                        <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <input
                         autoFocus
@@ -950,7 +950,7 @@ export default function PhaseTaskListTab({
                             if (e.key === 'Enter') handleAddPhase();
                             if (e.key === 'Escape') { setShowAddPhase(false); setAddPhaseInput(''); }
                         }}
-                        className="flex-1 text-xs px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white"
+                        className="flex-1 text-xs px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                     />
                     <button
                         onClick={handleAddPhase}
@@ -959,7 +959,7 @@ export default function PhaseTaskListTab({
                     >
                         Create
                     </button>
-                    <button onClick={() => { setShowAddPhase(false); setAddPhaseInput(''); }} className="px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 font-medium">
+                    <button onClick={() => { setShowAddPhase(false); setAddPhaseInput(''); }} className="px-2 py-1.5 text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 font-medium">
                         Cancel
                     </button>
                 </div>
@@ -1039,6 +1039,43 @@ export default function PhaseTaskListTab({
                         overflow: hidden;
                     }
                     .phase-grid-v2 .ag-body-viewport { overflow-y: auto !important; }
+
+                    /* Dark Mode Overrides for Phase Grid */
+                    .dark .phase-grid-v2 .ag-header {
+                        background-color: #1e293b !important;
+                        border-bottom: 2px solid #334155 !important;
+                    }
+                    .dark .phase-grid-v2 .ag-header-cell-label {
+                        color: #94a3b8 !important;
+                    }
+                    .dark .phase-grid-v2 .ag-row.phase-row {
+                        background-color: #1e293b !important;
+                        border-bottom: 1px solid #334155 !important;
+                        border-left: 4px solid #6366f1 !important;
+                    }
+                    .dark .phase-grid-v2 .ag-row.phase-row:hover {
+                        background-color: #24344d !important;
+                    }
+                    .dark .phase-grid-v2 .ag-row.tasklist-row {
+                        background-color: #0f172a !important;
+                        border-bottom: 1px solid #1e293b !important;
+                        border-left: 4px solid #10b981 !important;
+                    }
+                    .dark .phase-grid-v2 .ag-row.tasklist-row:hover {
+                        background-color: #1a2538 !important;
+                    }
+                    .dark .phase-grid-v2 .ag-row.task-row {
+                        background-color: #0b1120 !important;
+                        border-bottom: 1px solid #1e293b !important;
+                        border-left: 4px solid transparent !important;
+                    }
+                    .dark .phase-grid-v2 .ag-row.task-row:hover {
+                        background-color: #131d31 !important;
+                        border-left-color: #818cf8 !important;
+                    }
+                    .dark .phase-grid-v2 .ag-cell {
+                        color: #f1f5f9 !important;
+                    }
                 `}</style>
                     <AgGridReact
                         ref={gridRef}
@@ -1550,7 +1587,7 @@ function TaskNameCell(params: ICellRendererParams) {
                 <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center mr-2 flex-shrink-0 shadow-sm">
                     <Layers className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="font-bold text-xs text-gray-800 truncate uppercase tracking-wide flex-1 min-w-0" title={row.name}>
+                <span className="font-bold text-xs text-gray-800 dark:text-slate-100 truncate uppercase tracking-wide flex-1 min-w-0" title={row.name}>
                     {row.name}
                 </span>
                 {ctx.isEditable && (
@@ -1601,11 +1638,11 @@ function TaskNameCell(params: ICellRendererParams) {
                 <div className="w-6 h-6 rounded bg-emerald-500 flex items-center justify-center mr-2 flex-shrink-0 shadow-sm">
                     <ListTodo className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="font-semibold text-xs text-gray-700 truncate flex-1 min-w-0" title={row.name}>
+                <span className="font-semibold text-xs text-gray-700 dark:text-slate-200 truncate flex-1 min-w-0" title={row.name}>
                     {row.name}
                 </span>
                 {row.childCount !== undefined && (
-                    <span className="ml-1.5 text-[10px] text-gray-400 font-bold">
+                    <span className="ml-1.5 text-[10px] text-gray-400 dark:text-slate-500 font-bold">
                         ({row.childCount})
                     </span>
                 )}
@@ -1677,7 +1714,7 @@ function TaskNameCell(params: ICellRendererParams) {
                         className="flex justify-center items-center gap-1 p-1 text-indigo-500 hover:text-indigo-600 rounded transition-all cursor-pointer select-none"
                         title={`Copy full ID: ${taskIdToCopy}`}
                     >
-                        <span className="text-[9px] font-bold text-black bg-white border border-gray-100 px-1.5 py-0.5 rounded tracking-tight min-w-[32px] text-center shadow-xs">
+                        <span className="text-[9px] font-bold text-black dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 px-1.5 py-0.5 rounded tracking-tight min-w-[32px] text-center shadow-xs">
                             {taskIdToCopy.includes('-') ? taskIdToCopy.split('-').pop() : taskIdToCopy}
                         </span>
                         {copied ? (
@@ -1692,7 +1729,7 @@ function TaskNameCell(params: ICellRendererParams) {
             {row.hasChildren ? (
                 <button
                     onClick={(e) => { e.stopPropagation(); ctx.toggleTask(row.taskId!); }}
-                    className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                    className="p-1 mr-1 hover:bg-gray-100 dark:hover:bg-slate-800 rounded transition-colors flex-shrink-0"
                 >
                     {row.isExpanded
                         ? <ChevronDown className="w-4 h-4 text-gray-500 stroke-[2.5]" />
@@ -1701,14 +1738,14 @@ function TaskNameCell(params: ICellRendererParams) {
                 </button>
             ) : (
                 <div className="w-6 mr-1 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-3.5 h-3.5 text-gray-300" />
+                    <FileText className="w-3.5 h-3.5 text-gray-300 dark:text-slate-600" />
                 </div>
             )}
 
             <span
                 className={cn(
-                    "text-xs truncate flex-1 min-w-0 cursor-pointer hover:text-blue-600 transition-colors",
-                    row.rowType === 'subtask' ? 'text-gray-500' : 'text-gray-800 font-medium'
+                    "text-xs truncate flex-1 min-w-0 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors",
+                    row.rowType === 'subtask' ? 'text-gray-500 dark:text-slate-400' : 'text-gray-800 dark:text-slate-100 font-medium'
                 )}
                 onClick={(e) => {
                     e.stopPropagation();
@@ -1721,7 +1758,7 @@ function TaskNameCell(params: ICellRendererParams) {
                 {row.name}
             </span>
             {row.hasChildren && row.childCount! > 0 && (
-                <span className="ml-1.5 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded font-bold">
+                <span className="ml-1.5 text-[10px] text-gray-400 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold">
                     {row.childCount}
                 </span>
             )}
@@ -1795,7 +1832,7 @@ function ViewButtonCell(params: ICellRendererParams) {
             <div className="flex items-center h-full justify-center opacity-0 group-hover/phase:opacity-100 transition-opacity">
                 <button
                     onClick={(e) => { e.stopPropagation(); ctx.onViewPhase?.(row.phaseId); }}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded hover:bg-indigo-100 transition-colors"
+                    className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-800/40 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors"
                 >
                     <Eye className="w-3 h-3" />
                     View
@@ -1808,7 +1845,7 @@ function ViewButtonCell(params: ICellRendererParams) {
             <div className="flex items-center h-full justify-center opacity-0 group-hover/tl:opacity-100 transition-opacity">
                 <button
                     onClick={(e) => { e.stopPropagation(); ctx.onViewTaskList?.(row.taskListId!); }}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded hover:bg-emerald-100 transition-colors"
+                    className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800/40 rounded hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors"
                 >
                     <Eye className="w-3 h-3" />
                     View
@@ -1828,7 +1865,7 @@ function ViewButtonCell(params: ICellRendererParams) {
                         ctx.onViewTask?.(row.taskId);
                     }
                 }}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded hover:bg-indigo-100 transition-colors cursor-pointer select-none"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-800/40 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer select-none"
             >
                 <Eye className="w-3 h-3" />
                 View
@@ -1859,9 +1896,9 @@ function ExpectedOutputCell(params: ICellRendererParams) {
     const row = params.data as FlatRow;
     if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
     const value = row.expectedOutput || (row.taskData as any)?.expectedOutput;
-    if (!value) return <div className="px-2 text-[10px] text-gray-400 italic">-</div>;
+    if (!value) return <div className="px-2 text-[10px] text-gray-400 dark:text-slate-500 italic">-</div>;
     return (
-        <div className="px-2 h-full flex items-center truncate text-xs text-gray-700 font-medium" title={value}>
+        <div className="px-2 h-full flex items-center truncate text-xs text-gray-700 dark:text-slate-300 font-medium" title={value}>
             {value}
         </div>
     );
@@ -1881,7 +1918,7 @@ function IssueCountBadge({
             <span
                 className={cn(
                     'inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-md text-[11px] font-bold tabular-nums border',
-                    count > 0 ? accentClass : 'bg-gray-50 text-gray-400 border-gray-100'
+                    count > 0 ? accentClass : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border-gray-100 dark:border-slate-700'
                 )}
             >
                 {count}
@@ -1897,7 +1934,7 @@ function TotalIssuesCell(params: ICellRendererParams) {
     return (
         <IssueCountBadge
             count={count}
-            accentClass="bg-rose-50 text-rose-700 border-rose-100"
+            accentClass="bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-900/50"
             title={`${count} total issue${count === 1 ? '' : 's'} linked to this task`}
         />
     );
@@ -1910,7 +1947,7 @@ function ReadyForTestIssuesCell(params: ICellRendererParams) {
     return (
         <IssueCountBadge
             count={count}
-            accentClass="bg-amber-50 text-amber-700 border-amber-100"
+            accentClass="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-900/50"
             title={`${count} issue${count === 1 ? '' : 's'} ready for testing`}
         />
     );
@@ -1921,7 +1958,7 @@ function StatusCell(params: ICellRendererParams) {
     const ctx = params.context;
 
     if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
-    if (!row.status) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+    if (!row.status) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400 dark:text-slate-500">-</span></div>;
 
     const { workflow = [], onUpdateStatus, isEditable } = ctx || {};
     const [isOpen, setIsOpen] = useState(false);
@@ -2045,7 +2082,7 @@ function StatusCell(params: ICellRendererParams) {
                                 width: dropdownPosition.width,
                                 zIndex: 99999
                             }}
-                            className="bg-white border border-gray-100 rounded-lg shadow-2xl py-1.5 px-1 overflow-hidden"
+                            className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-lg shadow-2xl py-1.5 px-1 overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
@@ -2062,8 +2099,8 @@ function StatusCell(params: ICellRendererParams) {
                                             className={cn(
                                                 "flex items-center gap-2.5 w-full px-2.5 py-2 text-[11px] font-semibold transition-all rounded-md text-left mb-0.5 last:mb-0",
                                                 isSelected
-                                                    ? "bg-blue-50 text-blue-700 shadow-sm"
-                                                    : "hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                                                    ? "bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 shadow-sm"
+                                                    : "hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100"
                                             )}
                                         >
                                             <div
@@ -2120,7 +2157,7 @@ function OwnerCell(params: ICellRendererParams) {
     if (row.rowType === 'phase') {
         return (
             <div className="flex items-center h-full px-2">
-                <span className="text-xs text-gray-400 font-medium">-</span>
+                <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">-</span>
             </div>
         );
     }
@@ -2129,8 +2166,8 @@ function OwnerCell(params: ICellRendererParams) {
     if (assignees.length === 0) {
         return (
             <div className="flex items-center h-full px-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold tracking-wide bg-slate-200 text-slate-800 border-0 rounded-sm">
-                    <User className="w-3 h-3 text-slate-500" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold tracking-wide bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 border-0 rounded-sm">
+                    <User className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                     Unassigned
                 </span>
             </div>
@@ -2144,7 +2181,7 @@ function OwnerCell(params: ICellRendererParams) {
                     <div
                         key={a.id}
                         className={cn(
-                            "w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold text-white shadow-sm",
+                            "w-6 h-6 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center text-[9px] font-bold text-white shadow-sm",
                             a.avatarUrl ? '' : getAvatarColor(a.name)
                         )}
                         title={a.name}
@@ -2158,10 +2195,10 @@ function OwnerCell(params: ICellRendererParams) {
                 ))}
             </div>
             {assignees.length === 1 && (
-                <span className="text-[11px] text-gray-600 font-medium truncate max-w-[60px]">{assignees[0].name.split(' ')[0]}</span>
+                <span className="text-[11px] text-gray-600 dark:text-slate-300 font-medium truncate max-w-[60px]">{assignees[0].name.split(' ')[0]}</span>
             )}
             {assignees.length > 2 && (
-                <span className="text-[10px] text-gray-400 font-bold">+{assignees.length - 2}</span>
+                <span className="text-[10px] text-gray-400 dark:text-slate-500 font-bold">+{assignees.length - 2}</span>
             )}
         </div>
     );
@@ -2174,7 +2211,7 @@ function AssignedByCell(params: ICellRendererParams) {
     if (row.rowType === 'phase') {
         return (
             <div className="flex items-center h-full px-2">
-                <span className="text-xs text-gray-400 font-medium">-</span>
+                <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">-</span>
             </div>
         );
     }
@@ -2188,7 +2225,7 @@ function AssignedByCell(params: ICellRendererParams) {
     if (!assignedBy) {
         return (
             <div className="flex items-center h-full px-2">
-                <span className="text-xs text-gray-400 font-medium">—</span>
+                <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">—</span>
             </div>
         );
     }
@@ -2200,7 +2237,7 @@ function AssignedByCell(params: ICellRendererParams) {
         <div className="flex items-center h-full px-2 gap-1.5" title={name}>
             <div
                 className={cn(
-                    "w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold text-white shadow-sm flex-shrink-0",
+                    "w-6 h-6 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center text-[9px] font-bold text-white shadow-sm flex-shrink-0",
                     avatarUrl ? '' : getAvatarColor(name)
                 )}
             >
@@ -2210,7 +2247,7 @@ function AssignedByCell(params: ICellRendererParams) {
                     name.charAt(0).toUpperCase()
                 )}
             </div>
-            <span className="text-[11px] text-gray-700 font-medium truncate max-w-[80px]">
+            <span className="text-[11px] text-gray-700 dark:text-slate-300 font-medium truncate max-w-[80px]">
                 {name.split(' ')[0]}
             </span>
         </div>
@@ -2232,7 +2269,7 @@ function TestedByCell(params: ICellRendererParams) {
     if (!testers || testers.length === 0) {
         return (
             <div className="flex items-center h-full px-2">
-                <span className="text-xs text-gray-400 font-medium">—</span>
+                <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">—</span>
             </div>
         );
     }
@@ -2244,7 +2281,7 @@ function TestedByCell(params: ICellRendererParams) {
                     <div
                         key={t.id || t.email}
                         className={cn(
-                            "w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold text-white shadow-sm flex-shrink-0",
+                            "w-6 h-6 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center text-[9px] font-bold text-white shadow-sm flex-shrink-0",
                             t.avatarUrl ? '' : getAvatarColor(t.name || t.email || 'Tester')
                         )}
                         title={t.name || t.email}
@@ -2258,12 +2295,12 @@ function TestedByCell(params: ICellRendererParams) {
                 ))}
             </div>
             {testers.length === 1 && (
-                <span className="text-[11px] text-gray-600 font-medium truncate max-w-[60px]">
+                <span className="text-[11px] text-gray-600 dark:text-slate-300 font-medium truncate max-w-[60px]">
                     {(testers[0].name || testers[0].email || '').split(' ')[0]}
                 </span>
             )}
             {testers.length > 2 && (
-                <span className="text-[10px] text-gray-400 font-bold">+{testers.length - 2}</span>
+                <span className="text-[10px] text-gray-400 dark:text-slate-500 font-bold">+{testers.length - 2}</span>
             )}
         </div>
     );
@@ -2274,7 +2311,7 @@ function TagsCell(params: ICellRendererParams) {
     if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
 
     const tags = row.tags || [];
-    if (tags.length === 0) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+    if (tags.length === 0) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400 dark:text-slate-500">-</span></div>;
 
     return (
         <div className="flex items-center h-full px-2 gap-1 overflow-hidden">
@@ -2290,7 +2327,7 @@ function TagsCell(params: ICellRendererParams) {
                     {tag.name}
                 </span>
             ))}
-            {tags.length > 2 && <span className="text-[10px] text-gray-400 font-bold">+{tags.length - 2}</span>}
+            {tags.length > 2 && <span className="text-[10px] text-gray-400 dark:text-slate-500 font-bold">+{tags.length - 2}</span>}
         </div>
     );
 }
@@ -2300,7 +2337,7 @@ function DateCell(params: ICellRendererParams) {
     if (row.rowType === 'tasklist') return null;
 
     const dateStr = params.value;
-    if (!dateStr) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+    if (!dateStr) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400 dark:text-slate-500">-</span></div>;
 
     const d = new Date(dateStr);
     const formatted = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -2308,7 +2345,7 @@ function DateCell(params: ICellRendererParams) {
 
     return (
         <div className="flex items-center h-full px-2">
-            <span className={cn('text-[11px] font-medium', isPast ? 'text-red-500' : 'text-gray-600')}>
+            <span className={cn('text-[11px] font-medium', isPast ? 'text-red-500 dark:text-red-400' : 'text-gray-600 dark:text-slate-300')}>
                 {formatted}
             </span>
         </div>
@@ -2320,11 +2357,11 @@ function DateTimeCell(params: ICellRendererParams) {
     if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
 
     const dateStr = params.value || row.startDateTime;
-    if (!dateStr) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+    if (!dateStr) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400 dark:text-slate-500">-</span></div>;
 
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) {
-        return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+        return <div className="px-2"><span className="text-[10px] font-medium text-gray-400 dark:text-slate-500">-</span></div>;
     }
 
     const formatted = d.toLocaleString('en-US', {
@@ -2337,7 +2374,7 @@ function DateTimeCell(params: ICellRendererParams) {
 
     return (
         <div className="flex items-center h-full px-2">
-            <span className="text-[11px] font-medium text-gray-600" title={formatted}>
+            <span className="text-[11px] font-medium text-gray-600 dark:text-slate-300" title={formatted}>
                 {formatted}
             </span>
         </div>

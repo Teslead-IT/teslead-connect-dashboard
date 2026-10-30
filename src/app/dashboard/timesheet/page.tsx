@@ -221,6 +221,49 @@ export default function TimesheetPage() {
                     z-index: 0 !important;
                     border-top: 1px solid #cbd5e1 !important;
                 }
+
+                /* Dark mode overrides */
+                .dark .custom-ag-grid .ag-root-wrapper {
+                    border: 1px solid #334155 !important;
+                    background-color: #0f172a !important;
+                    box-shadow: none !important;
+                }
+                .dark .custom-ag-grid .ag-header,
+                .dark .custom-ag-grid .ag-header-row,
+                .dark .custom-ag-grid .ag-header-cell,
+                .dark .custom-ag-grid .ag-pinned-left-header,
+                .dark .custom-ag-grid .ag-pinned-right-header {
+                    background-color: #1e293b !important;
+                    border-bottom: 1px solid #334155 !important;
+                    border-color: #334155 !important;
+                }
+                .dark .custom-ag-grid .ag-header-cell-label,
+                .dark .custom-ag-grid .ag-header-cell-label .ag-header-cell-text,
+                .dark .custom-ag-grid .ag-header-cell-text {
+                    color: #94a3b8 !important;
+                }
+                .dark .custom-ag-grid .ag-header-icon,
+                .dark .custom-ag-grid .ag-icon {
+                    color: #94a3b8 !important;
+                }
+                .dark .custom-ag-grid .ag-row {
+                    border-bottom: 1px solid #1e293b !important;
+                    background-color: #0f172a !important;
+                }
+                .dark .custom-ag-grid .ag-cell {
+                    color: #f1f5f9 !important;
+                }
+                .dark .custom-ag-grid .ag-row:hover {
+                    background-color: #1e293b !important;
+                }
+                .dark .custom-ag-grid .ag-row-selected {
+                    background-color: #1e3a5f !important;
+                }
+                .dark .custom-ag-grid .ag-paging-panel {
+                    background-color: #0f172a !important;
+                    border-top: 1px solid #334155 !important;
+                    color: #94a3b8 !important;
+                }
             `}</style>
 
             <div className="sticky top-0 z-20 bg-white">

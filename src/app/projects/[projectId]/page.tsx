@@ -400,11 +400,9 @@ export default function ProjectDetailPage() {
     }
 
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-white dark:bg-slate-950">
             {/* Compact Combined Header */}
-            {/* Compact Combined Header */}
-            {/* Compact Combined Header */}
-            <div className="bg-white border-b border-gray-200 px-3 py-2 sm:px-4 sm:py-1.5">
+            <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-3 py-2 sm:px-4 sm:py-1.5">
                 <div className="flex flex-wrap items-center justify-between gap-y-2">
                     <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                         <button
@@ -415,7 +413,7 @@ export default function ProjectDetailPage() {
                                     router.push('/projects');
                                 }
                             }}
-                            className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-500 hover:text-gray-700 flex-shrink-0"
+                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 flex-shrink-0"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
@@ -430,9 +428,9 @@ export default function ProjectDetailPage() {
 
                             <div className="flex flex-col min-w-0 flex-1">
                                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                                    <h1 className="text-base font-bold text-gray-900 leading-none truncate max-w-[150px] sm:max-w-[300px] md:max-w-[400px]" title={project.name}>{project.name}</h1>
+                                    <h1 className="text-base font-bold text-gray-900 dark:text-slate-100 leading-none truncate max-w-[150px] sm:max-w-[300px] md:max-w-[400px]" title={project.name}>{project.name}</h1>
                                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                                        <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1 py-0.5 rounded border border-gray-100 flex-shrink-0">
+                                        <span className="text-[10px] font-mono text-gray-400 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 px-1 py-0.5 rounded border border-gray-100 dark:border-slate-700 flex-shrink-0">
                                             {project.projectId}
                                         </span>
                                         <span
@@ -459,7 +457,7 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* Tabs Row */}
-            <div className="bg-white border-b border-gray-200 px-3 sm:px-4 flex items-center justify-between gap-4 w-full">
+            <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-4 w-full">
                 <Tabs
                     items={TAB_ITEMS}
                     activeTab={activeTab}
@@ -473,7 +471,7 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-hidden bg-white">
+            <div className="flex-1 overflow-hidden bg-white dark:bg-slate-950">
                 {activeTab === 'tasks' ? (
                     <div className="h-full">
                         <PhaseTaskListTab

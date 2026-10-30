@@ -54,7 +54,7 @@ export function Tabs({ items, activeTab, onChange, className }: TabsProps) {
     return (
         <div
             ref={containerRef}
-            className={cn("flex  items-center gap-1 border-b border-gray-200 relative overflow-x-auto no-scrollbar", className)}
+            className={cn("flex  items-center gap-1 border-b border-gray-200 dark:border-slate-800 relative overflow-x-auto no-scrollbar", className)}
         >
             {items.map((item) => {
                 const isActive = activeTab === item.id;
@@ -67,11 +67,11 @@ export function Tabs({ items, activeTab, onChange, className }: TabsProps) {
                         className={cn(
                             "relative px-3 py-2 text-xs font-medium transition-colors duration-200 whitespace-nowrap flex items-center gap-2 select-none outline-none focus:outline-none",
                             isActive
-                                ? "text-[var(--primary)]" // Active color
-                                : "text-gray-500 hover:text-gray-700 cursor-pointer"
+                                ? "text-[var(--primary)] dark:text-blue-400 font-semibold" // Active color
+                                : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 cursor-pointer"
                         )}
                     >
-                        {item.icon && <span className={cn("w-4 h-4", isActive ? "text-[var(--primary)]" : "text-gray-400")}>{item.icon}</span>}
+                        {item.icon && <span className={cn("w-4 h-4", isActive ? "text-[var(--primary)] dark:text-blue-400" : "text-gray-400 dark:text-slate-500")}>{item.icon}</span>}
                         {item.label}
                     </button>
                 );
@@ -80,7 +80,7 @@ export function Tabs({ items, activeTab, onChange, className }: TabsProps) {
             {/* Sliding Underline Indicator */}
             {activeRect && (
                 <motion.div
-                    className="absolute bottom-0 h-0.5 bg-[var(--primary)] z-10"
+                    className="absolute bottom-0 h-0.5 bg-[var(--primary)] dark:bg-blue-400 z-10"
                     initial={false}
                     animate={{
                         left: activeRect.left,

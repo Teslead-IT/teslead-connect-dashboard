@@ -17,15 +17,15 @@ export default function MeetingDetailPage() {
     const highlightProjectId = searchParams.get('projectId') || undefined;
 
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-white dark:bg-slate-950">
             {/* Top Navigation Bar with Back Button */}
-            <div className="bg-white border-b border-gray-100 px-6 py-2.5 flex items-center justify-between flex-shrink-0">
+            <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 px-6 py-2.5 flex items-center justify-between flex-shrink-0">
                 <button
                     type="button"
                     onClick={() => router.push('/meetings')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 hover:text-[#091590] hover:bg-blue-50 transition-colors border border-gray-200 shadow-2xs cursor-pointer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 dark:text-slate-300 hover:text-[#091590] dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors border border-gray-200 dark:border-slate-700 shadow-2xs cursor-pointer"
                 >
-                    <ArrowLeft className="w-4 h-4 text-[#091590]" />
+                    <ArrowLeft className="w-4 h-4 text-[#091590] dark:text-blue-400" />
                     <span>Back to Meetings</span>
                 </button>
             </div>

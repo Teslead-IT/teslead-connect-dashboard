@@ -47,16 +47,16 @@ const MOCK_TASKS = [
 // ==================== WIDGET COMPONENTS ====================
 
 const CardHeader = ({ title, icon: Icon, action }: { title: string, icon: any, action?: React.ReactNode }) => (
-    <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between cursor-default bg-gray-50/50">
+    <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between cursor-default bg-gray-50/50 dark:bg-slate-850">
         <div className="flex items-center gap-2">
-            <div className="p-1 bg-blue-50 rounded text-[#091590]">
+            <div className="p-1 bg-blue-50 dark:bg-blue-950/50 rounded text-[#091590] dark:text-blue-400">
                 <Icon className="w-3.5 h-3.5" />
             </div>
-            <h3 className="font-bold text-gray-900 text-[12px] uppercase tracking-wider">{title}</h3>
+            <h3 className="font-bold text-gray-900 dark:text-slate-100 text-[12px] uppercase tracking-wider">{title}</h3>
         </div>
         <div className="flex items-center gap-2">
             {action}
-            <button className="p-1 hover:bg-gray-100 rounded text-gray-400">
+            <button className="p-1 hover:bg-gray-100 dark:hover:bg-slate-800 rounded text-gray-400 dark:text-slate-500">
                 <GripVertical className="w-3.5 h-3.5 cursor-grab active:cursor-grabbing" />
             </button>
         </div>
@@ -126,8 +126,8 @@ export default function DashboardPage() {
     }, [data?.priorityDistribution]);
 
     const colDefs: ColDef[] = useMemo(() => [
-        { field: 'id', headerName: 'ID', width: 70, cellClass: 'font-medium text-gray-500 text-[11px]' },
-        { field: 'title', headerName: 'TASK NAME', flex: 1, cellClass: 'font-semibold text-gray-900 text-[12px]' },
+        { field: 'id', headerName: 'ID', width: 70, cellClass: 'font-medium text-gray-500 dark:text-slate-400 text-[11px]' },
+        { field: 'title', headerName: 'TASK NAME', flex: 1, cellClass: 'font-semibold text-gray-900 dark:text-slate-100 text-[12px]' },
         {
             field: 'status',
             headerName: 'STATUS',
@@ -136,16 +136,16 @@ export default function DashboardPage() {
                 <div className="flex items-center h-full">
                     <span className={cn(
                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
-                        p.value === 'Completed' ? "bg-green-100 text-green-700" :
-                            p.value === 'In Progress' ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                        p.value === 'Completed' ? "bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300" :
+                            p.value === 'In Progress' ? "bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300" : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300"
                     )}>
                         {p.value}
                     </span>
                 </div>
             )
         },
-        { field: 'priority', headerName: 'PRIORITY', width: 90, cellClass: 'text-[11px]' },
-        { field: 'dueDate', headerName: 'DUE DATE', width: 100, cellClass: 'text-[11px] text-gray-500' }
+        { field: 'priority', headerName: 'PRIORITY', width: 90, cellClass: 'text-[11px] font-medium text-gray-700 dark:text-slate-300' },
+        { field: 'dueDate', headerName: 'DUE DATE', width: 100, cellClass: 'text-[11px] text-gray-500 dark:text-slate-400' }
     ], []);
 
     const defaultColDef = useMemo(() => ({
@@ -156,13 +156,13 @@ export default function DashboardPage() {
 
     const widgets: Record<string, React.ReactNode> = {
         workload: (
-            <div key="workload" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div key="workload" className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
                 <CardHeader title="Workload Activity" icon={Activity} />
                 <div className="h-[220px] w-full p-4">
                     {formattedWorkload.length === 0 ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-slate-500">
                             <Activity className="w-6 h-6 mb-2 opacity-20" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300">No activity yet</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300 dark:text-slate-600">No activity yet</span>
                         </div>
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
@@ -173,13 +173,13 @@ export default function DashboardPage() {
                                         <stop offset="95%" stopColor="#091590" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px' }}
+                                    contentStyle={{ borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#f8fafc', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.3)', fontSize: '11px' }}
                                 />
-                                <Area type="monotone" dataKey="tasks" stroke="#091590" strokeWidth={2} fillOpacity={1} fill="url(#colorTasks)" />
+                                <Area type="monotone" dataKey="tasks" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorTasks)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     )}
@@ -187,13 +187,13 @@ export default function DashboardPage() {
             </div>
         ),
         priorities: (
-            <div key="priorities" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden text-center">
+            <div key="priorities" className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden text-center">
                 <CardHeader title="Priority Distribution" icon={PieChartIcon} />
                 <div className="h-[220px] w-full p-4">
                     {formattedPriorities.length === 0 ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-slate-500">
                             <PieChartIcon className="w-6 h-6 mb-2 opacity-20" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300">No activity yet</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300 dark:text-slate-600">No activity yet</span>
                         </div>
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
@@ -209,7 +209,7 @@ export default function DashboardPage() {
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
-                                <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '8px' }} />
+                                <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '8px', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#f8fafc' }} />
                                 <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
                             </PieChart>
                         </ResponsiveContainer>
@@ -218,28 +218,25 @@ export default function DashboardPage() {
             </div>
         ),
         projects: (
-            <div key="projects" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div key="projects" className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
                 <CardHeader
                     title="Project Pulse"
                     icon={BarChart3}
                     action={
                         totalProjectPages > 1 ? (
-                            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-md px-1 py-0.5 shadow-2xs">
+                            <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md px-1 py-0.5 shadow-2xs">
                                 <button
                                     onClick={() => setProjectPage((prev) => Math.max(1, prev - 1))}
                                     disabled={projectPage === 1}
-                                    className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
+                                    className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 dark:text-slate-300 transition-colors"
                                     title="Previous page"
                                 >
                                     <ChevronLeft className="w-3.5 h-3.5" />
                                 </button>
-                                {/* <span className="text-[10px] font-bold text-gray-500 px-1 select-none">
-                                    {projectPage}/{totalProjectPages}
-                                </span> */}
                                 <button
                                     onClick={() => setProjectPage((prev) => Math.min(totalProjectPages, prev + 1))}
                                     disabled={projectPage >= totalProjectPages}
-                                    className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
+                                    className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 dark:text-slate-300 transition-colors"
                                     title="Next page"
                                 >
                                     <ChevronRight className="w-3.5 h-3.5" />
@@ -250,27 +247,27 @@ export default function DashboardPage() {
                 />
                 <div className="h-[350px] p-4 space-y-4 overflow-y-auto custom-scrollbar">
                     {!data?.projectPulse || data.projectPulse.length === 0 ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-slate-500">
                             <BarChart3 className="w-6 h-6 mb-2 opacity-20" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300">No projects yet</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300 dark:text-slate-600">No projects yet</span>
                         </div>
                     ) : (
                         paginatedProjects.map((p, i) => (
                             <div key={p.id || p.name || i} className="space-y-1.5">
                                 <div className="flex justify-between items-end">
                                     <div>
-                                        <p className="text-[12px] font-bold text-gray-900 leading-none">{p.name}</p>
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1">{p.taskCount} tasks</p>
+                                        <p className="text-[12px] font-bold text-gray-900 dark:text-slate-100 leading-none">{p.name}</p>
+                                        <p className="text-[9px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-1">{p.taskCount} tasks</p>
                                     </div>
-                                    <span className="text-[11px] font-black text-[#091590]">{p.completionPercentage}%</span>
+                                    <span className="text-[11px] font-black text-[#091590] dark:text-blue-400">{p.completionPercentage}%</span>
                                 </div>
-                                <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
+                                <div className="h-1.5 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                     <motion.div
                                         key={`${projectPage}-${p.id || p.name || i}`}
                                         initial={{ width: 0 }}
                                         animate={{ width: `${p.completionPercentage}%` }}
                                         transition={{ duration: 0.8, delay: i * 0.05 }}
-                                        className="h-full bg-[#091590] rounded-full"
+                                        className="h-full bg-[#091590] dark:bg-blue-500 rounded-full"
                                     />
                                 </div>
                             </div>
@@ -280,7 +277,7 @@ export default function DashboardPage() {
             </div>
         ),
         tasks: (
-            <div key="tasks" className="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div key="tasks" className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
                 <CardHeader title="Action Items" icon={CheckCircle2} />
                 <div className="h-[350px] ag-theme-alpine">
                     <AgGridReact
@@ -298,9 +295,9 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f3f4f6] pb-8">
+        <div className="min-h-screen bg-[#f3f4f6] dark:bg-slate-950 pb-8">
             {/* Header Section */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 mb-6">
+            <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-6 py-4 mb-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <motion.div
@@ -308,23 +305,23 @@ export default function DashboardPage() {
                             transition={{ duration: 0.2 }}
                         >
                             <div className="flex items-center gap-2 mb-1">
-                                <span className="px-2 py-0.5 bg-blue-50 text-[#091590] text-[9px] font-black uppercase tracking-wider rounded">
+                                <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-[#091590] dark:text-blue-400 text-[9px] font-black uppercase tracking-wider rounded">
                                     Live Performance
                                 </span>
-                                <span className="text-gray-200">|</span>
-                                <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400">
+                                <span className="text-gray-200 dark:text-slate-700">|</span>
+                                <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 dark:text-slate-500">
                                     <Calendar className="w-3 h-3" />
                                     {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
                             </div>
-                            <h1 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-4">
+                            <h1 className="text-xl font-black text-gray-900 dark:text-slate-100 tracking-tight flex items-center gap-4">
                                 <span>Welcome back, {user?.name?.split(' ')[0] || 'Member'}</span>
-                                <div className="inline-flex bg-gray-100 p-0.5 rounded-md border border-gray-200">
+                                <div className="inline-flex bg-gray-100 dark:bg-slate-800 p-0.5 rounded-md border border-gray-200 dark:border-slate-700">
                                     <button
                                         onClick={() => setViewMode('org')}
                                         className={cn(
                                             "px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all",
-                                            viewMode === 'org' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                                            viewMode === 'org' ? "bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 shadow-sm" : "text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200"
                                         )}
                                     >
                                         My Org
@@ -333,7 +330,7 @@ export default function DashboardPage() {
                                         onClick={() => setViewMode('me')}
                                         className={cn(
                                             "px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all",
-                                            viewMode === 'me' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                                            viewMode === 'me' ? "bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 shadow-sm" : "text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200"
                                         )}
                                     >
                                         Just Me
@@ -350,28 +347,28 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     {isLoading ? (
                         Array(4).fill(0).map((_, i) => (
-                            <div key={i} className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-center h-24 animate-pulse">
-                                <div className="w-8 h-8 rounded-full bg-gray-100" />
+                            <div key={i} className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex items-center justify-center h-24 animate-pulse">
+                                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800" />
                             </div>
                         ))
                     ) : (
                         [
-                            { label: 'Completed', value: data?.completedTasks?.value || 0, trend: data?.completedTasks?.trend || 0, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                            { label: 'In Progress', value: data?.inProgressTasks?.value || 0, trend: data?.inProgressTasks?.trend || 0, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
-                            { label: 'Efficiency', value: `${data?.efficiency?.value || 0}%`, trend: data?.efficiency?.trend || 0, icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                            { label: 'Capacity', value: `${data?.capacity?.value || 0}%`, trend: data?.capacity?.trend || 0, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+                            { label: 'Completed', value: data?.completedTasks?.value || 0, trend: data?.completedTasks?.trend || 0, icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/50' },
+                            { label: 'In Progress', value: data?.inProgressTasks?.value || 0, trend: data?.inProgressTasks?.trend || 0, icon: Clock, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/50' },
+                            { label: 'Efficiency', value: `${data?.efficiency?.value || 0}%`, trend: data?.efficiency?.trend || 0, icon: TrendingUp, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/50' },
+                            { label: 'Capacity', value: `${data?.capacity?.value || 0}%`, trend: data?.capacity?.trend || 0, icon: Users, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/50' },
                         ].map((s, i) => (
-                            <div key={i} className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm">
+                            <div key={i} className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
                                 <div className="flex justify-between items-start mb-2">
                                     <div className={cn("p-1.5 rounded-lg", s.bg, s.color)}>
                                         <s.icon className="w-4 h-4" />
                                     </div>
-                                    <span className={cn("text-[10px] font-bold", s.trend >= 0 ? "text-green-600" : "text-red-600")}>
+                                    <span className={cn("text-[10px] font-bold", s.trend >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
                                         {s.trend >= 0 ? '+' : ''}{s.trend}%
                                     </span>
                                 </div>
-                                <h4 className="text-lg font-black text-gray-900">{s.value}</h4>
-                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{s.label}</p>
+                                <h4 className="text-lg font-black text-gray-900 dark:text-slate-100">{s.value}</h4>
+                                <p className="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">{s.label}</p>
                             </div>
                         ))
                     )}

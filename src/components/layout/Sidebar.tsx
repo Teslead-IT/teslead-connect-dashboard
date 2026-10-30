@@ -175,9 +175,9 @@ export function Sidebar() {
     };
 
     const SidebarContent = () => (
-        <div className="flex flex-col h-full bg-white relative">
+        <div className="flex flex-col h-full bg-white dark:bg-slate-900 relative transition-colors duration-200">
             {/* Logo Section */}
-            <div className="h-12 flex items-center border-b border-gray-200 px-6 overflow-hidden">
+            <div className="h-12 flex items-center border-b border-gray-200 dark:border-slate-800 px-6 overflow-hidden">
                 <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
                     <div className="relative w-8 h-8 flex-shrink-0">
                         <Image
@@ -191,7 +191,7 @@ export function Sidebar() {
                         initial={false}
                         animate={{ opacity: isCollapsed ? 0 : 1 }}
                         transition={{ duration: 0.2 }}
-                        className="font-bold text-lg text-gray-900 tracking-tight whitespace-nowrap overflow-hidden"
+                        className="font-bold text-lg text-gray-900 dark:text-slate-100 tracking-tight whitespace-nowrap overflow-hidden"
                     >
                         Teslead Connect
                     </motion.span>
@@ -222,14 +222,14 @@ export function Sidebar() {
                                 }}
                                 className={cn(
                                     'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 font-medium text-xs relative',
-                                    isActive ? 'bg-[#091590] text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900',
+                                    isActive ? 'bg-[#091590] dark:bg-blue-600 text-white shadow-sm' : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800/80 hover:text-gray-900 dark:hover:text-slate-100',
                                     isCollapsed ? 'justify-center' : ''
                                 )}
                                 title={isCollapsed ? item.label : undefined}
                             >
                                 <div className={cn(
                                     "flex items-center justify-center transition-colors min-w-[20px]",
-                                    isActive ? "text-white" : "text-gray-500 group-hover:text-gray-900"
+                                    isActive ? "text-white" : "text-gray-500 dark:text-slate-400 group-hover:text-gray-900 dark:group-hover:text-slate-100"
                                 )}>
                                     {item.icon}
                                 </div>
@@ -253,22 +253,12 @@ export function Sidebar() {
                                         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                                         className={cn(
                                             "flex-shrink-0",
-                                            isActive ? "text-white" : "text-gray-500"
+                                            isActive ? "text-white" : "text-gray-500 dark:text-slate-400"
                                         )}
                                     >
                                         <ChevronDown className="w-4 h-4" />
                                     </motion.div>
                                 )}
-
-                                {/* {isActive && (
-                                    <motion.div
-                                        layoutId="active-indicator"
-                                        className={cn(
-                                            "absolute rounded-full bg-white opacity-50",
-                                            isCollapsed ? "w-1 h-1 right-1" : "right-3 w-1.5 h-1.5"
-                                        )}
-                                    />
-                                )} */}
                             </Link>
 
                             {/* Submenu - Optimized for smoothness */}
@@ -282,7 +272,7 @@ export function Sidebar() {
                                             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                                             className="overflow-hidden"
                                         >
-                                            <div className="ml-4 mt-1 pl-6 border-l border-gray-200 space-y-0.5 pointer-events-auto">
+                                            <div className="ml-4 mt-1 pl-6 border-l border-gray-200 dark:border-slate-800 space-y-0.5 pointer-events-auto">
                                                 {item.children!.map((child) => {
                                                     const isChildActive = pathname === child.href || (child.href !== '/projects' && pathname.startsWith(child.href));
                                                     return (
@@ -295,8 +285,8 @@ export function Sidebar() {
                                                             className={cn(
                                                                 'flex items-center gap-2 px-2 py-2 rounded-md text-xs transition-colors duration-200',
                                                                 isChildActive
-                                                                    ? 'bg-[#091590]/10 text-[#091590] font-semibold'
-                                                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                                                    ? 'bg-[#091590]/10 dark:bg-blue-950/60 text-[#091590] dark:text-blue-400 font-semibold'
+                                                                    : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-slate-100'
                                                             )}
                                                         >
                                                             {child.icon}
@@ -315,12 +305,12 @@ export function Sidebar() {
             </nav>
 
             {/* Logout Section */}
-            <div className="p-3 border-t border-gray-200 mt-auto">
+            <div className="p-3 border-t border-gray-200 dark:border-slate-800 mt-auto">
                 <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
                     className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
                         isCollapsed ? "justify-center" : ""
                     )}
                     title={isCollapsed ? "Logout" : undefined}
@@ -342,7 +332,7 @@ export function Sidebar() {
             {/* Collapse Toggle Button (Desktop Only) */}
             <button
                 onClick={toggleSidebar}
-                className="hidden lg:flex absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1 shadow-sm text-gray-500 hover:text-[var(--primary)] hover:border-[var(--primary)] transition-colors z-50 cursor-pointer"
+                className="hidden lg:flex absolute -right-3 top-20 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full p-1 shadow-sm text-gray-500 dark:text-slate-400 hover:text-[var(--primary)] dark:hover:text-blue-400 hover:border-[var(--primary)] dark:hover:border-blue-400 transition-colors z-50 cursor-pointer"
             >
                 {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </button>
@@ -354,7 +344,7 @@ export function Sidebar() {
             {/* Mobile Toggle Button */}
             <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white border border-gray-200 shadow-md text-gray-700 hover:bg-gray-50 transition-colors"
+                className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                 aria-label="Toggle menu"
             >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -378,7 +368,7 @@ export function Sidebar() {
                 initial={false}
                 animate={{ width: isCollapsed ? 80 : 256 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="hidden lg:flex lg:flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-gray-200 z-40 shadow-sm"
+                className="hidden lg:flex lg:flex-col fixed left-0 top-0 bottom-0 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 z-40 shadow-sm transition-colors duration-200"
             >
                 <SidebarContent />
             </motion.aside>
@@ -386,7 +376,7 @@ export function Sidebar() {
             {/* Mobile Sidebar */}
             <aside
                 className={cn(
-                    'lg:hidden flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 z-50 shadow-xl',
+                    'lg:hidden flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 z-50 shadow-xl transition-colors duration-200',
                     'transform transition-transform duration-300 ease-in-out',
                     mobileOpen ? 'translate-x-0' : '-translate-x-full'
                 )}

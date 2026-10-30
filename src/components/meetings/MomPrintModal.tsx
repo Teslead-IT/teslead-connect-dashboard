@@ -216,7 +216,7 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                 }
             `}</style>
 
-            <div className="mom-print-shell bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="mom-print-shell bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh] border border-gray-200 dark:border-slate-800">
                 {/* Header Modal Bar (Hidden during print) */}
                 <div className="no-print bg-[#091590] text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 relative pr-14">
                     <div className="flex items-center gap-3">
@@ -266,54 +266,54 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                 </div>
 
                 {/* Printable Document Body */}
-                <div className="mom-print-scroll flex-1 overflow-y-auto p-6 sm:p-8 pb-16 bg-gray-50/50 custom-scrollbar">
+                <div className="mom-print-scroll flex-1 overflow-y-auto p-6 sm:p-8 pb-16 bg-gray-50/50 dark:bg-slate-950 custom-scrollbar">
                     <div
                         id="printable-mom-container"
-                        className="bg-white p-6 sm:p-8 print:p-0 rounded-xl border border-gray-300 print:border-none shadow-sm print:shadow-none max-w-4xl mx-auto space-y-4 text-black text-xs uppercase flex flex-col print:block print:min-h-0 print:mb-0 mb-8"
+                        className="bg-white dark:bg-slate-900 print:bg-white p-6 sm:p-8 print:p-0 rounded-xl border border-gray-300 dark:border-slate-800 print:border-none shadow-sm print:shadow-none max-w-4xl mx-auto space-y-4 text-black dark:text-slate-100 print:text-black text-xs uppercase flex flex-col print:block print:min-h-0 print:mb-0 mb-8"
                     >
                         <div className="space-y-4 print:space-y-3">
                             {/* Section 1: NO OF PEOPLE / LOCATION / DATE */}
-                            <table className="w-full border-collapse border border-gray-800 text-center font-bold">
+                            <table className="w-full border-collapse border border-gray-800 dark:border-slate-700 print:border-gray-800 text-center font-bold">
                                 <thead>
-                                    <tr className="bg-[#404040] text-white">
-                                        <th className="border border-gray-800 py-2.5 px-3 w-1/4 align-middle">NO OF PEOPLE</th>
-                                        <th className="border border-gray-800 py-2.5 px-3 w-1/2 align-middle">LOCATION</th>
-                                        <th className="border border-gray-800 py-2.5 px-3 w-1/4 align-middle">DATE</th>
+                                    <tr className="bg-[#404040] dark:bg-slate-800 print:bg-[#404040] text-white">
+                                        <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 w-1/4 align-middle">NO OF PEOPLE</th>
+                                        <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 w-1/2 align-middle">LOCATION</th>
+                                        <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 w-1/4 align-middle">DATE</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td className="border border-gray-800 py-3 px-3 align-middle">{getNumberOfPeople(meeting)}</td>
-                                        <td className="border border-gray-800 py-3 px-3 align-middle">{meeting.location || 'TESLEAD EQUIPMENTS PVT LTD ,COIMBATORE'}</td>
-                                        <td className="border border-gray-800 py-3 px-3 align-middle">{formattedDate}</td>
+                                    <tr className="text-gray-900 dark:text-slate-100 print:text-black">
+                                        <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-3 px-3 align-middle">{getNumberOfPeople(meeting)}</td>
+                                        <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-3 px-3 align-middle">{meeting.location || 'TESLEAD EQUIPMENTS PVT LTD ,COIMBATORE'}</td>
+                                        <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-3 px-3 align-middle">{formattedDate}</td>
                                     </tr>
                                 </tbody>
                             </table>
 
                             {/* Section 2: PURPOSE OF MEETING */}
-                            <table className="w-full border-collapse border border-gray-800 text-center font-bold">
+                            <table className="w-full border-collapse border border-gray-800 dark:border-slate-700 print:border-gray-800 text-center font-bold">
                                 <thead>
-                                    <tr className="bg-[#404040] text-white">
-                                        <th className="border border-gray-800 py-2.5 px-3 align-middle">PURPOSE OF MEETING</th>
+                                    <tr className="bg-[#404040] dark:bg-slate-800 print:bg-[#404040] text-white">
+                                        <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 align-middle">PURPOSE OF MEETING</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td className="border border-gray-800 py-3 px-3 align-middle">{meeting.purpose || 'DAILY INTERNAL MEETING'}</td>
+                                    <tr className="text-gray-900 dark:text-slate-100 print:text-black">
+                                        <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-3 px-3 align-middle">{meeting.purpose || 'DAILY INTERNAL MEETING'}</td>
                                     </tr>
                                 </tbody>
                             </table>
 
                             {/* Section 3: ATTENDED BY */}
-                            <table className="w-full border-collapse border border-gray-800 text-center font-bold">
+                            <table className="w-full border-collapse border border-gray-800 dark:border-slate-700 print:border-gray-800 text-center font-bold">
                                 <thead>
-                                    <tr className="bg-[#404040] text-white">
-                                        <th className="border border-gray-800 py-2.5 px-3 align-middle">ATTENDED BY</th>
+                                    <tr className="bg-[#404040] dark:bg-slate-800 print:bg-[#404040] text-white">
+                                        <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 align-middle">ATTENDED BY</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td className="border border-gray-800 py-3 px-3 leading-relaxed align-middle">
+                                    <tr className="text-gray-900 dark:text-slate-100 print:text-black">
+                                        <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-3 px-3 leading-relaxed align-middle">
                                             {meeting.attendedBy || 'N/A'}
                                         </td>
                                     </tr>
@@ -323,44 +323,44 @@ export function MomPrintModal({ isOpen, onClose, meeting, initialMode = 'interna
                             {/* Section 4: MAIN DISCUSSION TABLE */}
                             {/* Print-only anchor cancels thead top-gap on page 1; gap still shows on pages 2+ */}
                             <div className="mom-print-gap-anchor hidden print:block" aria-hidden="true" />
-                            <table className="mom-discussion-table w-full border-collapse border border-gray-800">
+                            <table className="mom-discussion-table w-full border-collapse border border-gray-800 dark:border-slate-700 print:border-gray-800">
                                 <thead>
                                     {/* Print-only gap: repeats on pages 2+ as top margin (with @page margin: 0) */}
                                     <tr className="mom-print-page-gap hidden print:table-row">
                                         <td colSpan={discussionColCount}>{'\u00A0'}</td>
                                     </tr>
-                                    <tr className="bg-[#404040] text-white text-center font-bold">
-                                        <th className="border border-gray-800 py-2.5 px-2 w-12 align-middle">SNO</th>
-                                        <th className="border border-gray-800 py-2.5 px-3 text-left align-middle">INSPECTION & DISCUSSION POINTS</th>
-                                        <th className="border border-gray-800 py-2.5 px-3 w-40 align-middle">PROJECT</th>
-                                        {!isClientMode && <th className="border border-gray-800 py-2.5 px-3 w-44 align-middle">ASSIGNED TO</th>}
-                                        {!isClientMode && <th className="border border-gray-800 py-2.5 px-2 w-28 align-middle">STATUS</th>}
-                                        <th className="border border-gray-800 py-2.5 px-3 w-36 align-middle">REMARKS</th>
+                                    <tr className="bg-[#404040] dark:bg-slate-800 print:bg-[#404040] text-white text-center font-bold">
+                                        <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-2 w-12 align-middle">SNO</th>
+                                        <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 text-left align-middle">INSPECTION & DISCUSSION POINTS</th>
+                                        <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 w-40 align-middle">PROJECT</th>
+                                        {!isClientMode && <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 w-44 align-middle">ASSIGNED TO</th>}
+                                        {!isClientMode && <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-2 w-28 align-middle">STATUS</th>}
+                                        <th className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 w-36 align-middle">REMARKS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {discussionRows.map((row: any, idx: number) => {
                                         const isPad = row.isPad;
                                         return (
-                                            <tr key={row.id || idx} className="text-gray-900 font-semibold align-middle">
-                                                <td className="border border-gray-800 py-2.5 px-2 text-center font-bold align-middle">{idx + 1}</td>
-                                                <td className="border border-gray-800 py-2.5 px-3 text-left leading-normal whitespace-pre-wrap break-words align-middle">
+                                            <tr key={row.id || idx} className="text-gray-900 dark:text-slate-100 print:text-black font-semibold align-middle">
+                                                <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-2 text-center font-bold align-middle">{idx + 1}</td>
+                                                <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 text-left leading-normal whitespace-pre-wrap break-words align-middle">
                                                     {isPad ? '\u00A0' : (row.discussionPoints || '-')}
                                                 </td>
-                                                <td className="border border-gray-800 py-2.5 px-3 text-center font-semibold break-words align-middle">
+                                                <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 text-center font-semibold break-words align-middle">
                                                     {isPad ? '\u00A0' : (row.project || '-')}
                                                 </td>
                                                 {!isClientMode && (
-                                                    <td className="border border-gray-800 py-2.5 px-3 text-center break-words align-middle">
+                                                    <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 text-center break-words align-middle">
                                                         {isPad ? '\u00A0' : (row.user || '-')}
                                                     </td>
                                                 )}
                                                 {!isClientMode && (
-                                                    <td className="border border-gray-800 py-2.5 px-2 text-center font-bold align-middle">
+                                                    <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-2 text-center font-bold align-middle">
                                                         {isPad ? '\u00A0' : (row.status || 'OPEN')}
                                                     </td>
                                                 )}
-                                                <td className="border border-gray-800 py-2.5 px-3 text-left break-words align-middle">
+                                                <td className="border border-gray-800 dark:border-slate-700 print:border-gray-800 py-2.5 px-3 text-left break-words align-middle">
                                                     {isPad ? '\u00A0' : (row.remarks || '')}
                                                 </td>
                                             </tr>

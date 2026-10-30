@@ -71,7 +71,7 @@ export function Modal({
                 <div
                     className={cn(
                         'w-full rounded-xl pointer-events-auto',
-                        'bg-white border border-gray-200',
+                        'bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800',
                         'shadow-2xl animate-in zoom-in-95 ease-out duration-200',
                         sizeStyles[size]
                     )}
@@ -79,9 +79,9 @@ export function Modal({
                 >
                     {/* Header */}
                     {(title || showCloseButton) && (
-                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-gray-50">
+                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/60">
                             {title && (
-                                <h2 className="text-lg font-bold text-gray-900">
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">
                                     {title}
                                 </h2>
                             )}
@@ -89,8 +89,8 @@ export function Modal({
                                 <button
                                     onClick={onClose}
                                     className={cn(
-                                        'p-1.5 rounded-lg text-gray-400',
-                                        'hover:bg-gray-200 hover:text-gray-600',
+                                        'p-1.5 rounded-lg text-gray-400 dark:text-slate-500',
+                                        'hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-gray-600 dark:hover:text-slate-300',
                                         'transition-colors duration-200'
                                     )}
                                     aria-label="Close modal"
