@@ -50,7 +50,7 @@ import { PhaseViewModal } from './PhaseViewModal';
 import { TaskListViewModal } from './TaskListViewModal';
 import { CreateTaskListModal } from './CreateTaskListModal';
 import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
 import {
     useStructuredPhases,
@@ -63,8 +63,9 @@ import {
     useReorderTaskLists,
 } from '@/hooks/use-phases';
 import { useCreateTask, useUpdateTask, useDeleteTask, useProjectWorkflow, useProjectTasks } from '@/hooks/use-tasks';
-import { useCreateIssue } from '@/hooks/use-issues';
+import { useCreateIssue, useProjectIssues } from '@/hooks/use-issues';
 import { useProjectMembers } from '@/hooks/use-projects';
+import type { Issue } from '@/types/issue';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { TaskViewModal } from '@/components/tasks/TaskViewModal';
 import { TaskTimerButton } from '@/components/tasks/TaskTimerButton';
@@ -106,6 +107,7 @@ interface FlatRow {
     testers?: Array<{ id: string; name: string; email: string; avatarUrl?: string }>;
     tags?: Array<{ id: string; name: string; color: string }>;
     startDate?: string | null;
+    startDateTime?: string | null;
     dueDate?: string | null;
     priority?: number;
     type?: TaskType;
@@ -113,6 +115,9 @@ interface FlatRow {
     childCount?: number;
     isExpanded?: boolean;
     hasChildren?: boolean;
+
+    totalIssues?: number;
+    readyForTestIssues?: number;
 
     phaseData?: PhaseWithTaskLists;
     taskListData?: TaskListWithTasks;
@@ -141,12 +146,33 @@ function normalizeStr(str?: string | null): string {
     return str ? str.trim().toLowerCase() : '';
 }
 
+function isReadyForTestingStatus(statusName?: string | null): boolean {
+    const name = normalizeStr(statusName);
+    return name.includes('ready for testing') || name === 'ready for test';
+}
+
+function buildIssueCountsByTaskId(issues: Issue[]): Map<string, { total: number; readyForTest: number }> {
+    const map = new Map<string, { total: number; readyForTest: number }>();
+    for (const issue of issues) {
+        const linkedId = issue.taskId || issue.linkedTask?.id;
+        if (!linkedId) continue;
+        const current = map.get(linkedId) || { total: 0, readyForTest: 0 };
+        current.total += 1;
+        if (isReadyForTestingStatus(issue.status?.name)) {
+            current.readyForTest += 1;
+        }
+        map.set(linkedId, current);
+    }
+    return map;
+}
+
 function doesTaskOrChildrenMatch(
     task: StructuredTask,
     targetStatus?: string,
     query?: string
 ): boolean {
-    const statusMatch = !targetStatus || normalizeStr(task.status?.name) === targetStatus;
+    const sName = normalizeStr(task.status?.name);
+    const statusMatch = !targetStatus || sName === targetStatus || (targetStatus.includes('testing') && sName.includes('testing'));
     const queryMatch = !query ||
         normalizeStr(task.title).includes(query) ||
         normalizeStr(task.taskId).includes(query);
@@ -221,6 +247,12 @@ export default function PhaseTaskListTab({
     const { data: workflow = [] } = useProjectWorkflow(projectId);
     const { data: members = [] } = useProjectMembers(projectId);
     const { data: projectTasks = [] } = useProjectTasks(projectId);
+    const { data: projectIssues = [] } = useProjectIssues(projectId);
+
+    const issueCountsByTaskId = useMemo(
+        () => buildIssueCountsByTaskId(projectIssues),
+        [projectIssues]
+    );
     const createPhaseMutation = useCreatePhase(projectId);
     const createTaskListMutation = useCreateTaskList(projectId);
     const createTaskMutation = useCreateTask(projectId);
@@ -395,6 +427,8 @@ export default function PhaseTaskListTab({
                                 const children = task.children || [];
                                 const isTaskExpanded = expandedTasks.has(task.id);
 
+                                const issueCounts = issueCountsByTaskId.get(task.id);
+
                                 rows.push({
                                     rowId: `task-${task.id}`,
                                     rowType: parentLevel === 2 ? 'task' : 'subtask',
@@ -411,13 +445,15 @@ export default function PhaseTaskListTab({
                                     createdBy: (task as any).createdBy || null,
                                     testers: task.testers || (task as any).testers,
                                     tags: task.tags,
-                                    startDate: null,
+                                    startDateTime: task.startDateTime ?? null,
                                     dueDate: task.dueDate,
                                     priority: task.priority,
                                     type: task.type,
                                     childCount: children.length,
                                     isExpanded: isTaskExpanded,
                                     hasChildren: children.length > 0,
+                                    totalIssues: issueCounts?.total ?? 0,
+                                    readyForTestIssues: issueCounts?.readyForTest ?? 0,
                                     taskData: task,
                                 });
 
@@ -434,7 +470,7 @@ export default function PhaseTaskListTab({
         });
 
         return rows;
-    }, [phases, expandedPhases, expandedTaskLists, expandedTasks, isEditable, searchQuery, filterStatusName]);
+    }, [phases, expandedPhases, expandedTaskLists, expandedTasks, isEditable, searchQuery, filterStatusName, issueCountsByTaskId]);
 
     const filteredFlatRows = flatRows;
 
@@ -642,8 +678,11 @@ export default function PhaseTaskListTab({
             field: 'name',
             flex: 2,
             minWidth: 320,
+            maxWidth: 520,
             cellRenderer: TaskNameCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
             rowDrag: (params) => {
                 const type = params.data?.rowType;
                 return isEditable && (type === 'phase' || type === 'tasklist' || type === 'task' || type === 'subtask');
@@ -665,6 +704,9 @@ export default function PhaseTaskListTab({
             width: 100,
             cellRenderer: TypeCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) => p.data?.type ?? '',
         },
         {
             headerName: 'Status',
@@ -672,6 +714,9 @@ export default function PhaseTaskListTab({
             width: 150,
             cellRenderer: StatusCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) => p.data?.status?.name ?? '',
         },
         {
             headerName: 'Expected Output',
@@ -679,6 +724,23 @@ export default function PhaseTaskListTab({
             width: 200,
             cellRenderer: ExpectedOutputCell,
             cellClass: '!p-0',
+            filter: false,
+        },
+        {
+            headerName: 'Total Issues',
+            field: 'totalIssues',
+            width: 110,
+            cellRenderer: TotalIssuesCell,
+            cellClass: '!p-0',
+            filter: false,
+        },
+        {
+            headerName: 'Issues in Ready for Test',
+            field: 'readyForTestIssues',
+            width: 180,
+            cellRenderer: ReadyForTestIssuesCell,
+            cellClass: '!p-0',
+            filter: false,
         },
         {
             headerName: 'Assigned To',
@@ -686,6 +748,10 @@ export default function PhaseTaskListTab({
             width: 140,
             cellRenderer: OwnerCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) =>
+                (p.data?.assignees || []).map((a: any) => a.name || a.email || '').join(' '),
         },
         {
             headerName: 'Assigned By',
@@ -693,6 +759,10 @@ export default function PhaseTaskListTab({
             width: 140,
             cellRenderer: AssignedByCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) =>
+                p.data?.assignedBy?.name || p.data?.assignedBy?.email || '',
         },
         {
             headerName: 'Tested By',
@@ -700,6 +770,10 @@ export default function PhaseTaskListTab({
             width: 140,
             cellRenderer: TestedByCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) =>
+                (p.data?.testers || []).map((t: any) => t.name || t.email || '').join(' '),
         },
         {
             headerName: 'Tags',
@@ -707,13 +781,28 @@ export default function PhaseTaskListTab({
             width: 120,
             cellRenderer: TagsCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) =>
+                (p.data?.tags || []).map((t: any) => t.name || '').join(' '),
         },
         {
             headerName: 'Start Date',
-            field: 'startDate',
-            width: 120,
-            cellRenderer: DateCell,
+            field: 'startDateTime',
+            width: 150,
+            cellRenderer: DateTimeCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) => {
+                const v = p.data?.startDateTime;
+                if (!v) return '';
+                try {
+                    return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } catch {
+                    return String(v);
+                }
+            },
         },
         {
             headerName: 'Due Date',
@@ -721,6 +810,17 @@ export default function PhaseTaskListTab({
             width: 120,
             cellRenderer: DateCell,
             cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) => {
+                const v = p.data?.dueDate;
+                if (!v) return '';
+                try {
+                    return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } catch {
+                    return String(v);
+                }
+            },
         },
     ], [isEditable, showViewButton]);
 
@@ -930,6 +1030,13 @@ export default function PhaseTaskListTab({
                         font-size: 13px;
                         color: #1e293b;
                         overflow: hidden !important;
+                    }
+                    .phase-grid-v2 .ag-cell[col-id="name"] .ag-cell-wrapper,
+                    .phase-grid-v2 .ag-cell[col-id="name"] .ag-cell-value {
+                        width: 100%;
+                        max-width: 100%;
+                        min-width: 0;
+                        overflow: hidden;
                     }
                     .phase-grid-v2 .ag-body-viewport { overflow-y: auto !important; }
                 `}</style>
@@ -1241,7 +1348,10 @@ function TasksBoardView({
         let tasks = allTasks;
         if (filterStatusName) {
             const targetStatus = filterStatusName.trim().toLowerCase();
-            tasks = tasks.filter((t: any) => t.status?.name?.trim().toLowerCase() === targetStatus);
+            tasks = tasks.filter((t: any) => {
+                const sName = t.status?.name?.trim().toLowerCase() || '';
+                return sName === targetStatus || (targetStatus.includes('testing') && sName.includes('testing'));
+            });
         }
         if (!searchQuery.trim()) return tasks;
         const q = searchQuery.trim().toLowerCase();
@@ -1421,13 +1531,13 @@ function TaskNameCell(params: ICellRendererParams) {
     if (row.rowType === 'phase') {
         return (
             <div
-                className="flex items-center h-full w-full px-2 pr-3 group/phase cursor-pointer select-none"
+                className="flex items-center h-full w-full max-w-full min-w-0 overflow-hidden px-2 pr-3 group/phase cursor-pointer select-none"
                 onClick={() => { if (row.hasChildren) ctx.togglePhase(row.phaseId); }}
             >
                 {row.hasChildren ? (
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.togglePhase(row.phaseId); }}
-                        className="p-1 mr-1 hover:bg-white/60 rounded transition-colors"
+                        className="p-1 mr-1 hover:bg-white/60 rounded transition-colors flex-shrink-0"
                     >
                         {row.isExpanded
                             ? <ChevronDown className="w-4 h-4 text-indigo-600 stroke-[2.5]" />
@@ -1435,13 +1545,13 @@ function TaskNameCell(params: ICellRendererParams) {
                         }
                     </button>
                 ) : (
-                    <div className="w-6 mr-1" />
+                    <div className="w-6 mr-1 flex-shrink-0" />
                 )}
                 <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center mr-2 flex-shrink-0 shadow-sm">
                     <Layers className="w-3.5 h-3.5 text-white" />
                 </div>
                 <span className="font-bold text-xs text-gray-800 truncate uppercase tracking-wide flex-1 min-w-0" title={row.name}>
-                    {row.name.length > 20 ? row.name.substring(0, 20) + '...' : row.name}
+                    {row.name}
                 </span>
                 {ctx.isEditable && (
                     <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/phase:opacity-100 transition-opacity">
@@ -1471,14 +1581,14 @@ function TaskNameCell(params: ICellRendererParams) {
         const indent = row.level * 24 + 8;
         return (
             <div
-                className="flex items-center h-full w-full pr-3 group/tl cursor-pointer select-none"
+                className="flex items-center h-full w-full max-w-full min-w-0 overflow-hidden pr-3 group/tl cursor-pointer select-none"
                 style={{ paddingLeft: `${indent}px` }}
                 onClick={() => { if (row.hasChildren) ctx.toggleTaskList(row.taskListId!); }}
             >
                 {row.hasChildren ? (
                     <button
                         onClick={(e) => { e.stopPropagation(); ctx.toggleTaskList(row.taskListId!); }}
-                        className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors"
+                        className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
                     >
                         {row.isExpanded
                             ? <ChevronDown className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
@@ -1486,13 +1596,13 @@ function TaskNameCell(params: ICellRendererParams) {
                         }
                     </button>
                 ) : (
-                    <div className="w-6 mr-1" />
+                    <div className="w-6 mr-1 flex-shrink-0" />
                 )}
                 <div className="w-6 h-6 rounded bg-emerald-500 flex items-center justify-center mr-2 flex-shrink-0 shadow-sm">
                     <ListTodo className="w-3.5 h-3.5 text-white" />
                 </div>
                 <span className="font-semibold text-xs text-gray-700 truncate flex-1 min-w-0" title={row.name}>
-                    {row.name.length > 60 ? row.name.substring(0, 60) + '...' : row.name}
+                    {row.name}
                 </span>
                 {row.childCount !== undefined && (
                     <span className="ml-1.5 text-[10px] text-gray-400 font-bold">
@@ -1558,7 +1668,7 @@ function TaskNameCell(params: ICellRendererParams) {
     };
 
     return (
-        <div className="flex items-center h-full w-full pr-3 group/task relative" style={{ paddingLeft: `${indent}px` }}>
+        <div className="flex items-center h-full w-full max-w-full min-w-0 overflow-hidden pr-3 group/task relative" style={{ paddingLeft: `${indent}px` }}>
             {taskIdToCopy && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1 group/copy shrink-0 z-10">
                     <button
@@ -1582,7 +1692,7 @@ function TaskNameCell(params: ICellRendererParams) {
             {row.hasChildren ? (
                 <button
                     onClick={(e) => { e.stopPropagation(); ctx.toggleTask(row.taskId!); }}
-                    className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors"
+                    className="p-1 mr-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
                 >
                     {row.isExpanded
                         ? <ChevronDown className="w-4 h-4 text-gray-500 stroke-[2.5]" />
@@ -1590,7 +1700,7 @@ function TaskNameCell(params: ICellRendererParams) {
                     }
                 </button>
             ) : (
-                <div className="w-6 mr-1 flex items-center justify-center">
+                <div className="w-6 mr-1 flex items-center justify-center flex-shrink-0">
                     <FileText className="w-3.5 h-3.5 text-gray-300" />
                 </div>
             )}
@@ -1608,7 +1718,7 @@ function TaskNameCell(params: ICellRendererParams) {
                 }}
                 title={row.name}
             >
-                {row.name.length > 60 ? row.name.substring(0, 60) + '...' : row.name}
+                {row.name}
             </span>
             {row.hasChildren && row.childCount! > 0 && (
                 <span className="ml-1.5 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded font-bold">
@@ -1757,6 +1867,55 @@ function ExpectedOutputCell(params: ICellRendererParams) {
     );
 }
 
+function IssueCountBadge({
+    count,
+    accentClass,
+    title,
+}: {
+    count: number;
+    accentClass: string;
+    title: string;
+}) {
+    return (
+        <div className="px-2 h-full flex items-center" title={title}>
+            <span
+                className={cn(
+                    'inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-md text-[11px] font-bold tabular-nums border',
+                    count > 0 ? accentClass : 'bg-gray-50 text-gray-400 border-gray-100'
+                )}
+            >
+                {count}
+            </span>
+        </div>
+    );
+}
+
+function TotalIssuesCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
+    const count = row.totalIssues ?? 0;
+    return (
+        <IssueCountBadge
+            count={count}
+            accentClass="bg-rose-50 text-rose-700 border-rose-100"
+            title={`${count} total issue${count === 1 ? '' : 's'} linked to this task`}
+        />
+    );
+}
+
+function ReadyForTestIssuesCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType !== 'task' && row.rowType !== 'subtask') return null;
+    const count = row.readyForTestIssues ?? 0;
+    return (
+        <IssueCountBadge
+            count={count}
+            accentClass="bg-amber-50 text-amber-700 border-amber-100"
+            title={`${count} issue${count === 1 ? '' : 's'} ready for testing`}
+        />
+    );
+}
+
 function StatusCell(params: ICellRendererParams) {
     const row = params.data as FlatRow;
     const ctx = params.context;
@@ -1834,7 +1993,7 @@ function StatusCell(params: ICellRendererParams) {
         }
     };
 
-    const color = selectedStatus?.color || '#64748b';
+    const color = getTaskStatusHexColor(selectedStatus?.name, selectedStatus?.color);
     const statusStyle = {
         backgroundColor: `${color}15`,
         color,
@@ -1892,7 +2051,7 @@ function StatusCell(params: ICellRendererParams) {
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {allStatuses.map((opt: any) => {
                                     const isSelected = opt.id === localStatusId;
-                                    const optColor = opt.color || '#64748b';
+                                    const optColor = getTaskStatusHexColor(opt.name, opt.color);
                                     return (
                                         <button
                                             key={opt.id}
@@ -2150,6 +2309,35 @@ function DateCell(params: ICellRendererParams) {
     return (
         <div className="flex items-center h-full px-2">
             <span className={cn('text-[11px] font-medium', isPast ? 'text-red-500' : 'text-gray-600')}>
+                {formatted}
+            </span>
+        </div>
+    );
+}
+
+function DateTimeCell(params: ICellRendererParams) {
+    const row = params.data as FlatRow;
+    if (row.rowType === 'phase' || row.rowType === 'tasklist') return null;
+
+    const dateStr = params.value || row.startDateTime;
+    if (!dateStr) return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) {
+        return <div className="px-2"><span className="text-[10px] font-medium text-gray-400">-</span></div>;
+    }
+
+    const formatted = d.toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    return (
+        <div className="flex items-center h-full px-2">
+            <span className="text-[11px] font-medium text-gray-600" title={formatted}>
                 {formatted}
             </span>
         </div>

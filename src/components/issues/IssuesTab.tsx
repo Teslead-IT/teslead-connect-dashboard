@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, ICellRendererParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import { ColDef, ICellRendererParams, GetRowIdParams, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import { Plus, Search, ChevronDown, List as ListIcon, LayoutGrid } from 'lucide-react';
+import { Plus, Search, ChevronDown, List as ListIcon, LayoutGrid, FileSpreadsheet } from 'lucide-react';
 import { Loader } from '@/components/ui/Loader';
 import { useProjectIssues, useCreateIssue, useUpdateIssue } from '@/hooks/use-issues';
 import { useProjectWorkflow, useProjectTasks } from '@/hooks/use-tasks';
@@ -18,7 +18,16 @@ import { CreateIssueModal } from './CreateIssueModal';
 import { IssueViewModal } from './IssueViewModal';
 import { useToast } from '@/components/ui/Toast';
 import { cn, formatDate } from '@/lib/utils';
+import { exportIssuesToExcel } from '@/utils/issues-excel-export';
 import type { Issue } from '@/types/issue';
+
+const PRIORITY_LABELS: Record<number, string> = {
+    1: 'P1-LOWEST',
+    2: 'P2-LOW',
+    3: 'MEDIUM',
+    4: 'HIGH',
+    5: 'CRITICAL',
+};
 
 interface IssuesTabProps {
     projectId: string;
@@ -39,7 +48,11 @@ function IssueStatusDropdown({
     const { data: workflow = [] } = useProjectWorkflow(projectId);
     const updateIssueMutation = useUpdateIssue(projectId);
     const toast = useToast();
-    const [localStatusId, setLocalStatusId] = useState(currentStatus.id);
+    const [localStatusId, setLocalStatusId] = useState(currentStatus?.id || '');
+
+    useEffect(() => {
+        setLocalStatusId(currentStatus?.id || '');
+    }, [currentStatus?.id]);
 
     const allStatuses = useMemo(() =>
         workflow.flatMap((stage: any) => (stage.statuses || []).map((st: any) => ({ ...st, stageName: stage.name }))),
@@ -47,8 +60,8 @@ function IssueStatusDropdown({
     );
 
     const selectedStatus = useMemo(() => {
-        if (localStatusId === currentStatus.id) return currentStatus;
-        return allStatuses.find(s => s.id === localStatusId) || currentStatus;
+        if (localStatusId === currentStatus?.id) return currentStatus;
+        return allStatuses.find((s: any) => s.id === localStatusId) || currentStatus;
     }, [localStatusId, currentStatus, allStatuses]);
 
     const handleStatusChange = async (newStatusId: string) => {
@@ -59,7 +72,7 @@ function IssueStatusDropdown({
             await updateIssueMutation.mutateAsync({ issueId, data: { statusId: newStatusId } });
             toast.success('Issue status updated');
         } catch (error) {
-            setLocalStatusId(currentStatus.id);
+            setLocalStatusId(currentStatus?.id || '');
             toast.error('Failed to update status');
         }
     };
@@ -109,7 +122,7 @@ function IssueStatusDropdown({
                         </option>
                     ))
                 ) : (
-                    <option value={currentStatus.id} className="uppercase text-left">{currentStatus.name}</option>
+                    <option value={currentStatus?.id} className="uppercase text-left">{currentStatus?.name}</option>
                 )}
             </select>
             <div className="absolute right-2 pointer-events-none opacity-80">
@@ -125,6 +138,8 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
     const [limit, setLimit] = useState(20);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
+    const gridRef = useRef<AgGridReact<Issue>>(null);
     const lastStatusInteractionRef = React.useRef<number>(0);
 
     const markStatusInteraction = React.useCallback(() => {
@@ -188,8 +203,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
     };
 
     const RoleRenderer = (props: ICellRendererParams<Issue>) => {
-        const prioMap: Record<number, string> = { 1: 'P1-LOWEST', 2: 'P2-LOW', 3: 'MEDIUM', 4: 'HIGH', 5: 'CRITICAL' };
-        const prioLabel = prioMap[props.data?.priority || 3] || 'MEDIUM';
+        const prioLabel = PRIORITY_LABELS[props.data?.priority || 3] || 'MEDIUM';
         return (
             <div className="h-full w-full flex items-center">
                 <span className="flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide uppercase bg-purple-50 text-purple-600 border-l border-r border-purple-100">
@@ -198,6 +212,24 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             </div>
         );
     };
+
+    const handleExportExcel = useCallback(async () => {
+        setIsExporting(true);
+        try {
+            const api = gridRef.current?.api;
+            const rows: Issue[] = [];
+            if (api) {
+                api.forEachNodeAfterFilterAndSort((node) => {
+                    if (node.data) rows.push(node.data);
+                });
+            } else {
+                rows.push(...filteredIssues);
+            }
+            await exportIssuesToExcel(rows, 'project_issues');
+        } finally {
+            setIsExporting(false);
+        }
+    }, [filteredIssues]);
 
     const AssigneesRenderer = (props: ICellRendererParams<Issue>) => {
         const assignees = props.data?.assignees || [];
@@ -223,6 +255,35 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                 ))}
                 {assignees.length > 3 && (
                     <span className="text-[10px] text-gray-500 font-medium">+{assignees.length - 3}</span>
+                )}
+            </div>
+        );
+    };
+
+    const TestersRenderer = (props: ICellRendererParams<Issue>) => {
+        const testers = props.data?.testers || [];
+
+        if (testers.length === 0) {
+            return <div className="h-full flex items-center text-[10px] text-gray-400 italic">No testers</div>;
+        }
+
+        return (
+            <div className="h-full flex items-center gap-1">
+                {testers.slice(0, 3).map((t: any) => (
+                    <div
+                        key={t.id || t.userId || t.email}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 bg-indigo-600 overflow-hidden shadow-xs"
+                        title={t.name || t.email}
+                    >
+                        {t.avatarUrl ? (
+                            <img src={t.avatarUrl} alt={t.name || t.email} className="w-full h-full object-cover" />
+                        ) : (
+                            (t.name || t.email || '?').charAt(0).toUpperCase()
+                        )}
+                    </div>
+                ))}
+                {testers.length > 3 && (
+                    <span className="text-[10px] text-gray-500 font-medium">+{testers.length - 3}</span>
                 )}
             </div>
         );
@@ -279,6 +340,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             pinned: 'left',
             cellClass: 'text-gray-500 font-medium text-[11px] flex items-center justify-center',
             suppressMenu: true,
+            filter: false,
         },
         {
             field: 'issueId',
@@ -286,6 +348,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             width: 120,
             pinned: 'left',
             cellClass: 'text-gray-400 font-mono text-[10px]',
+            filter: 'agTextColumnFilter',
         },
         {
             field: 'title',
@@ -293,6 +356,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             flex: 2,
             minWidth: 240,
             cellRenderer: IssueTitleRenderer,
+            filter: 'agTextColumnFilter',
         },
         {
             field: 'type',
@@ -300,12 +364,15 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             width: 120,
             cellRenderer: TagsRenderer,
             sortable: false,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => p.data?.type || '',
         },
         {
             field: 'phaseName',
             headerName: 'PHASE',
             width: 140,
             cellRenderer: PhaseRenderer,
+            filter: 'agTextColumnFilter',
         },
         /*{
             field: 'severity',
@@ -328,12 +395,16 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                     />
                 );
             },
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => p.data?.status?.name || '',
         },
         {
             field: 'priority',
             headerName: 'PRIORITY',
             width: 100,
             cellRenderer: RoleRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => PRIORITY_LABELS[p.data?.priority || 3] || '',
         },
         {
             field: 'assignees',
@@ -341,18 +412,43 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             width: 130,
             cellRenderer: AssigneesRenderer,
             sortable: false,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) =>
+                (p.data?.assignees || []).map((a: any) => a.name || a.email || '').join(' '),
+        },
+        {
+            field: 'testers',
+            headerName: 'TESTED BY',
+            width: 130,
+            cellRenderer: TestersRenderer,
+            sortable: false,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) =>
+                (p.data?.testers || []).map((t: any) => t.name || t.email || '').join(' '),
         },
         {
             field: 'createdAt',
             headerName: 'CREATED',
             width: 120,
             cellRenderer: DateRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => {
+                const v = p.data?.createdAt;
+                if (!v) return '';
+                return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            },
         },
         {
             field: 'dueDate',
             headerName: 'DUE',
             width: 120,
             cellRenderer: DateRenderer,
+            filter: 'agTextColumnFilter',
+            filterValueGetter: (p) => {
+                const v = p.data?.dueDate;
+                if (!v) return '';
+                return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            },
         },
     ], [projectId, markStatusInteraction]);
 
@@ -362,6 +458,38 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
         resizable: true,
         headerClass: 'bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
     }), []);
+
+    const getRowId = useCallback((params: GetRowIdParams<Issue>) => params.data?.id ?? '', []);
+
+    const goToPage = useCallback((nextPage: number) => {
+        const maxPage = Math.max(1, Math.ceil(filteredIssues.length / limit) || 1);
+        const clamped = Math.min(Math.max(1, nextPage), maxPage);
+        setPage(clamped);
+        const api = gridRef.current?.api;
+        if (api) {
+            api.paginationGoToPage(clamped - 1);
+        }
+    }, [filteredIssues.length, limit]);
+
+    // Keep AG Grid page in sync after data/limit changes (prevents jump to page 1)
+    useEffect(() => {
+        const api = gridRef.current?.api;
+        if (!api) return;
+        const maxPage = Math.max(1, Math.ceil(filteredIssues.length / limit) || 1);
+        const clamped = Math.min(page, maxPage);
+        if (clamped !== page) setPage(clamped);
+        if (api.paginationGetCurrentPage() !== clamped - 1) {
+            api.paginationGoToPage(clamped - 1);
+        }
+    }, [filteredIssues, limit, page]);
+
+    // Force refresh AG Grid cells when issues update (e.g. from modal)
+    useEffect(() => {
+        const api = gridRef.current?.api;
+        if (api) {
+            api.refreshCells({ force: true });
+        }
+    }, [issues]);
 
     return (
         <div className="h-full flex flex-col bg-white">
@@ -397,14 +525,16 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                         <div className="flex items-center gap-2">
                             <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
 
-                            {/* <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
-                                <button className="p-1 rounded bg-white text-blue-600 shadow-xs" title="List View">
-                                    <ListIcon className="w-4 h-4" />
-                                </button>
-                                <button className="p-1 rounded text-gray-400 hover:text-gray-600" title="Kanban View">
-                                    <LayoutGrid className="w-4 h-4" />
-                                </button>
-                            </div> */}
+                            <button
+                                type="button"
+                                onClick={handleExportExcel}
+                                disabled={isExporting || filteredIssues.length === 0}
+                                className="inline-flex items-center justify-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50 font-medium px-3 h-8 text-xs rounded-md transition-colors duration-200 shadow-xs whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                                title="Export issues to Excel"
+                            >
+                                <FileSpreadsheet className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export Excel'}</span>
+                            </button>
 
                             {canCreateIssue && (
                                 <button
@@ -482,16 +612,18 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                 }
                             `}</style>
                             <AgGridReact
+                                ref={gridRef}
                                 theme="legacy"
                                 rowData={filteredIssues}
                                 columnDefs={columnDefs}
                                 defaultColDef={defaultColDef}
+                                getRowId={getRowId}
                                 rowHeight={32}
                                 headerHeight={30}
                                 pagination={true}
                                 paginationPageSize={limit}
                                 suppressPaginationPanel={true}
-                                animateRows={true}
+                                animateRows={false}
                                 onRowClicked={(event) => {
                                     if (Date.now() - lastStatusInteractionRef.current < 1000) return;
                                     if ((event as any).colDef?.field === 'status' || (event as any).column?.getColId?.() === 'status') return;
@@ -499,6 +631,11 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                     if (event.data) {
                                         setSelectedIssueId(event.data.id);
                                     }
+                                }}
+                                onPaginationChanged={(event) => {
+                                    if (!event.api) return;
+                                    const gridPage = event.api.paginationGetCurrentPage() + 1;
+                                    setPage((prev) => (prev === gridPage ? prev : gridPage));
                                 }}
                             />
                         </div>
@@ -515,8 +652,12 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                     className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 px-2 py-1 bg-white border"
                                     value={limit}
                                     onChange={(e) => {
-                                        setLimit(Number(e.target.value));
+                                        const next = Number(e.target.value);
+                                        setLimit(next);
                                         setPage(1);
+                                        const api = gridRef.current?.api;
+                                        api?.setGridOption?.('paginationPageSize', next);
+                                        api?.paginationGoToPage(0);
                                     }}
                                 >
                                     <option value={20}>20 / page</option>
@@ -525,14 +666,14 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                 </select>
                                 <nav className="isolate inline-flex -space-x-px rounded-md shadow-2xs" aria-label="Pagination">
                                     <button
-                                        onClick={() => setPage(1)}
+                                        onClick={() => goToPage(1)}
                                         disabled={page === 1}
                                         className="relative inline-flex items-center rounded-l-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &laquo;
                                     </button>
                                     <button
-                                        onClick={() => setPage(Math.max(1, page - 1))}
+                                        onClick={() => goToPage(page - 1)}
                                         disabled={page === 1}
                                         className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
@@ -542,14 +683,14 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                         {page}
                                     </button>
                                     <button
-                                        onClick={() => setPage(page + 1)}
+                                        onClick={() => goToPage(page + 1)}
                                         disabled={page * limit >= filteredIssues.length}
                                         className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &rsaquo;
                                     </button>
                                     <button
-                                        onClick={() => setPage(Math.ceil(filteredIssues.length / limit) || 1)}
+                                        onClick={() => goToPage(Math.ceil(filteredIssues.length / limit) || 1)}
                                         disabled={page * limit >= filteredIssues.length}
                                         className="relative inline-flex items-center rounded-r-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
@@ -582,6 +723,9 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                 projectId={projectId}
                 isOpen={!!selectedIssueId}
                 onClose={() => setSelectedIssueId(null)}
+                onUpdate={() => {
+                    gridRef.current?.api?.refreshCells({ force: true });
+                }}
                 workflow={workflow}
                 members={members}
                 tasks={tasks}

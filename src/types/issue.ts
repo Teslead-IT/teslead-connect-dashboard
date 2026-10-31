@@ -23,6 +23,14 @@ export interface IssueAssignee {
     avatarUrl?: string;
 }
 
+export interface IssueTester {
+    testedAt?: string;
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string;
+}
+
 export interface IssueTag {
     id: string;
     name: string;
@@ -87,6 +95,8 @@ export interface Issue {
     linkedTask?: LinkedTask | null;
     status: IssueStatus;
     assignees: IssueAssignee[];
+    testers?: IssueTester[];
+    testerIds?: string[];
     tags: IssueTag[];
     attachments: IssueAttachment[];
     statusHistory?: IssueStatusHistoryEntry[];
@@ -111,6 +121,7 @@ export interface CreateIssuePayload {
     dueDate?: string;
     startDate?: string;
     assigneeIds?: string[];
+    testerIds?: string[];
     tagIds?: string[];
     attachments?: Array<{ fileName: string; fileUrl: string; mimeType?: string; fileSize?: number }>;
     completionPercentage?: number;
@@ -132,6 +143,7 @@ export interface UpdateIssuePayload {
     dueDate?: string;
     startDate?: string;
     assigneeIds?: string[];
+    testerIds?: string[];
     tagIds?: string[];
     attachments?: Array<{ fileName: string; fileUrl: string; mimeType?: string; fileSize?: number }>;
     completionPercentage?: number;

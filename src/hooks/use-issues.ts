@@ -50,16 +50,32 @@ export function useCreateIssue(projectId: string) {
     });
 }
 
-export function useUpdateIssue(projectId: string) {
+export function useUpdateIssue(projectId?: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: ({ issueId, data }: { issueId: string; data: UpdateIssuePayload }) =>
             issueService.updateIssue(issueId, data),
-        onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: issueKeys.all(projectId) });
+        onSuccess: (updated, variables) => {
+            const targetProjectId = projectId || updated?.projectId;
+            if (targetProjectId) {
+                // Patch cache in place — full list invalidate remounts grid and jumps scroll to top
+                queryClient.setQueryData(issueKeys.all(targetProjectId), (old: unknown) => {
+                    if (!Array.isArray(old)) return old;
+                    return old.map((issue: any) =>
+                        issue.id === variables.issueId
+                            ? { ...issue, ...updated, status: updated?.status ?? issue.status }
+                            : issue
+                    );
+                });
+                queryClient.invalidateQueries({ queryKey: issueKeys.all(targetProjectId) });
+            }
+            if (updated) {
+                queryClient.setQueryData(issueKeys.detail(variables.issueId), updated);
+            } else {
+                queryClient.invalidateQueries({ queryKey: issueKeys.detail(variables.issueId) });
+            }
             queryClient.invalidateQueries({ queryKey: ['issues', 'my-issues'] });
-            queryClient.invalidateQueries({ queryKey: issueKeys.detail(variables.issueId) });
         },
     });
 }

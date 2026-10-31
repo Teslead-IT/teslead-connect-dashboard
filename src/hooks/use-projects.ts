@@ -75,3 +75,28 @@ export function useDeleteProject() {
         },
     });
 }
+
+export function useUpdateProjectMemberRole(projectId: string) {
+    const queryClient = useQueryClient();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+
+    return useMutation({
+        mutationFn: ({ userId, role }: { userId: string; role: 'ADMIN' | 'MEMBER' | 'VIEWER' }) =>
+            projectsApi.updateProjectMemberRole(projectId, userId, role),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: projectKeys.members(activeOrgId, projectId) });
+        },
+    });
+}
+
+export function useRemoveProjectMember(projectId: string) {
+    const queryClient = useQueryClient();
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+
+    return useMutation({
+        mutationFn: (userId: string) => projectsApi.removeProjectMember(projectId, userId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: projectKeys.members(activeOrgId, projectId) });
+        },
+    });
+}

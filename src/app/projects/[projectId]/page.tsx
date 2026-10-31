@@ -32,7 +32,7 @@ import {
     Pencil,
     Trash2,
 } from 'lucide-react';
-import { cn, getAvatarColor } from '@/lib/utils';
+import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Loader } from '@/components/ui/Loader';
 // import { projectsApi } from '@/services/projects.service'; // Removed
 // import { taskService, workflowService } from '@/services/tasks.service'; // Removed
@@ -515,7 +515,7 @@ export default function ProjectDetailPage() {
                         />
                     </div>
                 ) : activeTab === 'issues' ? (
-                    <div className="h-full p-2 overflow-y-auto">
+                    <div className="h-full overflow-hidden">
                         <IssuesTab
                             projectId={projectId}
                             canCreateIssue={projectPermissions.canCreateTask}
@@ -661,7 +661,7 @@ const TaskNameRenderer = (props: ICellRendererParams) => {
     ).length;
 
     return (
-        <div className="flex items-center h-full w-full overflow-hidden" style={{ paddingLeft: `${level * 24}px` }}>
+        <div className="flex items-center h-full w-full max-w-full min-w-0 overflow-hidden" style={{ paddingLeft: `${level * 24}px` }}>
             {/* Toggle Button or Spacer */}
             <div className="w-6 flex-shrink-0 flex items-center justify-center mr-1">
                 {hasChildren && (
@@ -681,11 +681,11 @@ const TaskNameRenderer = (props: ICellRendererParams) => {
                 )}
             </div>
 
-            <div className="flex-1 min-w-0 py-1">
-                <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0 w-0 py-1 overflow-hidden">
+                <div className="flex items-center gap-2 w-full min-w-0">
                     <span
                         className={cn(
-                            "font-medium text-xs truncate min-w-0 block",
+                            "font-medium text-xs truncate min-w-0 flex-1",
                             level > 0 ? "text-gray-700" : "text-gray-900"
                         )}
                         title={task.title}
@@ -700,7 +700,7 @@ const TaskNameRenderer = (props: ICellRendererParams) => {
                     )}
                 </div>
                 {task.description && (
-                    <div className="text-xs text-gray-500 truncate mt-0.5 pl-0 max-w-full block" title={task.description}>{task.description}</div>
+                    <div className="text-xs text-gray-500 truncate mt-0.5 w-full min-w-0" title={task.description}>{task.description}</div>
                 )}
             </div>
 
@@ -737,7 +737,7 @@ const StatusRenderer = (props: ICellRendererParams) => {
 
     const currentStatus = allStatuses.find((s: any) => s.id === task.status.id);
     const statusName = currentStatus?.name || task.status.name || 'Unknown';
-    const statusColor = currentStatus?.color || '#64748b';
+    const statusColor = getTaskStatusHexColor(statusName, currentStatus?.color || task.status?.color);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -823,7 +823,7 @@ const StatusRenderer = (props: ICellRendererParams) => {
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {allStatuses.map((opt: any) => {
                                     const isSelected = opt.id === task.status.id;
-                                    const optColor = opt.color || '#64748b';
+                                    const optColor = getTaskStatusHexColor(opt.name, opt.color);
                                     return (
                                         <button
                                             key={opt.id}
@@ -1033,6 +1033,7 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                 field: 'title',
                 headerName: 'TASK',
                 minWidth: 300,
+                maxWidth: 520,
                 cellRenderer: TaskNameRenderer,
                 cellClass: 'group',
                 flex: 1.5,
@@ -1113,6 +1114,17 @@ function TaskTable({ tasks, allTasks, workflow, onUpdateStatus, onCreateSubtask,
                     font-size: 12px;
                     font-weight: 500;
                     overflow: visible !important; /* Critical: Allow dropdowns to overflow limits */
+                }
+                /* Title cell: track column width so truncate/ellipsis updates on resize */
+                .custom-ag-grid .ag-cell[col-id="title"] {
+                    overflow: hidden !important;
+                }
+                .custom-ag-grid .ag-cell[col-id="title"] .ag-cell-wrapper,
+                .custom-ag-grid .ag-cell[col-id="title"] .ag-cell-value {
+                    width: 100%;
+                    max-width: 100%;
+                    min-width: 0;
+                    overflow: hidden;
                 }
                 .custom-ag-grid .ag-cell[col-id="status"],
                 .custom-ag-grid .ag-cell[col-id="priority"] {

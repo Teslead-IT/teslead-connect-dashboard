@@ -2,7 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  allowedDevOrigins: ['http://localhost:3042', 'http://10.131.159.226:3042', 'http://localhost:3021', 'http://localhost:3022', 'http://192.168.1.136:3042','192.168.1.136'],
+  // Hostnames only (no protocol/port) — Next compares Origin hostname against this list
+  allowedDevOrigins: [
+    '192.168.1.203',
+    '10.131.159.226',
+  ],
 };
 
 export default nextConfig;

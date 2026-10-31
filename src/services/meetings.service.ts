@@ -26,7 +26,15 @@ export interface MeetingCreatePayload {
     status?: 'DRAFT' | 'PUBLISHED';
 }
 
-export interface MeetingUpdatePayload extends Partial<MeetingCreatePayload> { }
+export interface DirtyCell {
+    rowId: string;
+    field: 'user' | 'project' | 'discussionPoints' | 'status' | 'remarks' | string;
+}
+
+export interface MeetingUpdatePayload extends Partial<MeetingCreatePayload> {
+    /** Cells intentionally edited — server merges only these fields */
+    dirtyCells?: DirtyCell[];
+}
 
 export interface MeetingResponse {
     id: string;

@@ -99,4 +99,32 @@ export const projectsApi = {
         const { data } = await apiClient.get<ProjectMember[]>(`/projects/${projectId}/members`);
         return data || [];
     },
+
+    /**
+     * Update an existing project member's role
+     */
+    async updateProjectMemberRole(
+        projectId: string,
+        userId: string,
+        role: 'ADMIN' | 'MEMBER' | 'VIEWER'
+    ): Promise<{ message: string; member: ProjectMember }> {
+        const { data } = await apiClient.patch<{ message: string; member: ProjectMember }>(
+            `/projects/${projectId}/members/${userId}`,
+            { role }
+        );
+        return data;
+    },
+
+    /**
+     * Soft-remove an existing project member
+     */
+    async removeProjectMember(
+        projectId: string,
+        userId: string
+    ): Promise<{ message: string; member: ProjectMember }> {
+        const { data } = await apiClient.delete<{ message: string; member: ProjectMember }>(
+            `/projects/${projectId}/members/${userId}`
+        );
+        return data;
+    },
 };

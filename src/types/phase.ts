@@ -62,7 +62,7 @@ export interface StructuredTask {
     priority: number;
     order: number;
     dueDate: string | null;
-    startDate: string | null;
+    startDateTime?: string | null;
     completionPercentage: number;
     parentId: string | null;
     type: TaskType;

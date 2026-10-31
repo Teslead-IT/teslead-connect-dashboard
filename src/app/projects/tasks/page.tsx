@@ -16,14 +16,37 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useMyTasks, useUpdateTask, useProjectWorkflow, taskKeys } from '@/hooks/use-tasks';
 import { useStructuredPhases } from '@/hooks/use-phases';
 import { useProjectMembers } from '@/hooks/use-projects';
+import { issueKeys } from '@/hooks/use-issues';
+import { issueService } from '@/services/issues.service';
 import { taskService } from '@/services/tasks.service';
 import { TaskViewModal } from '@/components/tasks/TaskViewModal';
 import { ExpectedOutputModal } from '@/components/tasks/ExpectedOutputModal';
 import { CreateTaskModal } from '@/components/ui/CreateTaskModal';
 import { useToast } from '@/components/ui/Toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
+import { useQueryClient, useQueries } from '@tanstack/react-query';
+import { cn, getTaskStatusHexColor } from '@/lib/utils';
 import type { MyTask, MyTaskTag } from '@/types/task';
+import type { Issue } from '@/types/issue';
+
+function isReadyForTestingStatus(statusName?: string | null): boolean {
+    const name = (statusName || '').trim().toLowerCase();
+    return name.includes('ready for testing') || name === 'ready for test';
+}
+
+function buildIssueCountsByTaskId(issues: Issue[]): Map<string, { total: number; readyForTest: number }> {
+    const map = new Map<string, { total: number; readyForTest: number }>();
+    for (const issue of issues) {
+        const linkedId = issue.taskId || issue.linkedTask?.id;
+        if (!linkedId) continue;
+        const current = map.get(linkedId) || { total: 0, readyForTest: 0 };
+        current.total += 1;
+        if (isReadyForTestingStatus(issue.status?.name)) {
+            current.readyForTest += 1;
+        }
+        map.set(linkedId, current);
+    }
+    return map;
+}
 
 // Priority labels (1=highest, 5=lowest)
 const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
@@ -101,7 +124,7 @@ function StatusDropdown({
         await performStatusUpdate(newStatusId);
     };
 
-    const color = selectedStatus?.color || '#64748b';
+    const color = getTaskStatusHexColor(selectedStatus?.name, selectedStatus?.color);
 
     return (
         <div className="h-full w-full flex items-center relative group" onClick={(e) => e.stopPropagation()}>
@@ -255,6 +278,38 @@ export default function TasksPage() {
     const { data: tasksData, isLoading, error, refetch } = useMyTasks({ page, limit, search: debouncedSearch });
     const tasks = tasksData?.data || [];
     const meta = tasksData?.meta;
+
+    const uniqueProjectIds = useMemo(
+        () => [...new Set(tasks.map((t) => t.projectId).filter(Boolean))],
+        [tasks]
+    );
+
+    const projectIssueQueries = useQueries({
+        queries: uniqueProjectIds.map((projectId) => ({
+            queryKey: issueKeys.all(projectId),
+            queryFn: () => issueService.getProjectIssues(projectId),
+            enabled: !!projectId,
+        })),
+    });
+
+    const issueCountsByTaskId = useMemo(() => {
+        const allIssues = projectIssueQueries.flatMap((q) => q.data || []);
+        return buildIssueCountsByTaskId(allIssues);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on resolved issue payloads, not query object identity
+    }, [projectIssueQueries.map((q) => q.dataUpdatedAt).join(',')]);
+
+    const tasksWithIssueCounts = useMemo(
+        () =>
+            tasks.map((task) => {
+                const counts = issueCountsByTaskId.get(task.id);
+                return {
+                    ...task,
+                    totalIssues: counts?.total ?? 0,
+                    readyForTestIssues: counts?.readyForTest ?? 0,
+                };
+            }),
+        [tasks, issueCountsByTaskId]
+    );
 
     const hasNextPage = meta ? meta.page < meta.totalPages : false;
 
@@ -417,6 +472,30 @@ export default function TasksPage() {
         );
     };
 
+    const IssueCountRenderer = (props: ICellRendererParams) => {
+        const count = (props.value as number | undefined) ?? 0;
+        const isReady = props.colDef?.field === 'readyForTestIssues';
+        const accentClass = isReady
+            ? 'bg-amber-50 text-amber-700 border-amber-100'
+            : 'bg-rose-50 text-rose-700 border-rose-100';
+        const title = isReady
+            ? `${count} issue${count === 1 ? '' : 's'} ready for testing`
+            : `${count} total issue${count === 1 ? '' : 's'} linked to this task`;
+
+        return (
+            <div className="h-full flex items-center" title={title}>
+                <span
+                    className={cn(
+                        'inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-md text-[11px] font-bold tabular-nums border',
+                        count > 0 ? accentClass : 'bg-gray-50 text-gray-400 border-gray-100'
+                    )}
+                >
+                    {count}
+                </span>
+            </div>
+        );
+    };
+
     const PriorityRenderer = (props: ICellRendererParams) => {
         const priority = props.value ?? 3;
         const config = PRIORITY_LABELS[priority] || PRIORITY_LABELS[3];
@@ -520,6 +599,32 @@ export default function TasksPage() {
         );
     };
 
+    const DateTimeRenderer = (props: ICellRendererParams) => {
+        const date = props.value;
+        if (!date) return <div className="h-full flex items-center text-gray-300">-</div>;
+
+        const targetDate = new Date(date);
+        if (Number.isNaN(targetDate.getTime())) {
+            return <div className="h-full flex items-center text-gray-300">-</div>;
+        }
+
+        const formatted = targetDate.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+
+        return (
+            <div className="h-full flex items-center">
+                <span className="text-[11px] font-medium text-gray-600" title={formatted}>
+                    {formatted}
+                </span>
+            </div>
+        );
+    };
+
     const columnDefs: ColDef[] = useMemo(
         () => [
             {
@@ -574,6 +679,20 @@ export default function TasksPage() {
                 cellRenderer: ExpectedOutputRenderer,
             },
             {
+                field: 'totalIssues',
+                headerName: 'TOTAL ISSUES',
+                width: 120,
+                cellRenderer: IssueCountRenderer,
+                sortable: true,
+            },
+            {
+                field: 'readyForTestIssues',
+                headerName: 'ISSUES IN READY FOR TEST',
+                width: 190,
+                cellRenderer: IssueCountRenderer,
+                sortable: true,
+            },
+            {
                 field: 'priority',
                 headerName: 'PRIORITY',
                 width: 110,
@@ -592,6 +711,12 @@ export default function TasksPage() {
                 width: 120,
                 cellRenderer: TestersRenderer,
                 sortable: false,
+            },
+            {
+                field: 'startDateTime',
+                headerName: 'START',
+                width: 160,
+                cellRenderer: DateTimeRenderer,
             },
             {
                 field: 'dueDate',
@@ -743,7 +868,7 @@ export default function TasksPage() {
                             `}</style>
                             <AgGridReact
                                 theme="legacy"
-                                rowData={tasks}
+                                rowData={tasksWithIssueCounts}
                                 columnDefs={columnDefs}
                                 defaultColDef={defaultColDef}
                                 getRowId={(params) => params.data.id}
