@@ -25,7 +25,7 @@ export interface CreateStatusDto {
 export interface StatusResponse extends Status { }
 
 export type TaskPriority = 1 | 2 | 3 | 4 | 5;
-export type TaskType = 'FEAT' | 'BUG' | 'IMPR' | 'REF' | 'RND' | 'DOC' | 'OPS' | 'TEST' | 'HOT';
+export type TaskType = 'FEAT' | 'BUG' | 'IMPR' | 'REF' | 'RND' | 'DOC' | 'OPS' | 'TEST' | 'HOT' | 'CLARIFY';
 
 export interface TaskStatus {
     id: string;

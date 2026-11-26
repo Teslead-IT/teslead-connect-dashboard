@@ -19,6 +19,7 @@ import {
     Settings,
     ClipboardCheck,
     Flame,
+    HelpCircle,
     ExternalLink,
     X,
 } from 'lucide-react';
@@ -44,6 +45,7 @@ const TASK_TYPE_CONFIG: Record<string, { label: string; color: string; bg: strin
     OPS: { label: 'OPS', color: 'text-teal-700', bg: 'bg-teal-50 border-teal-200', icon: Settings },
     TEST: { label: 'TEST', color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', icon: ClipboardCheck },
     HOT: { label: 'HOT', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', icon: Flame },
+    CLARIFY: { label: 'Clarify', color: 'text-sky-700', bg: 'bg-sky-50 border-sky-200', icon: HelpCircle },
 };
 
 function StatusFilterDropdown({

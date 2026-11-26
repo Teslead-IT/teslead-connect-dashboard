@@ -65,6 +65,7 @@ const ISSUE_TYPE_OPTIONS: { value: IssueType; label: string; icon: any; color: s
     { value: 'PERFORMANCE', label: 'Perf', icon: Zap, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200' },
     { value: 'SECURITY', label: 'Security', icon: ShieldAlert, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
     { value: 'OTHER', label: 'Other', icon: HelpCircle, color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200' },
+    { value: 'CLARIFY', label: 'Need to clarify', icon: HelpCircle, color: 'text-sky-600', bg: 'bg-sky-50 border-sky-200' },
 ];
 
 const SEVERITY_OPTIONS: { value: IssueSeverity; label: string; icon: any; color: string; bg: string }[] = [
