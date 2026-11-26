@@ -117,12 +117,12 @@ function IssueStatusDropdown({
             >
                 {allStatuses.length > 0 ? (
                     allStatuses.map((st: any) => (
-                        <option key={st.id} value={st.id} className="text-gray-900 bg-white font-medium uppercase text-left">
+                        <option key={st.id} value={st.id} className="text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-900 font-medium uppercase text-left">
                             {st.name}
                         </option>
                     ))
                 ) : (
-                    <option value={currentStatus?.id} className="uppercase text-left">{currentStatus?.name}</option>
+                    <option value={currentStatus?.id} className="text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-900 uppercase text-left">{currentStatus?.name}</option>
                 )}
             </select>
             <div className="absolute right-2 pointer-events-none opacity-80">
@@ -183,7 +183,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                     {initial}
                 </div>
                 <div className="min-w-0 flex flex-col justify-center flex-1">
-                    <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-xs block" title={title}>
+                    <span className="font-semibold text-gray-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate text-xs block" title={title}>
                         {title}
                     </span>
                 </div>
@@ -195,7 +195,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
         const sev = props.data?.severity || 'MEDIUM';
         return (
             <div className="h-full w-full flex items-center">
-                <span className="flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide uppercase bg-slate-50 text-slate-500 border-l border-r border-slate-100">
+                <span className="flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide uppercase bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-l border-r border-slate-100 dark:border-slate-700">
                     {sev}
                 </span>
             </div>
@@ -206,7 +206,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
         const prioLabel = PRIORITY_LABELS[props.data?.priority || 3] || 'MEDIUM';
         return (
             <div className="h-full w-full flex items-center">
-                <span className="flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide uppercase bg-purple-50 text-purple-600 border-l border-r border-purple-100">
+                <span className="flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide uppercase bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 border-l border-r border-purple-100 dark:border-purple-800/40">
                     {prioLabel}
                 </span>
             </div>
@@ -235,7 +235,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
         const assignees = props.data?.assignees || [];
 
         if (assignees.length === 0) {
-            return <div className="h-full flex items-center text-[10px] text-gray-400 italic">Unassigned</div>;
+            return <div className="h-full flex items-center text-[10px] text-gray-400 dark:text-slate-500 italic">Unassigned</div>;
         }
 
         return (
@@ -254,7 +254,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                     </div>
                 ))}
                 {assignees.length > 3 && (
-                    <span className="text-[10px] text-gray-500 font-medium">+{assignees.length - 3}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-slate-400 font-medium">+{assignees.length - 3}</span>
                 )}
             </div>
         );
@@ -264,7 +264,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
         const testers = props.data?.testers || [];
 
         if (testers.length === 0) {
-            return <div className="h-full flex items-center text-[10px] text-gray-400 italic">No testers</div>;
+            return <div className="h-full flex items-center text-[10px] text-gray-400 dark:text-slate-500 italic">No testers</div>;
         }
 
         return (
@@ -283,7 +283,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                     </div>
                 ))}
                 {testers.length > 3 && (
-                    <span className="text-[10px] text-gray-500 font-medium">+{testers.length - 3}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-slate-400 font-medium">+{testers.length - 3}</span>
                 )}
             </div>
         );
@@ -293,7 +293,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
         const type = props.data?.type || 'BUG';
         return (
             <div className="h-full flex items-center">
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-emerald-50 text-emerald-600 border-emerald-100 shadow-2xs uppercase">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800/40 shadow-2xs uppercase">
                     {type}
                 </span>
             </div>
@@ -302,11 +302,11 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
 
     const PhaseRenderer = (props: ICellRendererParams<Issue>) => {
         const phaseName = props.data?.phaseName;
-        if (!phaseName) return <div className="h-full flex items-center text-gray-300 text-xs">-</div>;
+        if (!phaseName) return <div className="h-full flex items-center text-gray-400 dark:text-slate-500 text-xs">-</div>;
 
         return (
             <div className="h-full flex items-center">
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-tight">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800/40 uppercase tracking-tight">
                     {phaseName}
                 </span>
             </div>
@@ -315,7 +315,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
 
     const DateRenderer = (props: ICellRendererParams) => {
         const date = props.value;
-        if (!date) return <div className="h-full flex items-center text-gray-300 text-xs">-</div>;
+        if (!date) return <div className="h-full flex items-center text-gray-400 dark:text-slate-500 text-xs">-</div>;
 
         const formatted = new Date(date).toLocaleDateString('en-US', {
             month: 'short',
@@ -325,7 +325,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
 
         return (
             <div className="h-full flex items-center gap-2">
-                <span className="text-[11px] font-medium text-gray-600">
+                <span className="text-[11px] font-medium text-gray-600 dark:text-slate-300">
                     {formatted}
                 </span>
             </div>
@@ -492,14 +492,14 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
     }, [issues]);
 
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-white dark:bg-slate-950">
             {/* Header Toolbar */}
-            <div className="border-b border-gray-100 py-1 shrink-0">
+            <div className="border-b border-gray-100 dark:border-slate-800 py-1 shrink-0">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center justify-between w-full sm:w-auto gap-3 min-w-[140px]">
                         <div className="flex items-center gap-3">
-                            <h1 className="text-lg font-bold text-gray-900 tracking-tight">Issues</h1>
-                            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
+                            <h1 className="text-lg font-bold text-gray-900 dark:text-slate-100 tracking-tight">Issues</h1>
+                            <span className="bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200 dark:border-slate-700">
                                 {filteredIssues.length}
                             </span>
                         </div>
@@ -508,7 +508,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                     <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 justify-between sm:justify-end">
                         <div className="relative flex-1 sm:flex-initial sm:max-w-xs w-full lg:max-w-sm group transition-all">
                             <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                                <Search className="w-3.5 h-3.5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+                                <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors" />
                             </div>
                             <input
                                 type="text"
@@ -518,18 +518,18 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                     setSearchQuery(e.target.value);
                                     setPage(1);
                                 }}
-                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all text-xs"
+                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md leading-5 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition-all text-xs"
                             />
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+                            <div className="h-5 w-px bg-gray-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
 
                             <button
                                 type="button"
                                 onClick={handleExportExcel}
                                 disabled={isExporting || filteredIssues.length === 0}
-                                className="inline-flex items-center justify-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50 font-medium px-3 h-8 text-xs rounded-md transition-colors duration-200 shadow-xs whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="inline-flex items-center justify-center gap-1.5 bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-slate-700 font-medium px-3 h-8 text-xs rounded-md transition-colors duration-200 shadow-xs whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
                                 title="Export issues to Excel"
                             >
                                 <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -539,7 +539,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                             {canCreateIssue && (
                                 <button
                                     onClick={() => setIsCreateModalOpen(true)}
-                                    className="inline-flex items-center justify-center bg-[#091590] text-white hover:bg-[#121033] font-medium px-4 h-8 text-xs rounded-md ml-1 sm:ml-2 transition-colors duration-200 border border-transparent shadow-xs whitespace-nowrap"
+                                    className="inline-flex items-center justify-center bg-[#091590] hover:bg-[#121033] text-white font-medium px-4 h-8 text-xs rounded-md ml-1 sm:ml-2 transition-colors duration-200 border border-transparent shadow-xs whitespace-nowrap"
                                 >
                                     <Plus className="w-3.5 h-3.5 sm:mr-1.5" />
                                     <span className="hidden sm:inline">Report Issue</span>
@@ -552,7 +552,7 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
             </div>
 
             {/* Table Area */}
-            <div className="flex-1 overflow-hidden bg-white flex flex-col justify-between">
+            <div className="flex-1 overflow-hidden bg-white dark:bg-slate-950 flex flex-col justify-between">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-full space-y-4">
                         <Loader />
@@ -610,6 +610,33 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                 .custom-ag-grid .ag-row-selected {
                                     background-color: #eff6ff !important;
                                 }
+
+                                /* Dark mode overrides for custom-ag-grid */
+                                .dark .custom-ag-grid .ag-root-wrapper {
+                                    border: 1px solid #334155 !important;
+                                    background-color: #0f172a !important;
+                                    box-shadow: none !important;
+                                }
+                                .dark .custom-ag-grid .ag-header {
+                                    background-color: #1e293b !important;
+                                    border-bottom: 1px solid #334155 !important;
+                                }
+                                .dark .custom-ag-grid .ag-header-cell-label {
+                                    color: #94a3b8 !important;
+                                }
+                                .dark .custom-ag-grid .ag-row {
+                                    border-bottom: 1px solid #1e293b !important;
+                                    background-color: #0f172a !important;
+                                }
+                                .dark .custom-ag-grid .ag-cell {
+                                    color: #f8fafc !important;
+                                }
+                                .dark .custom-ag-grid .ag-row:hover {
+                                    background-color: #1e293b !important;
+                                }
+                                .dark .custom-ag-grid .ag-row-selected {
+                                    background-color: #1e3a5f !important;
+                                }
                             `}</style>
                             <AgGridReact
                                 ref={gridRef}
@@ -641,15 +668,15 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                         </div>
 
                         {/* Custom Footer Pagination Controls */}
-                        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 bg-white shrink-0 mt-2">
+                        <div className="flex items-center justify-between border-t border-gray-200 dark:border-slate-800 px-4 py-2 bg-white dark:bg-slate-900 shrink-0 mt-2">
                             <div className="flex items-center">
-                                <p className="text-xs text-gray-700">
-                                    Showing <span className="font-medium">{filteredIssues.length > 0 ? (page - 1) * limit + 1 : 0}</span> to <span className="font-medium">{Math.min(page * limit, filteredIssues.length)}</span> of <span className="font-medium">{filteredIssues.length}</span> results
+                                <p className="text-xs text-gray-700 dark:text-slate-300">
+                                    Showing <span className="font-medium text-gray-900 dark:text-slate-100">{filteredIssues.length > 0 ? (page - 1) * limit + 1 : 0}</span> to <span className="font-medium text-gray-900 dark:text-slate-100">{Math.min(page * limit, filteredIssues.length)}</span> of <span className="font-medium text-gray-900 dark:text-slate-100">{filteredIssues.length}</span> results
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
                                 <select
-                                    className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 px-2 py-1 bg-white border"
+                                    className="text-xs border-gray-300 dark:border-slate-700 rounded-md focus:ring-blue-500 focus:border-blue-500 px-2 py-1 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 border"
                                     value={limit}
                                     onChange={(e) => {
                                         const next = Number(e.target.value);
@@ -660,39 +687,39 @@ export function IssuesTab({ projectId, canCreateIssue = true }: IssuesTabProps) 
                                         api?.paginationGoToPage(0);
                                     }}
                                 >
-                                    <option value={20}>20 / page</option>
-                                    <option value={50}>50 / page</option>
-                                    <option value={100}>100 / page</option>
+                                    <option value={20} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100">20 / page</option>
+                                    <option value={50} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100">50 / page</option>
+                                    <option value={100} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100">100 / page</option>
                                 </select>
                                 <nav className="isolate inline-flex -space-x-px rounded-md shadow-2xs" aria-label="Pagination">
                                     <button
                                         onClick={() => goToPage(1)}
                                         disabled={page === 1}
-                                        className="relative inline-flex items-center rounded-l-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        className="relative inline-flex items-center rounded-l-md px-2 py-1 text-xs text-gray-500 dark:text-slate-400 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &laquo;
                                     </button>
                                     <button
                                         onClick={() => goToPage(page - 1)}
                                         disabled={page === 1}
-                                        className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 dark:text-slate-400 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &lsaquo;
                                     </button>
-                                    <button className="relative inline-flex items-center px-3 py-1 text-xs font-bold text-gray-900 border border-gray-300 bg-gray-50">
+                                    <button className="relative inline-flex items-center px-3 py-1 text-xs font-bold text-gray-900 dark:text-slate-100 border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
                                         {page}
                                     </button>
                                     <button
                                         onClick={() => goToPage(page + 1)}
                                         disabled={page * limit >= filteredIssues.length}
-                                        className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        className="relative inline-flex items-center px-2 py-1 text-xs text-gray-500 dark:text-slate-400 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &rsaquo;
                                     </button>
                                     <button
                                         onClick={() => goToPage(Math.ceil(filteredIssues.length / limit) || 1)}
                                         disabled={page * limit >= filteredIssues.length}
-                                        className="relative inline-flex items-center rounded-r-md px-2 py-1 text-xs text-gray-500 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        className="relative inline-flex items-center rounded-r-md px-2 py-1 text-xs text-gray-500 dark:text-slate-400 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         &raquo;
                                     </button>

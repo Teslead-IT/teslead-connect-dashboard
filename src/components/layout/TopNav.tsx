@@ -10,7 +10,8 @@ import { useOrgStore } from '@/stores/orgStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { authKeys } from '@/hooks/use-auth';
-import { Search, HelpCircle, Building2, UserPlus, ChevronDown, Check, Utensils, Coffee, Home, Moon, Clock } from 'lucide-react';
+import { Search, HelpCircle, Building2, UserPlus, ChevronDown, Check, Utensils, Coffee, Home, Moon, Sun, Clock } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 import { usePresenceStore } from '@/stores/presenceStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSidebar } from '@/context/SidebarContext';
@@ -26,6 +27,7 @@ import { useAttendanceCheckOut } from '@/hooks/use-attendance';
 import { Dialog } from '@/components/ui/Dialog';
 
 export function TopNav() {
+    const { effectiveTheme, toggleTheme } = useTheme();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { data: backendUser, isLoading } = useUser();
@@ -121,17 +123,17 @@ export function TopNav() {
             initial={false}
             animate={{ left: isCollapsed ? 80 : 256 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="fixed top-0 right-0 h-12 bg-white/80 backdrop-blur-md border-b border-gray-100 z-30"
+            className="fixed top-0 right-0 h-12 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 z-30 transition-colors duration-200"
         >
             <div className="h-full px-6 flex items-center justify-between gap-6">
                 {/* Search Bar & Sticky Title */}
                 <div className="flex-1 flex items-center gap-4 group">
                     <div className="hidden relative w-30 transition-all duration-300 focus-within:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#091590] transition-colors" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#091590] dark:group-focus-within:text-blue-400 transition-colors" />
                         <input
                             type="text"
                             placeholder="Search..."
-                            className="w-full pl-9 pr-4 py-1.5 bg-gray-50/50 hover:bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[#091590]/20 focus:border-[#091590] placeholder:text-gray-400 transition-all"
+                            className="w-full pl-9 pr-4 py-1.5 bg-gray-50/50 dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[#091590]/20 focus:border-[#091590] dark:focus:border-blue-500 placeholder:text-gray-400 dark:placeholder:text-slate-500 text-gray-900 dark:text-slate-100 transition-all"
                         />
                     </div>
 
@@ -141,9 +143,9 @@ export function TopNav() {
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -10 }}
-                                className="hidden md:flex items-center gap-2 border-l border-gray-100 pl-4"
+                                className="hidden md:flex items-center gap-2 border-l border-gray-100 dark:border-slate-800 pl-4"
                             >
-                                <h1 className="text-[13px] font-semibold text-gray-900">
+                                <h1 className="text-[13px] font-semibold text-gray-900 dark:text-slate-100">
                                     Welcome, {displayName.split(' ')[0]}
                                 </h1>
                             </motion.div>
@@ -153,7 +155,7 @@ export function TopNav() {
 
                 {/* Right Actions - Professional & Balanced */}
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-3 pr-4 border-r border-gray-100">
+                    <div className="flex items-center gap-3 pr-4 border-r border-gray-100 dark:border-slate-800">
                         {/* Org Switcher (updates activeOrgId, clears cache, resets app — not a filter) */}
                         {backendUser?.memberships && backendUser.memberships.length > 0 && (
                             <div className="relative hidden xl:block" ref={orgDropdownRef}>
@@ -162,15 +164,15 @@ export function TopNav() {
                                     onClick={() => setOrgDropdownOpen((o) => !o)}
                                     disabled={isSwitchingOrg}
                                     className={cn(
-                                        'flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/50 hover:bg-blue-50/50 border border-gray-100 hover:border-blue-100 rounded-full transition-all group/org min-w-0',
+                                        'flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/50 dark:bg-slate-800/60 hover:bg-blue-50/50 dark:hover:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-full transition-all group/org min-w-0',
                                         isSwitchingOrg && 'opacity-70 pointer-events-none'
                                     )}
                                     title="Switch organization"
                                 >
-                                    <Building2 className="w-3.5 h-3.5 text-gray-400 group-hover/org:text-[#091590] transition-colors shrink-0" />
+                                    <Building2 className="w-3.5 h-3.5 text-gray-400 group-hover/org:text-[#091590] dark:group-hover/org:text-blue-400 transition-colors shrink-0" />
                                     <div className="flex flex-col items-start text-left min-w-0">
-                                        <span className="text-[10px] font-bold text-gray-500 group-hover/org:text-[#091590] uppercase tracking-tight truncate max-w-[120px]">{orgName || 'Organization'}</span>
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{email}</span>
+                                        <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 group-hover/org:text-[#091590] dark:group-hover/org:text-blue-400 uppercase tracking-tight truncate max-w-[120px]">{orgName || 'Organization'}</span>
+                                        <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-tight">{email}</span>
                                     </div>
                                     <ChevronDown className={cn('w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform', orgDropdownOpen && 'rotate-180')} />
                                 </button>
@@ -181,10 +183,10 @@ export function TopNav() {
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: -4 }}
                                             transition={{ duration: 0.15 }}
-                                            className="absolute top-full left-0 mt-1.5 py-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+                                            className="absolute top-full left-0 mt-1.5 py-1 w-56 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 text-gray-900 dark:text-slate-100"
                                         >
-                                            <div className="px-3 py-2 border-b border-gray-100">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Switch organization</p>
+                                            <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800">
+                                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Switch organization</p>
                                             </div>
                                             {backendUser.memberships
                                                 .filter((m) => m.status === 'ACTIVE')
@@ -212,18 +214,18 @@ export function TopNav() {
                                                             }}
                                                             className={cn(
                                                                 'w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs transition-colors',
-                                                                isActive ? 'bg-blue-50/80 text-[#091590] font-medium' : 'hover:bg-gray-50 text-gray-700'
+                                                                isActive ? 'bg-blue-50/80 dark:bg-blue-950/50 text-[#091590] dark:text-blue-400 font-medium' : 'hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300'
                                                             )}
                                                         >
-                                                            {isActive ? <Check className="w-4 h-4 shrink-0 text-[#091590]" /> : <span className="w-4 shrink-0" />}
+                                                            {isActive ? <Check className="w-4 h-4 shrink-0 text-[#091590] dark:text-blue-400" /> : <span className="w-4 shrink-0" />}
                                                             <span className="truncate">{m.orgName || m.slug || m.orgId}</span>
-                                                            <span className="text-[10px] text-gray-400 uppercase ml-auto shrink-0">{m.role}</span>
+                                                            <span className="text-[10px] text-gray-400 dark:text-slate-500 uppercase ml-auto shrink-0">{m.role}</span>
                                                         </button>
                                                     );
                                                 })}
                                             <Link
                                                 href="/settings/organization"
-                                                className="flex items-center gap-2 px-3 py-2.5 text-xs text-gray-500 hover:bg-gray-50 border-t border-gray-100"
+                                                className="flex items-center gap-2 px-3 py-2.5 text-xs text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 border-t border-gray-100 dark:border-slate-800"
                                                 onClick={() => setOrgDropdownOpen(false)}
                                             >
                                                 <Building2 className="w-4 h-4" />
@@ -238,12 +240,12 @@ export function TopNav() {
                     </div>
 
                     {/* Action Group */}
-                    <div className="flex items-center gap-1 pr-4 border-r border-gray-100">
+                    <div className="flex items-center gap-1 pr-4 border-r border-gray-100 dark:border-slate-800">
                         {/* 👥 Invite Button - Only for Org Creators */}
                         {permissions.canInviteToOrg && (
                             <button
                                 onClick={() => setIsInviteModalOpen(true)}
-                                className="p-2 text-gray-400 hover:text-[#091590] hover:bg-blue-50 rounded-lg transition-all active:scale-95 group"
+                                className="p-2 text-gray-400 hover:text-[#091590] dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95 group"
                                 title="Invite Members"
                             >
                                 <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform cursor-pointer" />
@@ -251,10 +253,25 @@ export function TopNav() {
                         )}
 
                         <button
-                            className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all active:scale-95 cursor-pointer"
+                            className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95 cursor-pointer"
                             title="Help Center"
                         >
                             <HelpCircle className="w-4 h-4" />
+                        </button>
+
+                        {/* 🌓 Dark / Light Mode Toggle */}
+                        <button
+                            type="button"
+                            onClick={toggleTheme}
+                            className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95 cursor-pointer"
+                            title={effectiveTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                            aria-label="Toggle theme"
+                        >
+                            {effectiveTheme === 'dark' ? (
+                                <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+                            ) : (
+                                <Moon className="w-4 h-4 text-gray-600 dark:text-slate-300 hover:-rotate-12 transition-transform" />
+                            )}
                         </button>
 
                         <GlobalTimerNav />
@@ -268,14 +285,14 @@ export function TopNav() {
                     </div>
 
                     {/* User Profile - Premium Look */}
-                    <Link href="/settings/account" className="flex items-center gap-2.5 pl-1 group hover:bg-gray-50 p-1.5 rounded-xl transition-all">
+                    <Link href="/settings/account" className="flex items-center gap-2.5 pl-1 group hover:bg-gray-50 dark:hover:bg-slate-800 p-1.5 rounded-xl transition-all">
                         <div className="hidden md:flex flex-col items-end">
-                            <span className="text-xs font-bold text-gray-900 group-hover:text-[#091590] transition-colors whitespace-nowrap">
+                            <span className="text-xs font-bold text-gray-900 dark:text-slate-100 group-hover:text-[#091590] dark:group-hover:text-blue-400 transition-colors whitespace-nowrap">
                                 {displayName}
                             </span>
-                            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-tighter">
+                            <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-tighter">
                                 {isLoading ? (
-                                    <span className="animate-pulse bg-gray-200 h-3 w-12 block rounded" />
+                                    <span className="animate-pulse bg-gray-200 dark:bg-slate-700 h-3 w-12 block rounded" />
                                 ) : (
                                     userRole || 'Owner'
                                 )}

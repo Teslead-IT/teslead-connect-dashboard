@@ -18,7 +18,7 @@ function ProjectsLayoutContent({ children }: { children: React.ReactNode }) {
     const { isCollapsed } = useSidebar();
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors duration-200">
             <OrgBootSync />
             <PresenceSync />
             <Sidebar />
@@ -61,7 +61,7 @@ export default function ProjectsLayout({
     // Show loading state while checking authentication
     if (isAuth0Loading || isBackendLoading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center transition-colors duration-200">
                 <Loader />
             </div>
         );

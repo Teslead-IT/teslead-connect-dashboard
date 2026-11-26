@@ -14,19 +14,20 @@ interface ThemeContextType {
     theme: Theme;
     setTheme: (theme: Theme) => void;
     effectiveTheme: 'light' | 'dark';
+    toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setThemeState] = useState<Theme>('dark');
-    const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('dark');
+    const [theme, setThemeState] = useState<Theme>('system');
+    const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
         const stored = getStoredTheme();
-        const initialTheme = stored || 'dark';
+        const initialTheme: Theme = stored || 'system';
         setThemeState(initialTheme);
         const effective = initialTheme === 'system' ? getSystemTheme() : initialTheme;
         setEffectiveTheme(effective);
@@ -54,12 +55,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         applyTheme(newTheme);
     };
 
-    if (!mounted) {
-        return null;
-    }
+    const toggleTheme = () => {
+        const next: Theme = effectiveTheme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+    };
 
     return (
-        <ThemeContext.Provider value={{ theme, setTheme, effectiveTheme }}>
+        <ThemeContext.Provider value={{ theme, setTheme, effectiveTheme, toggleTheme }}>
             {children}
         </ThemeContext.Provider>
     );

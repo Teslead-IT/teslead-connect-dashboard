@@ -50,11 +50,11 @@ function buildIssueCountsByTaskId(issues: Issue[]): Map<string, { total: number;
 
 // Priority labels (1=highest, 5=lowest)
 const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
-    1: { label: 'Urgent', color: 'bg-rose-100 text-rose-700 border-rose-200' },
-    2: { label: 'High', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-    3: { label: 'Medium', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    4: { label: 'Low', color: 'bg-slate-100 text-slate-700 border-slate-200' },
-    5: { label: 'Lowest', color: 'bg-gray-100 text-gray-600 border-gray-200' },
+    1: { label: 'Urgent', color: 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60' },
+    2: { label: 'High', color: 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60' },
+    3: { label: 'Medium', color: 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60' },
+    4: { label: 'Low', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700' },
+    5: { label: 'Lowest', color: 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700' },
 };
 
 function StatusDropdown({
@@ -747,21 +747,21 @@ export default function TasksPage() {
     const handleRetry = () => refetch();
 
     return (
-        <div className="h-full flex flex-col bg-white">
-            <div className="border-b border-gray-100 py-3 px-6 flex-shrink-0">
+        <div className="h-full flex flex-col bg-white dark:bg-slate-950">
+            <div className="border-b border-gray-100 dark:border-slate-800 py-3 px-6 flex-shrink-0">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center justify-between w-full sm:w-auto gap-3 min-w-[140px]">
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => router.push('/projects')}
-                                className="p-1 -ml-1 rounded hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
+                                className="p-1 -ml-1 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 transition-colors"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                 </svg>
                             </button>
-                            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Tasks(Assigned to me)</h1>
-                            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
+                            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Tasks(Assigned to me)</h1>
+                            <span className="bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200 dark:border-slate-700">
                                 {meta?.total ?? tasks.length}
                             </span>
                         </div>
@@ -770,14 +770,14 @@ export default function TasksPage() {
                     <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 justify-between sm:justify-end">
                         <div className="relative flex-1 sm:flex-initial sm:max-w-xs w-full lg:max-w-sm group transition-all">
                             <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                                <Search className="w-3.5 h-3.5 text-gray-400 group-focus-within:text-[var(--primary)] transition-colors" />
+                                <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 group-focus-within:text-[var(--primary)] transition-colors" />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Search..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all text-xs"
+                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md leading-5 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all text-xs"
                             />
                         </div>
 
@@ -793,18 +793,18 @@ export default function TasksPage() {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-hidden p-0 bg-white">
+            <div className="flex-1 overflow-hidden p-0 bg-white dark:bg-slate-950">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-full space-y-4">
                         <Loader />
                     </div>
                 ) : error ? (
                     <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto text-center space-y-4">
-                        <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-2">
+                        <div className="w-12 h-12 bg-red-50 dark:bg-red-950/40 rounded-full flex items-center justify-center mb-2">
                             <MoreVertical className="w-6 h-6 text-red-500" />
                         </div>
-                        <h3 className="text-md font-semibold text-gray-900">Error loading tasks</h3>
-                        <p className="text-xs text-gray-500">{(error as Error)?.message || 'Unknown error'}</p>
+                        <h3 className="text-md font-semibold text-gray-900 dark:text-slate-100">Error loading tasks</h3>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">{(error as Error)?.message || 'Unknown error'}</p>
                         <Button variant="primary" size="sm" onClick={handleRetry} className="mt-2">
                             Retry
                         </Button>
@@ -864,6 +864,38 @@ export default function TasksPage() {
                                 .custom-ag-grid .ag-paging-panel {
                                     z-index: 0 !important;
                                     border-top: 1px solid #cbd5e1 !important;
+                                }
+
+                                /* Dark mode overrides */
+                                .dark .custom-ag-grid .ag-root-wrapper {
+                                    border: 1px solid #334155 !important;
+                                    background-color: #0f172a !important;
+                                    box-shadow: none !important;
+                                }
+                                .dark .custom-ag-grid .ag-header {
+                                    background-color: #1e293b !important;
+                                    border-bottom: 1px solid #334155 !important;
+                                }
+                                .dark .custom-ag-grid .ag-header-cell-label {
+                                    color: #94a3b8 !important;
+                                }
+                                .dark .custom-ag-grid .ag-row {
+                                    border-bottom: 1px solid #1e293b !important;
+                                    background-color: #0f172a !important;
+                                }
+                                .dark .custom-ag-grid .ag-cell {
+                                    color: #f8fafc !important;
+                                }
+                                .dark .custom-ag-grid .ag-row:hover {
+                                    background-color: #1e293b !important;
+                                }
+                                .dark .custom-ag-grid .ag-row-selected {
+                                    background-color: #1e293b !important;
+                                }
+                                .dark .custom-ag-grid .ag-paging-panel {
+                                    background-color: #0f172a !important;
+                                    border-top: 1px solid #334155 !important;
+                                    color: #94a3b8 !important;
                                 }
                             `}</style>
                             <AgGridReact

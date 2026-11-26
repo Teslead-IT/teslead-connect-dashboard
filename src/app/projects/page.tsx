@@ -47,16 +47,16 @@ type ViewMode = 'list' | 'kanban';
 
 // ==================== MAIN COMPONENT ====================
 const PROJECT_STATUS_OPTIONS = [
-    { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-slate-100 text-slate-700 border-slate-200', dotColor: '#94a3b8' },
-    { value: 'PLANNING', label: 'Planning', color: 'bg-sky-100 text-sky-700 border-sky-200', dotColor: '#0ea5e9' },
-    { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 text-blue-700 border-blue-200', dotColor: '#3b82f6' },
-    { value: 'ON_HOLD', label: 'On Hold', color: 'bg-amber-100 text-amber-700 border-amber-200', dotColor: '#f59e0b' },
-    { value: 'REVIEW', label: 'Review', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', dotColor: '#6366f1' },
-    { value: 'TESTING', label: 'Testing', color: 'bg-purple-100 text-purple-700 border-purple-200', dotColor: '#a855f7' },
-    { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dotColor: '#10b981' },
-    { value: 'CANCELLED', label: 'Cancelled', color: 'bg-rose-100 text-rose-700 border-rose-200', dotColor: '#f43f5e' },
-    { value: 'BLOCKED', label: 'Blocked', color: 'bg-red-100 text-red-700 border-red-200', dotColor: '#ef4444' },
-    { value: 'ARCHIVED', label: 'Archived', color: 'bg-slate-200 text-slate-600 border-slate-300', dotColor: '#475569' },
+    { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700', dotColor: '#94a3b8' },
+    { value: 'PLANNING', label: 'Planning', color: 'bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60', dotColor: '#0ea5e9' },
+    { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60', dotColor: '#3b82f6' },
+    { value: 'ON_HOLD', label: 'On Hold', color: 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60', dotColor: '#f59e0b' },
+    { value: 'REVIEW', label: 'Review', color: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60', dotColor: '#6366f1' },
+    { value: 'TESTING', label: 'Testing', color: 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60', dotColor: '#a855f7' },
+    { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60', dotColor: '#10b981' },
+    { value: 'CANCELLED', label: 'Cancelled', color: 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60', dotColor: '#f43f5e' },
+    { value: 'BLOCKED', label: 'Blocked', color: 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60', dotColor: '#ef4444' },
+    { value: 'ARCHIVED', label: 'Archived', color: 'bg-slate-200 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700', dotColor: '#475569' },
 ];
 
 
@@ -324,15 +324,15 @@ export default function ProjectsPage() {
                 </div>
                 <div className="min-w-0 flex flex-col justify-center flex-1">
                     <div className="flex items-center gap-1.5 w-full">
-                        <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-xs block" title={name}>
+                        <span className="font-semibold text-gray-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate text-xs block" title={name}>
                             {name}
                         </span>
                         {user?.id && (
                             <span className={cn(
                                 "flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight border",
                                 props.data.ownerId === user?.id
-                                    ? "bg-blue-50 text-blue-600 border-blue-100"
-                                    : "bg-gray-50 text-gray-500 border-gray-100"
+                                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800/40"
+                                    : "bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 border-gray-100 dark:border-slate-700"
                             )}>
                                 {props.data.ownerId === user?.id ? "Your's" : (memberMap[props.data.ownerId] || props.data.ownerName || "Owner")}
                             </span>
@@ -352,8 +352,8 @@ export default function ProjectsPage() {
                 <span className={cn(
                     "flex items-center justify-center w-full h-full px-2 text-[10px] font-bold tracking-wide transition-colors",
                     isPrivate
-                        ? 'bg-slate-50 text-slate-500 border-l border-r border-slate-100'
-                        : 'bg-indigo-50 text-indigo-600 border-l border-r border-indigo-100'
+                        ? 'bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-300 border-l border-r border-slate-100 dark:border-slate-700'
+                        : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border-l border-r border-indigo-100 dark:border-indigo-800/40'
                 )}>
                     {access}
                 </span>
@@ -369,10 +369,10 @@ export default function ProjectsPage() {
                 <span className={cn(
                     "flex items-center justify-center w-full h-full px-2 text-[10px] font-bold transition-colors",
                     isOrgOwnerOrAdmin
-                        ? 'bg-purple-50 text-purple-600 border-l border-r border-purple-100'
+                        ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 border-l border-r border-purple-100 dark:border-purple-800/40'
                         : displayRole === 'ADMIN'
-                            ? 'bg-blue-50 text-blue-600 border-l border-r border-blue-100'
-                            : 'bg-slate-50 text-slate-500 border-l border-r border-slate-100'
+                            ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 border-l border-r border-blue-100 dark:border-blue-800/40'
+                            : 'bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-300 border-l border-r border-slate-100 dark:border-slate-700'
                 )}>
                     {displayRole}
                 </span>
@@ -384,7 +384,7 @@ export default function ProjectsPage() {
         const tags = props.value || [];
 
         if (tags.length === 0) {
-            return <div className="h-full flex items-center text-[10px] text-gray-400 italic">No tags</div>;
+            return <div className="h-full flex items-center text-[10px] text-gray-400 dark:text-slate-500 italic">No tags</div>;
         }
 
         return (
@@ -403,7 +403,7 @@ export default function ProjectsPage() {
                     </span>
                 ))}
                 {tags.length > 2 && (
-                    <span className="text-[10px] items-center flex justify-center w-5 h-5 rounded-full bg-gray-100 text-gray-500 font-medium">
+                    <span className="text-[10px] items-center flex justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 font-medium">
                         +{tags.length - 2}
                     </span>
                 )}
@@ -499,7 +499,7 @@ export default function ProjectsPage() {
                                     width: dropdownPosition.width,
                                     zIndex: 99999
                                 }}
-                                className="bg-white border border-gray-100 rounded-lg shadow-2xl py-1 px-1 overflow-hidden"
+                                className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-lg shadow-2xl py-1 px-1 overflow-hidden"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {PROJECT_STATUS_OPTIONS.map((opt) => {
@@ -516,8 +516,8 @@ export default function ProjectsPage() {
                                             className={cn(
                                                 "flex items-center gap-2.5 w-full px-2.5 py-1.5 text-[11px] font-semibold transition-all rounded-md text-left mb-0.5 last:mb-0",
                                                 isSelected
-                                                    ? "bg-blue-50 text-blue-700 shadow-sm"
-                                                    : "hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                                                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 shadow-sm"
+                                                    : "hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100"
                                             )}
                                         >
                                             <div
@@ -540,7 +540,7 @@ export default function ProjectsPage() {
 
     const DateRenderer = (props: ICellRendererParams) => {
         const date = props.value;
-        if (!date) return <div className="h-full flex items-center text-gray-300">-</div>;
+        if (!date) return <div className="h-full flex items-center text-gray-300 dark:text-slate-600">-</div>;
 
         const targetDate = new Date(date);
         const today = new Date();
@@ -566,7 +566,7 @@ export default function ProjectsPage() {
             <div className="h-full flex items-center gap-2">
                 <span className={cn(
                     "text-[11px] font-medium",
-                    isDueDate && (isPast || isNearDue) ? "text-red-500 font-bold" : "text-gray-600"
+                    isDueDate && (isPast || isNearDue) ? "text-red-500 font-bold" : "text-gray-600 dark:text-slate-300"
                 )}>
                     {formatted} {isDueDate && isNearDue && <span className="text-[10px] ml-1 opacity-90">{daysText}</span>}
                 </span>
@@ -646,7 +646,7 @@ export default function ProjectsPage() {
         sortable: true,
         filter: true,
         resizable: true,
-        headerClass: 'bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
+        headerClass: 'bg-gray-50 dark:bg-slate-900 text-[11px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider',
     }), []);
 
     const handleProjectFormSubmit = async (projectData: ProjectFormData) => {
@@ -696,13 +696,13 @@ export default function ProjectsPage() {
     };
 
     return (
-        <div className="h-full flex flex-col bg-white" onContextMenu={(e) => e.preventDefault()}>
-            <div className="border-b border-gray-100 py-3 px-6 flex-shrink-0">
+        <div className="h-full flex flex-col bg-white dark:bg-slate-950" onContextMenu={(e) => e.preventDefault()}>
+            <div className="border-b border-gray-100 dark:border-slate-800 py-3 px-6 flex-shrink-0 bg-white dark:bg-slate-900">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center justify-between w-full sm:w-auto gap-3 min-w-[140px]">
                         <div className="flex items-center gap-3">
-                            <h1 className="text-lg font-bold text-gray-900 tracking-tight">Projects</h1>
-                            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
+                            <h1 className="text-lg font-bold text-gray-900 dark:text-slate-100 tracking-tight">Projects</h1>
+                            <span className="bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200 dark:border-slate-700">
                                 {filteredProjects.length}
                             </span>
                         </div>
@@ -719,21 +719,21 @@ export default function ProjectsPage() {
                                 placeholder="Search..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all text-xs"
+                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md leading-5 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all text-xs"
                             />
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+                            <div className="h-5 w-px bg-gray-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
 
-                            <div className="flex items-center bg-gray-50 p-0.5 rounded-md border border-gray-200">
+                            <div className="flex items-center bg-gray-50 dark:bg-slate-800 p-0.5 rounded-md border border-gray-200 dark:border-slate-700">
                                 <button
                                     onClick={() => setViewMode('list')}
                                     className={cn(
                                         'p-1 rounded transition-all',
                                         viewMode === 'list'
-                                            ? 'bg-white text-[var(--primary)] shadow-sm'
-                                            : 'text-gray-400 hover:text-gray-600'
+                                            ? 'bg-white dark:bg-slate-700 text-[var(--primary)] dark:text-blue-400 shadow-sm'
+                                            : 'text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200'
                                     )}
                                     title="List View"
                                 >
@@ -744,8 +744,8 @@ export default function ProjectsPage() {
                                     className={cn(
                                         'p-1 rounded transition-all',
                                         viewMode === 'kanban'
-                                            ? 'bg-white text-[var(--primary)] shadow-sm'
-                                            : 'text-gray-400 hover:text-gray-600'
+                                            ? 'bg-white dark:bg-slate-700 text-[var(--primary)] dark:text-blue-400 shadow-sm'
+                                            : 'text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200'
                                     )}
                                     title="Kanban View"
                                 >
@@ -769,7 +769,7 @@ export default function ProjectsPage() {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-hidden p-0 bg-white">
+            <div className="flex-1 overflow-hidden p-0 bg-white dark:bg-slate-950">
                 {loading && !projectsData ? (
                     <div className="flex flex-col items-center justify-center h-full space-y-4">
                         <Loader />
@@ -842,6 +842,49 @@ export default function ProjectsPage() {
                                     z-index: 0 !important;
                                     border-top: 1px solid #cbd5e1 !important;
                                 }
+
+                                /* Dark mode overrides */
+                                .dark .custom-ag-grid .ag-root-wrapper {
+                                    border: 1px solid #334155 !important;
+                                    background-color: #0f172a !important;
+                                    box-shadow: none !important;
+                                }
+                                .dark .custom-ag-grid .ag-header,
+                                .dark .custom-ag-grid .ag-header-row,
+                                .dark .custom-ag-grid .ag-header-cell,
+                                .dark .custom-ag-grid .ag-pinned-left-header,
+                                .dark .custom-ag-grid .ag-pinned-right-header {
+                                    background-color: #1e293b !important;
+                                    border-bottom: 1px solid #334155 !important;
+                                    border-color: #334155 !important;
+                                }
+                                .dark .custom-ag-grid .ag-header-cell-label,
+                                .dark .custom-ag-grid .ag-header-cell-label .ag-header-cell-text,
+                                .dark .custom-ag-grid .ag-header-cell-text {
+                                    color: #94a3b8 !important;
+                                }
+                                .dark .custom-ag-grid .ag-header-icon,
+                                .dark .custom-ag-grid .ag-icon {
+                                    color: #94a3b8 !important;
+                                }
+                                .dark .custom-ag-grid .ag-row {
+                                    border-bottom: 1px solid #1e293b !important;
+                                    background-color: #0f172a !important;
+                                }
+                                .dark .custom-ag-grid .ag-cell {
+                                    color: #f1f5f9 !important;
+                                }
+                                .dark .custom-ag-grid .ag-row:hover {
+                                    background-color: #1e293b !important;
+                                }
+                                .dark .custom-ag-grid .ag-row-selected {
+                                    background-color: #1e3a5f !important;
+                                }
+                                .dark .custom-ag-grid .ag-paging-panel {
+                                    background-color: #0f172a !important;
+                                    border-top: 1px solid #334155 !important;
+                                    color: #94a3b8 !important;
+                                }
                             `}</style>
                             <AgGridReact
                                 theme="legacy"
@@ -862,7 +905,7 @@ export default function ProjectsPage() {
                         </div>
 
                         {/* Custom Pagination Controls */}
-                        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-1 sm:px-6 bg-white shrink-0">
+                        <div className="flex items-center justify-between border-t border-gray-200 dark:border-slate-800 px-4 py-1 sm:px-6 bg-white dark:bg-slate-900 shrink-0">
                             <div className="flex flex-1 justify-between sm:hidden">
                                 <Button
                                     variant="secondary"
@@ -883,13 +926,13 @@ export default function ProjectsPage() {
                             </div>
                             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                                 <div>
-                                    <p className="xs text-gray-700">
-                                        Showing <span className="font-medium">{filteredProjects.length > 0 ? (page - 1) * limit + 1 : 0}</span> to <span className="font-medium">{Math.min(page * limit, meta?.total || 0)}</span> of <span className="font-medium">{meta?.total || 0}</span> results
+                                    <p className="xs text-gray-700 dark:text-slate-300">
+                                        Showing <span className="font-medium text-gray-900 dark:text-slate-100">{filteredProjects.length > 0 ? (page - 1) * limit + 1 : 0}</span> to <span className="font-medium text-gray-900 dark:text-slate-100">{Math.min(page * limit, meta?.total || 0)}</span> of <span className="font-medium text-gray-900 dark:text-slate-100">{meta?.total || 0}</span> results
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <select
-                                        className="xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
+                                        className="xs border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-4"
                                         value={limit}
                                         onChange={(e) => handleLimitChange(Number(e.target.value))}
                                     >
@@ -901,7 +944,7 @@ export default function ProjectsPage() {
                                         <button
                                             onClick={() => handlePageChange(1)}
                                             disabled={page === 1}
-                                            className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 dark:text-slate-400 ring-1 ring-inset ring-gray-300 dark:ring-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <span className="sr-only">First</span>
                                             <span aria-hidden="true">&laquo;</span>
@@ -909,20 +952,20 @@ export default function ProjectsPage() {
                                         <button
                                             onClick={() => handlePageChange(Math.max(1, page - 1))}
                                             disabled={page === 1}
-                                            className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="relative inline-flex items-center px-2 py-2 text-gray-400 dark:text-slate-400 ring-1 ring-inset ring-gray-300 dark:ring-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <span className="sr-only">Previous</span>
                                             <span aria-hidden="true">&lsaquo;</span>
                                         </button>
                                         <button
-                                            className="relative inline-flex items-center px-4 py-2 xs font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                                            className="relative inline-flex items-center px-4 py-2 xs font-semibold text-gray-900 dark:text-slate-100 ring-1 ring-inset ring-gray-300 dark:ring-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 bg-gray-50 dark:bg-slate-800 focus:z-20 focus:outline-offset-0"
                                         >
                                             {page}
                                         </button>
                                         <button
                                             onClick={() => handlePageChange(page + 1)}
                                             disabled={!meta?.hasNextPage}
-                                            className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="relative inline-flex items-center px-2 py-2 text-gray-400 dark:text-slate-400 ring-1 ring-inset ring-gray-300 dark:ring-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <span className="sr-only">Next</span>
                                             <span aria-hidden="true">&rsaquo;</span>
@@ -930,7 +973,7 @@ export default function ProjectsPage() {
                                         <button
                                             onClick={() => handlePageChange(meta?.totalPages || 1)}
                                             disabled={!meta?.totalPages || page === meta.totalPages}
-                                            className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 dark:text-slate-400 ring-1 ring-inset ring-gray-300 dark:ring-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <span className="sr-only">Last</span>
                                             <span aria-hidden="true">&raquo;</span>
@@ -941,7 +984,7 @@ export default function ProjectsPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="h-full flex flex-col bg-gray-50">
+                    <div className="h-full flex flex-col bg-gray-50 dark:bg-slate-950">
                         <div className="flex-1 overflow-x-auto p-6">
                             <div className="flex gap-4 h-full min-w-max">
                                 {PROJECT_STATUS_OPTIONS.map((statusOption) => {
@@ -952,7 +995,7 @@ export default function ProjectsPage() {
                                     return (
                                         <div
                                             key={statusOption.value}
-                                            className="flex-shrink-0 w-80 bg-white rounded-lg border border-gray-200 flex flex-col"
+                                            className="flex-shrink-0 w-80 bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 flex flex-col"
                                             onDragOver={(e) => e.preventDefault()}
                                             onDrop={(e) => {
                                                 e.preventDefault();
@@ -963,10 +1006,10 @@ export default function ProjectsPage() {
                                             }}
                                         >
                                             {/* Column Header */}
-                                            <div className="p-4 border-b border-gray-200">
+                                            <div className="p-4 border-b border-gray-200 dark:border-slate-800">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <h3 className="font-semibold text-gray-900 xs">{statusOption.label}</h3>
+                                                        <h3 className="font-semibold text-gray-900 dark:text-slate-100 xs">{statusOption.label}</h3>
                                                         <span className={cn(
                                                             "text-xs font-medium px-2 py-0.5 rounded-full",
                                                             statusOption.color
@@ -980,7 +1023,7 @@ export default function ProjectsPage() {
                                             {/* Drop Zone */}
                                             <div className="p-3 space-y-3 overflow-y-auto flex-1">
                                                 {statusProjects.length === 0 ? (
-                                                    <div className="text-center py-8 text-gray-400 xs">
+                                                    <div className="text-center py-8 text-gray-400 dark:text-slate-500 xs">
                                                         No projects
                                                     </div>
                                                 ) : (
@@ -1000,7 +1043,7 @@ export default function ProjectsPage() {
                                                                     e.dataTransfer.setData('projectId', project.id);
                                                                 }}
                                                                 className={cn(
-                                                                    "bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow group",
+                                                                    "bg-white dark:bg-slate-800/90 rounded-lg border border-gray-200 dark:border-slate-700/80 p-3 hover:shadow-md transition-shadow group",
                                                                     canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-default"
                                                                 )}
                                                                 onContextMenu={(e) => {
@@ -1028,7 +1071,7 @@ export default function ProjectsPage() {
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex items-center justify-between gap-2">
                                                                             <h4
-                                                                                className="xs font-semibold text-gray-900 truncate group-hover:text-blue-600 cursor-pointer transition-colors flex-1"
+                                                                                className="xs font-semibold text-gray-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 cursor-pointer transition-colors flex-1"
                                                                                 onClick={() => router.push(`/projects/${project.id}`)}
                                                                             >
                                                                                 {project.name}
