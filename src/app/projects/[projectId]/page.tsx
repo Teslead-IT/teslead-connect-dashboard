@@ -65,6 +65,7 @@ import { Tabs, TabItem } from '@/components/ui/Tabs';
 import PhaseTaskListTab from '@/components/phases/PhaseTaskListTab';
 import PhasesTab from '@/components/phases/PhasesTab';
 import { IssuesTab } from '@/components/issues/IssuesTab';
+import { RemindersTab } from '@/components/reminders/RemindersTab';
 import { ProjectSearchBox } from '@/components/projects/ProjectSearchBox';
 
 type ViewMode = 'board' | 'list';
@@ -79,15 +80,16 @@ const TAB_ITEMS: TabItem[] = [
     { id: 'phases', label: 'Phases' },
     { id: 'testing', label: 'Testing' },
     { id: 'time-logs', label: 'Time Logs' },
-    { id: 'issues', label: 'Issues' }
+    { id: 'issues', label: 'Issues' },
+    { id: 'reminders', label: 'Reminders' },
 ];
 
 const PRIORITY_COLORS = {
-    1: 'bg-slate-50 text-slate-500 border border-slate-100',
-    2: 'bg-sky-50 text-sky-600 border border-sky-100',
-    3: 'bg-amber-50 text-amber-600 border border-amber-100',
-    4: 'bg-orange-50 text-orange-600 border border-orange-100',
-    5: 'bg-rose-50 text-rose-600 border border-rose-100',
+    1: 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700',
+    2: 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-800/60',
+    3: 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/60',
+    4: 'bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-800/60',
+    5: 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800/60',
 };
 
 const PRIORITY_LABELS = {
@@ -99,16 +101,16 @@ const PRIORITY_LABELS = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    NOT_STARTED: 'bg-slate-100 text-slate-700 border-slate-200',
-    PLANNING: 'bg-sky-100 text-sky-700 border-sky-200',
-    IN_PROGRESS: 'bg-blue-100 text-blue-700 border-blue-200',
-    ON_HOLD: 'bg-amber-100 text-amber-700 border-amber-200',
-    REVIEW: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-    TESTING: 'bg-purple-100 text-purple-700 border-purple-200',
-    COMPLETED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    CANCELLED: 'bg-rose-100 text-rose-700 border-rose-200',
-    BLOCKED: 'bg-red-100 text-red-700 border-red-200',
-    ARCHIVED: 'bg-slate-200 text-slate-600 border-slate-300',
+    NOT_STARTED: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
+    PLANNING: 'bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60',
+    IN_PROGRESS: 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60',
+    ON_HOLD: 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60',
+    REVIEW: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60',
+    TESTING: 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60',
+    COMPLETED: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60',
+    CANCELLED: 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60',
+    BLOCKED: 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60',
+    ARCHIVED: 'bg-slate-200 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700',
 };
 
 export default function ProjectDetailPage() {
@@ -436,7 +438,7 @@ export default function ProjectDetailPage() {
                                         <span
                                             className={cn(
                                                 'inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase flex-shrink-0',
-                                                STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-700'
+                                                STATUS_COLORS[project.status] || 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700'
                                             )}
                                         >
                                             {(project.status || '').replace('_', ' ')}
@@ -518,6 +520,10 @@ export default function ProjectDetailPage() {
                             projectId={projectId}
                             canCreateIssue={projectPermissions.canCreateTask}
                         />
+                    </div>
+                ) : activeTab === 'reminders' ? (
+                    <div className="h-full overflow-hidden">
+                        <RemindersTab projectId={projectId} />
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">

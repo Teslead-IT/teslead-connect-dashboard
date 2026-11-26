@@ -117,9 +117,9 @@ export default function AccountSettingsPage() {
     };
 
     return (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm min-h-[600px]">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm min-h-[600px] transition-colors">
             {/* Tabs Header */}
-            <div className="px-6 pt-2 border-b border-gray-100 bg-gray-50/50">
+            <div className="px-6 pt-2 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50">
                 <Tabs
                     items={TABS}
                     activeTab={activeTab}
@@ -132,26 +132,26 @@ export default function AccountSettingsPage() {
                 {activeTab === 'profile' && (
                     <div key={user?.id || 'loading'} className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {/* Profile Header */}
-                        <div className="flex items-start gap-8 pb-8 border-b border-gray-100">
+                        <div className="flex items-start gap-8 pb-8 border-b border-gray-100 dark:border-slate-800">
                             <div className="relative group">
                                 <Avatar
                                     src={user?.avatarUrl || undefined}
                                     name={user?.fullName || user?.email || 'User'}
                                     size="lg"
-                                    className="w-32 h-32 text-4xl ring-4 ring-white shadow-md"
+                                    className="w-32 h-32 text-4xl ring-4 ring-white dark:ring-slate-800 shadow-md"
                                 />
-                                <button className="absolute bottom-2 right-2 p-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-gray-500 hover:text-[#091590] hover:border-[#091590] transition-colors z-10">
+                                <button className="absolute bottom-2 right-2 p-2.5 bg-white dark:bg-slate-800 rounded-full border border-gray-200 dark:border-slate-700 shadow-sm text-gray-500 dark:text-slate-400 hover:text-[#091590] dark:hover:text-blue-400 hover:border-[#091590] dark:hover:border-blue-500 transition-colors z-10">
                                     <Camera className="w-5 h-5" />
                                 </button>
                             </div>
                             <div className="flex-1 pt-4">
-                                <h2 className="text-2xl font-bold text-gray-900">{user?.fullName || 'User'}</h2>
-                                <p className="text-base text-gray-500 mb-4">{user?.email}</p>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{user?.fullName || 'User'}</h2>
+                                <p className="text-base text-gray-500 dark:text-slate-400 mb-4">{user?.email}</p>
                                 <div className="flex items-center gap-3">
-                                    <Badge variant="info" className="px-3 py-1 bg-blue-50 text-[#091590] border-blue-100 font-semibold uppercase text-xs tracking-wider">
+                                    <Badge variant="info" className="px-3 py-1 bg-blue-50 dark:bg-blue-950/60 text-[#091590] dark:text-blue-400 border border-blue-100 dark:border-blue-900/50 font-semibold uppercase text-xs tracking-wider">
                                         {user?.memberships?.find(m => m.orgId === activeOrgId)?.role || 'Member'}
                                     </Badge>
-                                    <Badge variant="success" className="px-3 py-1 bg-green-50 text-green-700 border-green-100 font-semibold uppercase text-xs tracking-wider">
+                                    <Badge variant="success" className="px-3 py-1 bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-900/50 font-semibold uppercase text-xs tracking-wider">
                                         Verified
                                     </Badge>
                                 </div>
@@ -162,27 +162,27 @@ export default function AccountSettingsPage() {
                         <div className="space-y-12">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-24 gap-y-12">
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                                    <label className="text-xs font-bold text-gray-700 sm:w-32 flex-shrink-0">Full Name</label>
+                                    <label className="text-xs font-bold text-gray-700 dark:text-slate-300 sm:w-32 flex-shrink-0">Full Name</label>
                                     <div className="relative group flex-1">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#091590] transition-colors" />
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500 group-focus-within:text-[#091590] dark:group-focus-within:text-blue-400 transition-colors" />
                                         <input
                                             type="text"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
-                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#091590]/10 focus:border-[#091590] transition-all"
+                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-[#091590]/10 dark:focus:ring-blue-500/10 focus:border-[#091590] dark:focus:border-blue-500 transition-all"
                                             placeholder="Enter your full name"
                                         />
                                     </div>
                                 </div>
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                                    <label className="text-xs font-bold text-gray-700 sm:w-32 flex-shrink-0">Email Address</label>
+                                    <label className="text-xs font-bold text-gray-700 dark:text-slate-300 sm:w-32 flex-shrink-0">Email Address</label>
                                     <div className="relative group flex-1">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#091590] transition-colors" />
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500 group-focus-within:text-[#091590] dark:group-focus-within:text-blue-400 transition-colors" />
                                         <input
                                             type="email"
                                             defaultValue={user?.email}
                                             disabled
-                                            className="w-full pl-12 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-xs text-gray-500 cursor-not-allowed opacity-80"
+                                            className="w-full pl-12 pr-4 py-3 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs text-gray-500 dark:text-slate-400 cursor-not-allowed opacity-80"
                                         />
                                     </div>
                                 </div>
@@ -192,7 +192,7 @@ export default function AccountSettingsPage() {
                                 <button
                                     onClick={handleProfileUpdate}
                                     disabled={isUpdatingProfile || !name}
-                                    className="flex items-center gap-2 px-8 py-3 bg-[#091590] text-white text-xs font-bold rounded-xl hover:bg-[#071170] shadow-lg shadow-[#091590]/20 hover:shadow-[#091590]/30 transition-all hover:-translate-y-0.5 active:translate-y-0 focus:ring-4 focus:ring-[#091590]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                                    className="flex items-center gap-2 px-8 py-3 bg-[#091590] dark:bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-[#071170] dark:hover:bg-blue-700 shadow-lg shadow-[#091590]/20 dark:shadow-blue-900/30 hover:shadow-[#091590]/30 transition-all hover:-translate-y-0.5 active:translate-y-0 focus:ring-4 focus:ring-[#091590]/20 dark:focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                                 >
                                     {isUpdatingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                     Save Changes
@@ -206,22 +206,47 @@ export default function AccountSettingsPage() {
                     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {/* 2FA Section (Mock) */}
                         <div className="pt-2 space-y-6">
-                            <div className="flex items-center justify-between py-6 border-b border-gray-100">
+                            {/* Password Row */}
+                            <div className="flex items-center justify-between py-6 border-b border-gray-100 dark:border-slate-800">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-2.5 bg-purple-50 rounded-xl text-purple-700">
+                                    <div className="p-2.5 bg-blue-50 dark:bg-blue-950/60 rounded-xl text-[#091590] dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/40">
+                                        <Key className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">Password</h3>
+                                        <p className="text-xs text-gray-500 dark:text-slate-400">Change your account password to keep it secure</p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCurrentPassword('');
+                                        setNewPassword('');
+                                        setShowPasswordModal(true);
+                                    }}
+                                    className="px-4 py-2 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-semibold transition-colors"
+                                >
+                                    Change Password
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between py-6 border-b border-gray-100 dark:border-slate-800">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2.5 bg-purple-50 dark:bg-purple-950/60 rounded-xl text-purple-700 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/40">
                                         <Smartphone className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-semibold text-gray-900">Two-Factor Authentication</h3>
-                                        <p className="text-xs text-gray-500">Secure your account with 2FA protection</p>
+                                        <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">Two-Factor Authentication</h3>
+                                        <p className="text-xs text-gray-500 dark:text-slate-400">Secure your account with 2FA protection</p>
                                     </div>
                                 </div>
 
                                 <button
                                     onClick={handle2FAToggle}
                                     className={cn(
-                                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#091590]",
-                                        is2FAEnabled ? "bg-[#091590]" : "bg-gray-200"
+                                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#091590] dark:focus:ring-blue-500 dark:focus:ring-offset-slate-900",
+                                        is2FAEnabled ? "bg-[#091590] dark:bg-blue-600" : "bg-gray-200 dark:bg-slate-700"
                                     )}
                                 >
                                     <span
@@ -237,14 +262,14 @@ export default function AccountSettingsPage() {
                                 isOpen={show2FAConfirmation}
                                 onClose={() => setShow2FAConfirmation(false)}
                                 title="Two-Factor Authentication"
-                                message="Are you On the 2-Factor aunthentications"
+                                message="Are you sure you want to enable Two-Factor Authentication?"
                                 type="confirmation"
                                 confirmText="Yes"
                                 onConfirm={handle2FAConfirm}
                             >
                                 <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-start gap-3">
-                                    <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                                    <p className="text-xs text-blue-200/90 leading-relaxed">
+                                    <Info className="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                    <p className="text-xs text-gray-700 dark:text-blue-200/90 leading-relaxed">
                                         When you sign in with Google or GitHub, you authorize the application to securely access your account through their trusted authentication system without sharing your actual password.
                                     </p>
                                 </div>
@@ -257,23 +282,23 @@ export default function AccountSettingsPage() {
                             >
                                 <div className="space-y-6">
                                     <div>
-                                        <p className="text-xs text-gray-500">Update your password to keep your account secure</p>
+                                        <p className="text-xs text-gray-500 dark:text-slate-400">Update your password to keep your account secure</p>
                                     </div>
 
                                     <form onSubmit={handlePasswordChange} className="space-y-4">
                                         <div className="space-y-2">
-                                            <label className="text-xs font-medium text-gray-700">Current Password</label>
+                                            <label className="text-xs font-medium text-gray-700 dark:text-slate-300">Current Password</label>
                                             <div className="relative">
                                                 <input
                                                     type={showCurrentPassword ? "text" : "password"}
                                                     value={currentPassword}
                                                     onChange={(e) => setCurrentPassword(e.target.value)}
-                                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all pr-10"
+                                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-xs text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 dark:focus:ring-blue-500/20 focus:border-[#091590] dark:focus:border-blue-500 transition-all pr-10"
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 focus:outline-none"
                                                 >
                                                     {showCurrentPassword ? (
                                                         <EyeOff className="w-4 h-4" />
@@ -284,18 +309,18 @@ export default function AccountSettingsPage() {
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs font-medium text-gray-700">New Password</label>
+                                            <label className="text-xs font-medium text-gray-700 dark:text-slate-300">New Password</label>
                                             <div className="relative">
                                                 <input
                                                     type={showNewPassword ? "text" : "password"}
                                                     value={newPassword}
                                                     onChange={(e) => setNewPassword(e.target.value)}
-                                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all pr-10"
+                                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-xs text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 dark:focus:ring-blue-500/20 focus:border-[#091590] dark:focus:border-blue-500 transition-all pr-10"
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowNewPassword(!showNewPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 focus:outline-none"
                                                 >
                                                     {showNewPassword ? (
                                                         <EyeOff className="w-4 h-4" />
@@ -310,7 +335,7 @@ export default function AccountSettingsPage() {
                                             <button
                                                 type="submit"
                                                 disabled={isChangingPassword || !currentPassword || !newPassword}
-                                                className="flex items-center gap-2 px-6 py-2.5 bg-[#091590] text-white text-xs font-semibold rounded-lg hover:bg-[#071170] shadow-sm transition-all focus:ring-4 focus:ring-[#091590]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="flex items-center gap-2 px-6 py-2.5 bg-[#091590] dark:bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-[#071170] dark:hover:bg-blue-700 shadow-sm transition-all focus:ring-4 focus:ring-[#091590]/20 dark:focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 {isChangingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                                 Update Password
@@ -325,20 +350,20 @@ export default function AccountSettingsPage() {
 
                 {activeTab === 'notifications' && (
                     <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-                        <div className="w-16 h-16 bg-blue-50 text-[#091590] rounded-xl flex items-center justify-center">
+                        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/60 text-[#091590] dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/40 rounded-xl flex items-center justify-center">
                             <Bell className="w-8 h-8" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                                 Notification Preferences
                             </h3>
-                            <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+                            <p className="text-xs text-gray-500 dark:text-slate-400 max-w-sm mx-auto mt-1">
                                 Manage how you receive updates and alerts. Coming soon.
                             </p>
                         </div>
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 }

@@ -187,8 +187,8 @@ export function GlobalTimerNav() {
                 className={cn(
                     'flex items-center gap-1.5 p-2 rounded-lg transition-all active:scale-95',
                     isRunning || elapsed
-                        ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                        : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+                        ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50'
+                        : 'text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800'
                 )}
                 title={requireCheckIn ? 'Check-in required to start timer' : 'Timer'}
             >
@@ -199,14 +199,14 @@ export function GlobalTimerNav() {
             </button>
 
             {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-[40] overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-[40] overflow-hidden">
                     <div className="p-4 flex flex-col gap-3">
-                        <div className="flex items-center gap-2 text-blue-600">
+                        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                             <Clock className="w-4 h-4" />
                             <span className="text-xs font-semibold">Timer</span>
                         </div>
                         {isRunning && activeTimer && (
-                            <p className="text-xs text-gray-600 truncate">
+                            <p className="text-xs text-gray-600 dark:text-slate-300 truncate">
                                 {activeTimer.taskTitle || activeTimer.projectName || (timerHasTask ? 'Task' : 'No task (assign when stopping)')}
                             </p>
                         )}
@@ -232,7 +232,7 @@ export function GlobalTimerNav() {
                                     <Play className="w-3.5 h-3.5" fill="currentColor" />
                                     Start Timer
                                 </button>
-                                <p className="text-[10px] text-gray-500 text-center">
+                                <p className="text-[10px] text-gray-500 dark:text-slate-400 text-center">
                                     Or start from a task row. Assign task when stopping.
                                 </p>
                             </>
@@ -242,12 +242,12 @@ export function GlobalTimerNav() {
             )}
 
             {stopConfirmOpen && typeof document !== 'undefined' && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/30" onClick={() => setStopConfirmOpen(false)}>
-                    <div className="bg-white rounded-xl shadow-xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-xs font-medium text-gray-900 mb-1">Stop this timer?</p>
-                        <p className="text-xs text-gray-500 mb-4">Your time will be saved to the current task.</p>
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setStopConfirmOpen(false)}>
+                    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl shadow-xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <p className="text-xs font-medium text-gray-900 dark:text-slate-100 mb-1">Stop this timer?</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">Your time will be saved to the current task.</p>
                         <div className="flex gap-2 justify-end">
-                            <button type="button" onClick={() => setStopConfirmOpen(false)} className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                            <button type="button" onClick={() => setStopConfirmOpen(false)} className="px-3 py-1.5 text-xs text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
                             <button type="button" onClick={handleConfirmStop} disabled={isStopping} className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50">Stop</button>
                         </div>
                     </div>
@@ -256,17 +256,17 @@ export function GlobalTimerNav() {
             )}
 
             {assignTaskOpen && typeof document !== 'undefined' && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/30" onClick={handleAssignModalClose}>
-                    <div className="bg-white rounded-xl shadow-xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-xs font-medium text-gray-900 mb-1">{pendingOrgSwitch ? 'Assign a task before switching organization' : 'Assign this time to a task'}</p>
-                        <p className="text-xs text-gray-500 mb-3">{pendingOrgSwitch ? 'Your timer is running. Select a project and task to save your time, then we\'ll switch the organization.' : 'Select the project and task you were working on. Your time will be saved as a time entry.'}</p>
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={handleAssignModalClose}>
+                    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl shadow-xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <p className="text-xs font-medium text-gray-900 dark:text-slate-100 mb-1">{pendingOrgSwitch ? 'Assign a task before switching organization' : 'Assign this time to a task'}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">{pendingOrgSwitch ? 'Your timer is running. Select a project and task to save your time, then we\'ll switch the organization.' : 'Select the project and task you were working on. Your time will be saved as a time entry.'}</p>
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Project</label>
+                                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Project</label>
                                 <select
                                     value={assignProjectId}
                                     onChange={(e) => { setAssignProjectId(e.target.value); setAssignTaskId(''); }}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg text-xs"
                                 >
                                     <option value="">Select project</option>
                                     {Array.isArray(projects) && projects.map((p) => (
@@ -275,11 +275,11 @@ export function GlobalTimerNav() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Task</label>
+                                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Task</label>
                                 <select
                                     value={assignTaskId}
                                     onChange={(e) => setAssignTaskId(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg text-xs"
                                     disabled={!assignProjectId}
                                 >
                                     <option value="">Select task</option>
@@ -289,18 +289,18 @@ export function GlobalTimerNav() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Description (optional)</label>
+                                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Description (optional)</label>
                                 <input
                                     type="text"
                                     value={assignDescription}
                                     onChange={(e) => setAssignDescription(e.target.value)}
                                     placeholder="Note"
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 rounded-lg text-xs"
                                 />
                             </div>
                         </div>
                         <div className="flex gap-2 justify-end mt-4">
-                            <button type="button" onClick={handleAssignModalClose} className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                            <button type="button" onClick={handleAssignModalClose} className="px-3 py-1.5 text-xs text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
                             <button type="button" onClick={handleAssignTaskSubmit} disabled={isStopping || !assignProjectId || !assignTaskId} className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50">{pendingOrgSwitch ? 'Assign & Switch' : 'Stop & save'}</button>
                         </div>
                     </div>

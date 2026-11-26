@@ -321,45 +321,45 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
             {/* Modal Panel */}
             <div
                 className={cn(
-                    "relative w-full max-w-3xl bg-white shadow-2xl h-full flex flex-col transform transition-transform duration-500 ease-out",
+                    "relative w-full max-w-3xl dark:bg-slate-900 bg-white shadow-2xl h-full flex flex-col transform transition-transform duration-500 ease-out",
                     isOpen ? "translate-x-0" : "translate-x-full"
                 )}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-lg font-semibold text-gray-900">{initialData ? 'Edit Project' : 'New Project'}</h2>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{initialData ? 'Edit Project' : 'New Project'}</h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                        className="p-1.5 rounded-md text-gray-400 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-600 dark:hover:text-slate-200 transition-colors"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto dark:border-slate-800">
                     <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
                         {/* Project Template Selection */}
                         {!initialData && (
-                            <div className="space-y-3 bg-gradient-to-br from-gray-50 to-blue-50/30 p-4 rounded-xl border border-gray-200/80 shadow-2xs">
+                            <div className="space-y-3 bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-slate-800/80 dark:to-slate-900/80 p-4 rounded-xl border border-gray-200/80 dark:border-slate-700 shadow-2xs">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-lg bg-[#091590] text-white flex items-center justify-center shadow-2xs">
+                                        <div className="w-6 h-6 rounded-lg bg-[#091590] dark:bg-indigo-600 text-white flex items-center justify-center shadow-2xs">
                                             <Sparkles className="w-3.5 h-3.5" />
                                         </div>
                                         <div>
-                                            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Select Project Template</h3>
-                                            <p className="text-[11px] text-gray-500">Choose a pre-built structure to auto-generate phases & task lists</p>
+                                            <h3 className="text-xs font-bold text-gray-900 dark:text-slate-200 uppercase tracking-wider">Select Project Template</h3>
+                                            <p className="text-[11px] text-gray-500 dark:text-slate-400">Choose a pre-built structure to auto-generate phases & task lists</p>
                                         </div>
                                     </div>
                                     {formData.phases && formData.phases.length > 0 && (
                                         <button
                                             type="button"
                                             onClick={() => setShowTemplatePreview(!showTemplatePreview)}
-                                            className="text-[11px] font-bold text-[#091590] hover:underline flex items-center gap-1"
+                                            className="text-[11px] font-bold text-[#091590] dark:text-indigo-400 hover:underline flex items-center gap-1"
                                         >
                                             <span>{showTemplatePreview ? 'Hide Preview' : 'Show Preview'}</span>
                                             <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showTemplatePreview && "rotate-180")} />
@@ -380,39 +380,46 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                                 className={cn(
                                                     "relative p-3 rounded-lg border-2 cursor-pointer transition-all flex flex-col justify-between group",
                                                     isSelected
-                                                        ? "bg-white border-[#091590] shadow-md ring-2 ring-[#091590]/10"
-                                                        : "bg-white/80 border-gray-200 hover:border-blue-300 hover:bg-white"
+                                                        ? "bg-white dark:bg-slate-800 border-[#091590] dark:border-indigo-500 shadow-md ring-2 ring-[#091590]/10 dark:ring-indigo-500/20"
+                                                        : "bg-white/80 dark:bg-slate-900/90 border-gray-200 dark:border-slate-700/80 hover:border-blue-300 dark:hover:border-slate-500 hover:bg-white dark:hover:bg-slate-800/80"
                                                 )}
                                             >
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-1.5 mb-1">
-                                                            <span className="font-bold text-xs text-gray-900 truncate">{tmpl.title}</span>
+                                                            <span className={cn(
+                                                                "font-bold text-xs truncate transition-colors",
+                                                                isSelected ? "text-gray-900 dark:text-white" : "text-gray-900 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-indigo-300"
+                                                            )}>
+                                                                {tmpl.title}
+                                                            </span>
                                                         </div>
-                                                        <p className="text-[10px] text-gray-500 line-clamp-2">{tmpl.description}</p>
+                                                        <p className="text-[10px] text-gray-500 dark:text-slate-400 line-clamp-2">{tmpl.description}</p>
                                                     </div>
                                                     <div className={cn(
                                                         "w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                                                        isSelected ? "bg-[#091590] text-white" : "border border-gray-300 group-hover:border-blue-400"
+                                                        isSelected
+                                                            ? "bg-[#091590] dark:bg-indigo-600 text-white"
+                                                            : "border border-gray-300 dark:border-slate-600 dark:bg-slate-800/50 group-hover:border-blue-400 dark:group-hover:border-slate-400"
                                                     )}>
                                                         {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 text-[10px]">
+                                                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-slate-700/60 text-[10px]">
                                                     {tmpl.phases.length > 0 ? (
                                                         <>
-                                                            <span className="inline-flex items-center gap-1 font-bold text-violet-700 bg-violet-50 px-2 py-0.5 rounded border border-violet-100">
+                                                            <span className="inline-flex items-center gap-1 font-bold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/60 px-2 py-0.5 rounded border border-violet-100 dark:border-violet-900/50">
                                                                 <Layers className="w-3 h-3" />
                                                                 {tmpl.phases.length} Phases
                                                             </span>
-                                                            <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                                            <span className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/50">
                                                                 <ListTree className="w-3 h-3" />
                                                                 {totalTaskLists} Task Lists
                                                             </span>
                                                         </>
                                                     ) : (
-                                                        <span className="font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                                        <span className="font-bold text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-transparent dark:border-slate-700">
                                                             Blank / Custom
                                                         </span>
                                                     )}
@@ -424,9 +431,9 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                                 {/* Template Structure Preview */}
                                 {showTemplatePreview && formData.phases && formData.phases.length > 0 && (
-                                    <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200 shadow-2xs space-y-2 animate-in fade-in duration-200">
-                                        <div className="flex items-center justify-between text-[11px] font-bold text-gray-700 border-b border-gray-100 pb-1.5">
-                                            <span className="flex items-center gap-1 text-[#091590]">
+                                    <div className="mt-3 p-3 bg-white dark:bg-slate-900/90 rounded-lg border border-gray-200 dark:border-slate-700 shadow-2xs space-y-2 animate-in fade-in duration-200">
+                                        <div className="flex items-center justify-between text-[11px] font-bold text-gray-700 dark:text-slate-300 border-b border-gray-100 dark:border-slate-800 pb-1.5">
+                                            <span className="flex items-center gap-1 text-[#091590] dark:text-indigo-400">
                                                 <Layers className="w-3.5 h-3.5" />
                                                 Pre-configured Structure Preview:
                                             </span>
@@ -437,21 +444,21 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                                 <div key={idx} className="space-y-1">
                                                     {/* Phase (Violet Badge) */}
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-violet-600 text-white font-bold text-[10px] uppercase tracking-wider shadow-2xs">
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-violet-600 dark:bg-violet-700 text-white font-bold text-[10px] uppercase tracking-wider shadow-2xs">
                                                             <Layers className="w-3 h-3" />
                                                             {p.name}
                                                         </span>
-                                                        <span className="text-[10px] text-gray-400">({p.taskLists.length} task lists)</span>
+                                                        <span className="text-[10px] text-gray-400 dark:text-slate-500">({p.taskLists.length} task lists)</span>
                                                     </div>
 
                                                     {/* Task Lists (Green Badges) */}
-                                                    <div className="flex flex-wrap gap-1 pl-3 border-l-2 border-violet-200 ml-2 py-0.5">
+                                                    <div className="flex flex-wrap gap-1 pl-3 border-l-2 border-violet-200 dark:border-violet-900/60 ml-2 py-0.5">
                                                         {p.taskLists.map((tl, tlIdx) => (
                                                             <span
                                                                 key={tlIdx}
-                                                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-[10px]"
+                                                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-semibold text-[10px]"
                                                             >
-                                                                <ListTree className="w-2.5 h-2.5 text-emerald-600" />
+                                                                <ListTree className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
                                                                 {tl}
                                                             </span>
                                                         ))}
@@ -466,7 +473,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Project Title & Color */}
                         <div>
-                            <label className="flex items-center text-xs font-medium text-gray-700 mb-2">
+                            <label className="flex items-center text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">
                                 Project Title
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
@@ -487,8 +494,8 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                             if (errors.name) setErrors({ ...errors, name: '' });
                                         }}
                                         className={cn(
-                                            "w-full px-3 py-2 border rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm",
-                                            errors.name ? "border-red-300 focus:border-red-500 focus:ring-red-200" : "border-gray-300"
+                                            "w-full px-3 py-2 border rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm dark:bg-slate-900 dark:text-slate-100 dark:placeholder-slate-500",
+                                            errors.name ? "border-red-300 dark:border-red-500 focus:border-red-500 focus:ring-red-200" : "border-gray-300 dark:border-slate-700"
                                         )}
                                         placeholder="Enter project title"
                                         autoFocus
@@ -501,19 +508,19 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                         {/* Dates */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-2">Start Date</label>
+                                <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">Start Date</label>
                                 <div className="relative">
                                     <input
                                         type="date"
                                         value={formData.startDate}
                                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm [color-scheme:light] dark:[color-scheme:dark]"
                                     />
                                     {/* <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" /> */}
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-2">End Date</label>
+                                <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">End Date</label>
                                 <div className="relative">
                                     <input
                                         type="date"
@@ -524,8 +531,8 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                         }}
                                         min={formData.startDate}
                                         className={cn(
-                                            "w-full px-3 py-2 border rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm",
-                                            errors.endDate ? "border-red-300" : "border-gray-300"
+                                            "w-full px-3 py-2 border rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm dark:bg-slate-900 dark:text-slate-100 [color-scheme:light] dark:[color-scheme:dark]",
+                                            errors.endDate ? "border-red-300 dark:border-red-500" : "border-gray-300 dark:border-slate-700"
                                         )}
                                     />
                                     {/* <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" /> */}
@@ -536,7 +543,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Status */}
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-2">Status</label>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">Status</label>
                             <Dropdown
                                 value={formData.status}
                                 onChange={(value) => setFormData({ ...formData, status: value as ProjectStatus })}
@@ -551,44 +558,44 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Description with Rich Text Editor */}
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-2">Description</label>
-                            <div className="border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">Description</label>
+                            <div className="border border-gray-300 dark:border-slate-700 rounded-md overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
                                 {/* Toolbar */}
-                                <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-50 border-b border-gray-200 flex-wrap">
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Bold">
+                                <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-50 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-700 flex-wrap">
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Bold">
                                         <Bold className="w-3.5 h-3.5" />
                                     </button>
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Italic">
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Italic">
                                         <Italic className="w-3.5 h-3.5" />
                                     </button>
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Underline">
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Underline">
                                         <Underline className="w-3.5 h-3.5" />
                                     </button>
-                                    <div className="w-px h-4 bg-gray-300 mx-1" />
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Bulleted List">
+                                    <div className="w-px h-4 bg-gray-300 dark:bg-slate-700 mx-1" />
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Bulleted List">
                                         <List className="w-3.5 h-3.5" />
                                     </button>
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Numbered List">
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Numbered List">
                                         <ListOrdered className="w-3.5 h-3.5" />
                                     </button>
-                                    <div className="w-px h-4 bg-gray-300 mx-1" />
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Align Left">
+                                    <div className="w-px h-4 bg-gray-300 dark:bg-slate-700 mx-1" />
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Align Left">
                                         <AlignLeft className="w-3.5 h-3.5" />
                                     </button>
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Align Center">
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Align Center">
                                         <AlignCenter className="w-3.5 h-3.5" />
                                     </button>
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Align Right">
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Align Right">
                                         <AlignRight className="w-3.5 h-3.5" />
                                     </button>
-                                    <div className="w-px h-4 bg-gray-300 mx-1" />
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Add Image">
+                                    <div className="w-px h-4 bg-gray-300 dark:bg-slate-700 mx-1" />
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Add Image">
                                         <ImageIcon className="w-3.5 h-3.5" />
                                     </button>
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Attach File">
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Attach File">
                                         <Paperclip className="w-3.5 h-3.5" />
                                     </button>
-                                    <button type="button" className="p-1.5 hover:bg-gray-200 rounded text-gray-600 hover:text-gray-900 transition-colors" title="Add Emoji">
+                                    <button type="button" className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 transition-colors" title="Add Emoji">
                                         <Smile className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -597,7 +604,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                     rows={4}
-                                    className="w-full px-3 py-2 text-xs focus:outline-none resize-none bg-white"
+                                    className="w-full px-3 py-2 text-xs focus:outline-none resize-none bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500"
                                     placeholder="Enter project description..."
                                 />
                             </div>
@@ -605,7 +612,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Tags */}
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-2">Tags</label>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">Tags</label>
                             <div className="space-y-3">
                                 <div className="flex gap-2">
                                     <div className="custom-primereact-colorpicker">
@@ -626,12 +633,12 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                             }
                                         }}
                                         placeholder="Add a tag..."
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
+                                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder-slate-500 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
                                     />
                                     <button
                                         type="button"
                                         onClick={handleAddTag}
-                                        className="px-4 py-2 bg-gray-50 text-gray-700 text-xs font-medium rounded-md border border-gray-300 hover:bg-gray-100 transition-colors shadow-sm"
+                                        className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-xs font-medium rounded-md border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
                                     >
                                         Add
                                     </button>
@@ -665,11 +672,13 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
 
                         {/* Project Access */}
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-3">Project Access</label>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-3">Project Access</label>
                             <div className="space-y-2">
                                 <label className={cn(
                                     "flex items-center gap-3 p-3 rounded-md border-2 cursor-pointer transition-all hover:shadow-sm",
-                                    formData.access === 'PRIVATE' ? "border-blue-600 bg-blue-50/50" : "border-gray-200 hover:border-gray-300"
+                                    formData.access === 'PRIVATE'
+                                        ? "border-blue-600 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-950/30"
+                                        : "border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 dark:bg-slate-900/40"
                                 )}>
                                     <input
                                         type="radio"
@@ -677,19 +686,21 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                         value="PRIVATE"
                                         checked={formData.access === 'PRIVATE'}
                                         onChange={(e) => setFormData({ ...formData, access: e.target.value as 'PRIVATE' | 'PUBLIC' })}
-                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                        className="w-4 h-4 text-blue-600 dark:text-blue-500 focus:ring-blue-500"
                                     />
-                                    <div className={cn("p-1.5 rounded", formData.access === 'PRIVATE' ? "bg-blue-100/50" : "bg-gray-100")}>
-                                        <Lock className={cn("w-4 h-4", formData.access === 'PRIVATE' ? "text-blue-600" : "text-gray-500")} />
+                                    <div className={cn("p-1.5 rounded", formData.access === 'PRIVATE' ? "bg-blue-100/50 dark:bg-blue-900/50" : "bg-gray-100 dark:bg-slate-800")}>
+                                        <Lock className={cn("w-4 h-4", formData.access === 'PRIVATE' ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-slate-400")} />
                                     </div>
                                     <div>
-                                        <span className="text-xs font-semibold text-gray-900 block">Private</span>
-                                        <span className="text-xs text-gray-500 block">Only project members can access</span>
+                                        <span className="text-xs font-semibold text-gray-900 dark:text-slate-100 block">Private</span>
+                                        <span className="text-xs text-gray-500 dark:text-slate-400 block">Only project members can access</span>
                                     </div>
                                 </label>
                                 <label className={cn(
                                     "flex items-center gap-3 p-3 rounded-md border-2 cursor-pointer transition-all hover:shadow-sm",
-                                    formData.access === 'PUBLIC' ? "border-blue-600 bg-blue-50/50" : "border-gray-200 hover:border-gray-300"
+                                    formData.access === 'PUBLIC'
+                                        ? "border-blue-600 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-950/30"
+                                        : "border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 dark:bg-slate-900/40"
                                 )}>
                                     <input
                                         type="radio"
@@ -697,14 +708,14 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                                         value="PUBLIC"
                                         checked={formData.access === 'PUBLIC'}
                                         onChange={(e) => setFormData({ ...formData, access: e.target.value as 'PRIVATE' | 'PUBLIC' })}
-                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                        className="w-4 h-4 text-blue-600 dark:text-blue-500 focus:ring-blue-500"
                                     />
-                                    <div className={cn("p-1.5 rounded", formData.access === 'PUBLIC' ? "bg-blue-100/50" : "bg-gray-100")}>
-                                        <Globe className={cn("w-4 h-4", formData.access === 'PUBLIC' ? "text-blue-600" : "text-gray-500")} />
+                                    <div className={cn("p-1.5 rounded", formData.access === 'PUBLIC' ? "bg-blue-100/50 dark:bg-blue-900/50" : "bg-gray-100 dark:bg-slate-800")}>
+                                        <Globe className={cn("w-4 h-4", formData.access === 'PUBLIC' ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-slate-400")} />
                                     </div>
                                     <div>
-                                        <span className="text-xs font-semibold text-gray-900 block">Public</span>
-                                        <span className="text-xs text-gray-500 block">Visible to everyone in the organization</span>
+                                        <span className="text-xs font-semibold text-gray-900 dark:text-slate-100 block">Public</span>
+                                        <span className="text-xs text-gray-500 dark:text-slate-400 block">Visible to everyone in the organization</span>
                                     </div>
                                 </label>
                             </div>
@@ -714,12 +725,12 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, initialData }: C
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-white">
+                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={isSubmitting}
-                        className="px-5 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm"
+                        className="px-5 py-2 text-xs font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
                     >
                         Cancel
                     </button>

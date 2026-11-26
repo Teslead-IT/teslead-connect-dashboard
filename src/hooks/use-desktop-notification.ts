@@ -188,6 +188,8 @@ function getNotificationTitle(type?: string): string {
             return '📋 Task Assigned';
         case 'TASK_COMPLETED':
             return '🎉 Task Completed';
+        case 'REMINDER_DUE':
+            return '(Reminder)';
         default:
             return '🔔 Teslead Notification';
     }

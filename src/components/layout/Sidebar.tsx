@@ -73,6 +73,11 @@ const navItems: NavItem[] = [
         icon: <Calendar className="w-4 h-4 flex-shrink-0" />,
     },
     {
+        label: 'Reminders',
+        href: '/reminders',
+        icon: <Bell className="w-4 h-4 flex-shrink-0" />,
+    },
+    {
         label: 'Support Forms',
         href: '/support-forms',
         icon: <ClipboardList className="w-4 h-4 flex-shrink-0" />,

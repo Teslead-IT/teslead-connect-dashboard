@@ -35,15 +35,15 @@ import { cn } from '@/lib/utils';
 import type { MyTask } from '@/types/task';
 
 const TASK_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-    FEAT: { label: 'FEAT', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200', icon: Stars },
-    BUG: { label: 'BUG', color: 'text-red-700', bg: 'bg-red-50 border-red-200', icon: Bug },
-    IMPR: { label: 'IMPR', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', icon: Zap },
-    REF: { label: 'REF', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', icon: RefreshCw },
-    RND: { label: 'R&D', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: FlaskConical },
-    DOC: { label: 'DOC', color: 'text-gray-700', bg: 'bg-gray-50 border-gray-200', icon: FileText },
-    OPS: { label: 'OPS', color: 'text-teal-700', bg: 'bg-teal-50 border-teal-200', icon: Settings },
-    TEST: { label: 'TEST', color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', icon: ClipboardCheck },
-    HOT: { label: 'HOT', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', icon: Flame },
+    FEAT: { label: 'FEAT', color: 'text-purple-700 dark:text-purple-300', bg: 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800/60', icon: Stars },
+    BUG: { label: 'BUG', color: 'text-red-700 dark:text-red-300', bg: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800/60', icon: Bug },
+    IMPR: { label: 'IMPR', color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/60', icon: Zap },
+    REF: { label: 'REF', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/60', icon: RefreshCw },
+    RND: { label: 'R&D', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/60', icon: FlaskConical },
+    DOC: { label: 'DOC', color: 'text-gray-700 dark:text-slate-300', bg: 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700', icon: FileText },
+    OPS: { label: 'OPS', color: 'text-teal-700 dark:text-teal-300', bg: 'bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800/60', icon: Settings },
+    TEST: { label: 'TEST', color: 'text-indigo-700 dark:text-indigo-300', bg: 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800/60', icon: ClipboardCheck },
+    HOT: { label: 'HOT', color: 'text-orange-700 dark:text-orange-300', bg: 'bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800/60', icon: Flame },
 };
 
 function StatusFilterDropdown({
@@ -75,9 +75,9 @@ function StatusFilterDropdown({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition-all shadow-2xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-gray-700 dark:text-slate-200 transition-all shadow-2xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
             >
-                <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <Filter className="w-3.5 h-3.5 text-gray-400 dark:text-slate-400 shrink-0" />
                 {activeOption ? (
                     <span className="flex items-center gap-1.5 min-w-0">
                         <span
@@ -87,13 +87,13 @@ function StatusFilterDropdown({
                         <span className="truncate max-w-[110px]">{activeOption.name}</span>
                     </span>
                 ) : (
-                    <span className="text-gray-700">All Statuses</span>
+                    <span className="text-gray-700 dark:text-slate-200">All Statuses</span>
                 )}
-                <ChevronDown className={cn("w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform", isOpen && "rotate-180")} />
+                <ChevronDown className={cn("w-3.5 h-3.5 text-gray-400 dark:text-slate-400 shrink-0 transition-transform", isOpen && "rotate-180")} />
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-1.5 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1 overflow-hidden animate-in fade-in-50 zoom-in-95">
+                <div className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 py-1 overflow-hidden animate-in fade-in-50 zoom-in-95">
                     <button
                         type="button"
                         onClick={() => {
@@ -101,14 +101,14 @@ function StatusFilterDropdown({
                             setIsOpen(false);
                         }}
                         className={cn(
-                            "w-full text-left px-3 py-1.5 text-xs font-medium flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer",
-                            selectedStatusId === 'ALL' ? "bg-blue-50 text-blue-700 font-bold" : "text-gray-700"
+                            "w-full text-left px-3 py-1.5 text-xs font-medium flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer",
+                            selectedStatusId === 'ALL' ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold" : "text-gray-700 dark:text-slate-200"
                         )}
                     >
                         <span>All Statuses</span>
-                        {selectedStatusId === 'ALL' && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+                        {selectedStatusId === 'ALL' && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />}
                     </button>
-                    <div className="h-px bg-gray-100 my-1" />
+                    <div className="h-px bg-gray-100 dark:bg-slate-700 my-1" />
                     <div className="max-h-52 overflow-y-auto">
                         {statusOptions.map((st) => {
                             const isSelected = selectedStatusId === st.id;
@@ -121,8 +121,8 @@ function StatusFilterDropdown({
                                         setIsOpen(false);
                                     }}
                                     className={cn(
-                                        "w-full text-left px-3 py-1.5 text-xs font-medium flex items-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer",
-                                        isSelected ? "bg-gray-50 font-bold" : "text-gray-700"
+                                        "w-full text-left px-3 py-1.5 text-xs font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors cursor-pointer",
+                                        isSelected ? "bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-slate-100 font-bold" : "text-gray-700 dark:text-slate-300"
                                     )}
                                 >
                                     <span
@@ -130,7 +130,7 @@ function StatusFilterDropdown({
                                         style={{ backgroundColor: st.color }}
                                     />
                                     <span className="truncate flex-1">{st.name}</span>
-                                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-gray-900" />}
+                                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-slate-100" />}
                                 </button>
                             );
                         })}
@@ -185,15 +185,15 @@ function DateFilterDropdown({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition-all shadow-2xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-gray-700 dark:text-slate-200 transition-all shadow-2xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
             >
-                <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <Calendar className="w-3.5 h-3.5 text-gray-400 dark:text-slate-400 shrink-0" />
                 <span className="truncate">{dateFilter === 'ALL' ? 'Date Filter' : currentLabel}</span>
-                <ChevronDown className={cn("w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform", isOpen && "rotate-180")} />
+                <ChevronDown className={cn("w-3.5 h-3.5 text-gray-400 dark:text-slate-400 shrink-0 transition-transform", isOpen && "rotate-180")} />
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-1.5 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1 overflow-hidden animate-in fade-in-50 zoom-in-95">
+                <div className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 py-1 overflow-hidden animate-in fade-in-50 zoom-in-95">
                     {DATE_OPTIONS.map((opt) => (
                         <button
                             key={opt.id}
@@ -203,33 +203,33 @@ function DateFilterDropdown({
                                 if (opt.id !== 'CUSTOM') setIsOpen(false);
                             }}
                             className={cn(
-                                "w-full text-left px-3 py-1.5 text-xs font-medium flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer",
-                                dateFilter === opt.id ? "bg-blue-50 text-blue-700 font-bold" : "text-gray-700"
+                                "w-full text-left px-3 py-1.5 text-xs font-medium flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer",
+                                dateFilter === opt.id ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold" : "text-gray-700 dark:text-slate-200"
                             )}
                         >
                             <span>{opt.label}</span>
-                            {dateFilter === opt.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+                            {dateFilter === opt.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />}
                         </button>
                     ))}
 
                     {dateFilter === 'CUSTOM' && (
-                        <div className="p-3 border-t border-gray-100 bg-gray-50/50 space-y-2">
+                        <div className="p-3 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/60 space-y-2">
                             <div>
-                                <label className="text-[10px] font-bold text-gray-500 uppercase">From Date</label>
+                                <label className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase">From Date</label>
                                 <input
                                     type="date"
                                     value={customStartDate}
                                     onChange={(e) => onStartDateChange(e.target.value)}
-                                    className="w-full mt-0.5 px-2 py-1 bg-white border border-gray-200 rounded text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="w-full mt-0.5 px-2 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded text-xs text-gray-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-gray-500 uppercase">To Date</label>
+                                <label className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase">To Date</label>
                                 <input
                                     type="date"
                                     value={customEndDate}
                                     onChange={(e) => onEndDateChange(e.target.value)}
-                                    className="w-full mt-0.5 px-2 py-1 bg-white border border-gray-200 rounded text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="w-full mt-0.5 px-2 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded text-xs text-gray-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
                                 />
                             </div>
                             <button
@@ -518,14 +518,14 @@ export default function UserTasksPage() {
     const userRole = userMember?.role || 'Team Member';
 
     return (
-        <div className="h-full flex flex-col bg-white overflow-hidden">
+        <div className="h-full flex flex-col bg-white dark:bg-slate-950 overflow-hidden">
             {/* Top Bar Header */}
-            <div className="border-b border-gray-100 py-3.5 px-6 flex-shrink-0 bg-white shadow-xs">
+            <div className="border-b border-gray-100 dark:border-slate-800 py-3.5 px-6 flex-shrink-0 bg-white dark:bg-slate-900 shadow-xs">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => router.push('/team')}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors border border-gray-200 cursor-pointer"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 transition-colors border border-gray-200 dark:border-slate-700 cursor-pointer"
                             title="Back to Team"
                         >
                             <ArrowLeft className="w-4 h-4" />
@@ -535,39 +535,39 @@ export default function UserTasksPage() {
                             <Avatar name={userName} src={userAvatar} size="md" className="rounded-lg shadow-xs" />
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h1 className="text-lg font-bold text-gray-900 tracking-tight">{userName}'s Tasks</h1>
-                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                    <h1 className="text-lg font-bold text-gray-900 dark:text-slate-100 tracking-tight">{userName}'s Tasks</h1>
+                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                                         {userRole}
                                     </span>
                                 </div>
-                                <p className="text-xs text-gray-500">{userEmail}</p>
+                                <p className="text-xs text-gray-500 dark:text-slate-400">{userEmail}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Controls & Filters */}
                     <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600">
-                            <ListTodo className="w-4 h-4 text-blue-600" />
-                            <span>Total: <strong className="text-gray-900">{filteredTasks.length}</strong></span>
+                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-600 dark:text-slate-300">
+                            <ListTodo className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <span>Total: <strong className="text-gray-900 dark:text-slate-100">{filteredTasks.length}</strong></span>
                         </div>
 
                         {/* Comprehensive Search Input */}
                         <div className="relative flex-1 sm:w-64">
                             <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                                <Search className="w-3.5 h-3.5 text-gray-400" />
+                                <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Search task, project, owner, tag..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="block w-full pl-8 pr-7 py-1.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 text-xs shadow-2xs"
+                                className="block w-full pl-8 pr-7 py-1.5 border border-gray-200 dark:border-slate-700 rounded-lg leading-5 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:ring-1 focus:ring-blue-500 text-xs shadow-2xs"
                             />
                             {searchQuery && (
                                 <button
                                     onClick={() => setSearchQuery('')}
-                                    className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                                    className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 cursor-pointer"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                 </button>
@@ -595,29 +595,29 @@ export default function UserTasksPage() {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-auto bg-slate-50/50 p-4 lg:p-6">
+            <div className="flex-1 overflow-auto bg-slate-50/50 dark:bg-slate-950 p-4 lg:p-6">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-64 space-y-3">
                         <Loader />
-                        <p className="text-xs text-gray-500 font-medium">Loading user tasks...</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">Loading user tasks...</p>
                     </div>
                 ) : filteredTasks.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 bg-white rounded-xl border border-dashed border-gray-300 p-8 text-center">
-                        <ListTodo className="w-12 h-12 text-gray-300 mb-3" />
-                        <h3 className="text-sm font-bold text-gray-800">No tasks found</h3>
-                        <p className="text-xs text-gray-500 mt-1 max-w-sm">
+                    <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 p-8 text-center">
+                        <ListTodo className="w-12 h-12 text-gray-300 dark:text-slate-600 mb-3" />
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-slate-200">No tasks found</h3>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 max-w-sm">
                             {searchQuery || selectedStatusFilter !== 'ALL' || dateFilter !== 'ALL'
                                 ? 'No tasks match your search or filter criteria.'
                                 : `${userName} currently has no assigned tasks.`}
                         </p>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
                         {/* Project-Based Task List Table */}
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse min-w-[900px]">
                                 <thead>
-                                    <tr className="bg-slate-100/80 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                    <tr className="bg-slate-100/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                         <th className="py-2.5 px-4 w-[340px]">TASK NAME</th>
                                         <th className="py-2.5 px-3 w-[100px]">TYPE</th>
                                         <th className="py-2.5 px-3 w-[140px]">STATUS</th>
@@ -627,7 +627,7 @@ export default function UserTasksPage() {
                                         <th className="py-2.5 px-3 w-[110px]">DUE DATE</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100 text-xs">
+                                <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-xs">
                                     {groupedProjects.map((project) => {
                                         const isExpanded = expandedProjects[project.projectId] !== false;
                                         const initial = project.projectName?.charAt(0) || 'P';
@@ -635,18 +635,18 @@ export default function UserTasksPage() {
                                         return (
                                             <React.Fragment key={project.projectId}>
                                                 {/* Project Group Header Row */}
-                                                <tr className="bg-slate-100/80 border-t border-b border-slate-200/90">
+                                                <tr className="bg-slate-100/80 dark:bg-slate-800/90 border-t border-b border-slate-200/90 dark:border-slate-700">
                                                     <td colSpan={7} className="py-2.5 px-4">
                                                         <div className="flex items-center justify-between">
                                                             <div
                                                                 className="flex items-center gap-2.5 cursor-pointer group/proj"
                                                                 onClick={() => toggleProjectExpand(project.projectId)}
                                                             >
-                                                                <button className="p-1 hover:bg-slate-200/70 rounded text-slate-600 transition-colors cursor-pointer">
+                                                                <button className="p-1 hover:bg-slate-200/70 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 transition-colors cursor-pointer">
                                                                     {isExpanded ? (
-                                                                        <ChevronDown className="w-4 h-4 text-blue-600" />
+                                                                        <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                                                     ) : (
-                                                                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                                                                        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                                                                     )}
                                                                 </button>
 
@@ -663,10 +663,10 @@ export default function UserTasksPage() {
                                                                 </div>
 
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="font-extrabold text-slate-900 uppercase tracking-wider text-xs group-hover/proj:text-blue-600 transition-colors">
+                                                                    <span className="font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-xs group-hover/proj:text-blue-600 dark:group-hover/proj:text-blue-400 transition-colors">
                                                                         {project.projectName}
                                                                     </span>
-                                                                    <span className="text-[10px] font-bold text-slate-600 bg-slate-200/80 px-2 py-0.5 rounded-full border border-slate-300/50">
+                                                                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-700/80 px-2 py-0.5 rounded-full border border-slate-300/50 dark:border-slate-600">
                                                                         {project.tasks.length} {project.tasks.length === 1 ? 'task' : 'tasks'}
                                                                     </span>
                                                                 </div>
@@ -678,7 +678,7 @@ export default function UserTasksPage() {
                                                                         e.stopPropagation();
                                                                         router.push(`/projects/${project.projectId}`);
                                                                     }}
-                                                                    className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-800 transition-colors bg-blue-50/60 hover:bg-blue-100/60 px-2 py-1 rounded border border-blue-200/50 cursor-pointer"
+                                                                    className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors bg-blue-50/60 dark:bg-blue-950/50 hover:bg-blue-100/60 dark:hover:bg-blue-900/50 px-2 py-1 rounded border border-blue-200/50 dark:border-blue-800/60 cursor-pointer"
                                                                 >
                                                                     <span>View Project</span>
                                                                     <ExternalLink className="w-3 h-3" />
@@ -765,15 +765,15 @@ function TaskRow({
         <tr
             onClick={onOpenModal}
             title={fullTooltip}
-            className="hover:bg-blue-50/40 transition-colors cursor-pointer group border-b border-gray-100"
+            className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group border-b border-gray-100 dark:border-slate-800/80"
         >
             {/* Task Name & Formatted Code */}
             <td className="py-3 px-4 pl-8" title={fullTooltip}>
                 <div className="flex items-center gap-2.5" title={fullTooltip}>
-                    <span className="text-[11px] font-bold text-gray-400 font-mono shrink-0">
+                    <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500 font-mono shrink-0">
                         {task.taskId || '0000'}
                     </span>
-                    <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate" title={fullTooltip}>
+                    <span className="font-semibold text-gray-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate" title={fullTooltip}>
                         {task.title}
                     </span>
                 </div>
@@ -811,7 +811,7 @@ function TaskRow({
                         {task.status.name}
                     </span>
                 ) : (
-                    <span className="text-[10px] text-gray-400 italic">-</span>
+                    <span className="text-[10px] text-gray-400 dark:text-slate-500 italic">-</span>
                 )}
             </td>
 
@@ -820,13 +820,13 @@ function TaskRow({
                 <div className="flex items-center gap-1.5">
                     {task.assignees.length > 0 ? (
                         task.assignees.slice(0, 2).map((a) => (
-                            <div key={a.id} className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                            <div key={a.id} className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700">
                                 <Avatar name={a.name} src={a.avatarUrl} size="xs" />
-                                <span className="text-[10px] font-medium text-gray-700 truncate max-w-[80px]">{a.name}</span>
+                                <span className="text-[10px] font-medium text-gray-700 dark:text-slate-300 truncate max-w-[80px]">{a.name}</span>
                             </div>
                         ))
                     ) : (
-                        <span className="text-[10px] text-gray-400 italic">Unassigned</span>
+                        <span className="text-[10px] text-gray-400 dark:text-slate-500 italic">Unassigned</span>
                     )}
                 </div>
             </td>
@@ -849,19 +849,19 @@ function TaskRow({
                             </span>
                         ))
                     ) : (
-                        <span className="text-[10px] text-gray-400 italic">-</span>
+                        <span className="text-[10px] text-gray-400 dark:text-slate-500 italic">-</span>
                     )}
                 </div>
             </td>
 
             {/* Start Date */}
-            <td className="py-3 px-3 text-[11px] font-medium text-gray-500">
+            <td className="py-3 px-3 text-[11px] font-medium text-gray-500 dark:text-slate-400">
                 {startDateFormatted}
             </td>
 
             {/* Due Date */}
             <td className="py-3 px-3 text-[11px] font-medium">
-                <span className={isPast ? 'text-red-600 font-bold' : 'text-gray-600'}>
+                <span className={isPast ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-600 dark:text-slate-300'}>
                     {dueDateFormatted}
                 </span>
             </td>

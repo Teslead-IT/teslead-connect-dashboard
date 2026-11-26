@@ -13,36 +13,41 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         <div
             className={cn(
                 "relative flex gap-4 items-start p-4 rounded-sm border transition-all duration-200 cursor-pointer group",
-                "hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5",
+                "hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 hover:-translate-y-0.5",
                 !notification.read
-                    ? "bg-slate-50 border-slate-200 shadow-sm"
-                    : "bg-white border-slate-100 shadow-sm opacity-90 hover:opacity-100"
+                    ? "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 shadow-sm"
+                    : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm opacity-90 hover:opacity-100"
             )}
             onClick={() => onMarkAsRead(notification.id)}
         >
             {/* Unread Indicator Dot - Absolute positioned */}
             {!notification.read && (
-                <div className="absolute top-4 right-4 w-2 h-2 bg-blue-600 rounded-full animate-pulse shadow-sm shadow-blue-200" />
+                <div className="absolute top-4 right-4 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse shadow-sm shadow-blue-200" />
             )}
 
             <div className="flex-shrink-0 mt-0.5">
                 <div className={cn(
                     "p-2 rounded-sm transition-colors",
-                    !notification.read ? "bg-white text-blue-600 shadow-sm ring-1 ring-slate-200" : "bg-slate-50 text-slate-400 group-hover:bg-white group-hover:text-blue-500 group-hover:shadow-sm"
+                    !notification.read ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700" : "bg-slate-50 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 group-hover:bg-white dark:group-hover:bg-slate-700 group-hover:text-blue-500 group-hover:shadow-sm"
                 )}>
                     {getIcon(notification.type)}
                 </div>
             </div>
 
             <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                {notification.type === 'REMINDER_DUE' && (
+                    <span className="inline-flex w-fit items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-[#091590] border border-blue-100">
+                        Reminder
+                    </span>
+                )}
                 <p className={cn(
                     "text-[13px] leading-relaxed tracking-tight",
-                    !notification.read ? "text-slate-900 font-semibold" : "text-slate-600 font-medium"
+                    !notification.read ? "text-slate-900 dark:text-slate-100 font-semibold" : "text-slate-600 dark:text-slate-300 font-medium"
                 )}>
                     {notification.message}
                 </p>
 
-                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider group-hover:text-blue-400 transition-colors">
+                <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider group-hover:text-blue-400 transition-colors">
                     {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                 </p>
             </div>
@@ -62,6 +67,8 @@ const getIcon = (type: Notification['type']) => {
             return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
         case 'TASK_COMPLETED':
             return <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        case 'REMINDER_DUE':
+            return <svg className="w-4 h-4 text-[#091590]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
         default:
             return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
     }

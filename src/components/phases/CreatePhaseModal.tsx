@@ -84,16 +84,16 @@ export function CreatePhaseModal({
             {/* Backdrop - no close on click */}
             <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px]" aria-hidden />
 
-            <div className="relative w-full max-w-lg bg-white shadow-2xl h-full flex flex-col animate-slide-in-right">
+            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl h-full flex flex-col animate-slide-in-right">
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gradient-to-r from-white to-gray-50/80">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-slate-800 bg-gradient-to-r from-white to-gray-50/80 dark:from-slate-900 dark:to-slate-800/80">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-md bg-indigo-500 flex items-center justify-center shadow-sm">
                             <Layers className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0 pr-4">
-                            <h2 className="text-base font-bold text-gray-900">Create Phase</h2>
-                            <p className="text-[11px] text-gray-400 mt-0.5 font-medium">Add a new phase to a project</p>
+                            <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">Create Phase</h2>
+                            <p className="text-[11px] text-gray-400 dark:text-slate-400 mt-0.5 font-medium">Add a new phase to a project</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -112,7 +112,7 @@ export function CreatePhaseModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                            className="p-1.5 rounded-md text-gray-400 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-600 dark:hover:text-slate-200 transition-colors"
                             aria-label="Close"
                         >
                             <X className="w-4 h-4" />
@@ -125,17 +125,17 @@ export function CreatePhaseModal({
                     <form id="create-phase-form" className="p-5 space-y-5" onSubmit={handleSubmit}>
                         {/* Project */}
                         <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 block">
                                 Project <span className="text-red-400">*</span>
                             </label>
                             <select
                                 value={projectId}
                                 onChange={(e) => setProjectId(e.target.value)}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] appearance-none bg-white transition-all cursor-pointer"
+                                className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] appearance-none bg-white dark:bg-slate-800 dark:text-slate-100 transition-all cursor-pointer"
                                 required
                             >
                                 {projects.map((p) => (
-                                    <option key={p.id} value={p.id}>
+                                    <option key={p.id} value={p.id} className="dark:bg-slate-800 dark:text-slate-100">
                                         {p.name}
                                         {p.id === currentProjectId ? ' (current)' : ''}
                                         {p.projectId ? ` · ${p.projectId}` : ''}
@@ -149,7 +149,7 @@ export function CreatePhaseModal({
 
                         {/* Phase name */}
                         <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 block">
                                 Phase name <span className="text-red-400">*</span>
                             </label>
                             <input
@@ -157,7 +157,7 @@ export function CreatePhaseModal({
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="e.g. Planning, Development, Testing"
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] placeholder:text-gray-300 transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-gray-300 dark:placeholder:text-slate-500 transition-all"
                                 required
                                 autoFocus
                             />
@@ -165,16 +165,16 @@ export function CreatePhaseModal({
 
                         {/* Access */}
                         <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                                 <Lock className="w-3 h-3" /> Access
                             </label>
                             <select
                                 value={access}
                                 onChange={(e) => setAccess(e.target.value as 'PUBLIC' | 'PRIVATE')}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] appearance-none bg-white transition-all cursor-pointer"
+                                className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] appearance-none bg-white dark:bg-slate-800 dark:text-slate-100 transition-all cursor-pointer"
                             >
                                 {ACCESS_OPTIONS.map((opt) => (
-                                    <option key={opt.value} value={opt.value}>
+                                    <option key={opt.value} value={opt.value} className="dark:bg-slate-800 dark:text-slate-100">
                                         {opt.label}
                                     </option>
                                 ))}
@@ -183,39 +183,39 @@ export function CreatePhaseModal({
 
                         {/* Start date */}
                         <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                                 <Calendar className="w-3 h-3" /> Start date
                             </label>
                             <input
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] bg-white dark:bg-slate-800 dark:text-slate-100 transition-all [color-scheme:light] dark:[color-scheme:dark]"
                             />
                         </div>
 
                         {/* End date */}
                         <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                                 <Calendar className="w-3 h-3" /> End date
                             </label>
                             <input
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-all"
+                                className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] bg-white dark:bg-slate-800 dark:text-slate-100 transition-all [color-scheme:light] dark:[color-scheme:dark]"
                             />
                         </div>
                     </form>
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-gray-100 bg-gray-50/50">
+                <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900">
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={createPhaseMutation.isPending}
-                        className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
+                        className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
                     >
                         Cancel
                     </button>

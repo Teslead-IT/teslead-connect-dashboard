@@ -144,11 +144,11 @@ export default function OrganizationSettingsPage() {
             {/* Header */}
             <div className="flex flex-col gap-6 mb-6 flex-shrink-0">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Organization Settings</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Organization Settings</h1>
                 </div>
 
                 {/* Tabs & Search Row */}
-                <div className="flex items-center justify-between gap-4 border-b border-gray-200">
+                <div className="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-slate-800">
                     <Tabs
                         items={tabsFiltered}
                         activeTab={activeTab}
@@ -156,11 +156,11 @@ export default function OrganizationSettingsPage() {
                         className="border-b-0 -mb-[1px]"
                     />
                     <div className="relative w-full max-w-sm group mb-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#091590] transition-colors" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500 group-focus-within:text-[#091590] dark:group-focus-within:text-blue-400 transition-colors" />
                         <input
                             type="text"
                             placeholder="Search members..."
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all shadow-sm"
+                            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-900 dark:text-slate-100 rounded-lg text-xs placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 dark:focus:ring-blue-500/20 focus:border-[#091590] dark:focus:border-blue-500 transition-all shadow-sm"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -171,13 +171,13 @@ export default function OrganizationSettingsPage() {
             <div className="flex-1 min-h-0 flex flex-col">
                 {activeTab === 'productivity' ? (
                     <div className="flex-1 flex flex-col min-h-0 space-y-4">
-                        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-y-auto p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-1">Productivity & Tracking</h2>
-                            <p className="text-xs text-gray-500 mb-6">Configure time, attendance, and timesheet behavior for this organization.</p>
+                        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-y-auto p-6">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-1">Productivity & Tracking</h2>
+                            <p className="text-xs text-gray-500 dark:text-slate-400 mb-6">Configure time, attendance, and timesheet behavior for this organization.</p>
                             {orgSettingsLoading ? (
                                 <div className="space-y-4 animate-pulse">
                                     {[1, 2, 3, 4, 5].map((i) => (
-                                        <div key={i} className="h-10 bg-gray-100 rounded-lg" />
+                                        <div key={i} className="h-10 bg-gray-100 dark:bg-slate-800 rounded-lg" />
                                     ))}
                                 </div>
                             ) : orgSettings ? (
@@ -193,8 +193,8 @@ export default function OrganizationSettingsPage() {
                                         { key: 'lockTimesheetAfterApproval' as const, label: 'Lock Timesheet After Approval' },
                                         { key: 'autoSubmitTimesheet' as const, label: 'Auto Submit Timesheet' },
                                     ].map(({ key, label }) => (
-                                        <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                                            <span className="text-xs font-medium text-gray-700">{label}</span>
+                                        <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-slate-800 last:border-0">
+                                            <span className="text-xs font-medium text-gray-700 dark:text-slate-300">{label}</span>
                                             {isOwner ? (
                                                 <button
                                                     role="switch"
@@ -207,14 +207,14 @@ export default function OrganizationSettingsPage() {
                                                     }}
                                                     disabled={isUpdatingOrgSettings}
                                                     className={cn(
-                                                        'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:ring-offset-2 disabled:opacity-50',
-                                                        orgSettings[key] ? 'bg-[#091590]' : 'bg-gray-200'
+                                                        'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#091590]/20 dark:focus:ring-blue-500/20 focus:ring-offset-2 dark:focus:ring-offset-slate-900 disabled:opacity-50',
+                                                        orgSettings[key] ? 'bg-[#091590] dark:bg-blue-600' : 'bg-gray-200 dark:bg-slate-700'
                                                     )}
                                                 >
                                                     <span className={cn('pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition', orgSettings[key] ? 'translate-x-5' : 'translate-x-1')} />
                                                 </button>
                                             ) : (
-                                                <span className={cn('text-xs font-medium', orgSettings[key] ? 'text-green-600' : 'text-gray-400')}>
+                                                <span className={cn('text-xs font-medium', orgSettings[key] ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-slate-500')}>
                                                     {orgSettings[key] ? 'On' : 'Off'}
                                                 </span>
                                             )}
@@ -222,35 +222,35 @@ export default function OrganizationSettingsPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-xs text-gray-500">Failed to load settings.</p>
+                                <p className="text-xs text-gray-500 dark:text-slate-400">Failed to load settings.</p>
                             )}
                         </div>
                     </div>
                 ) : activeTab === 'members' ? (
                     <div className="flex-1 flex flex-col min-h-0 space-y-4">
                         {/* Members Table */}
-                        <div className="flex-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col min-height-[500px]">
+                        <div className="flex-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col min-height-[500px]">
                             <div className="overflow-x-auto overflow-y-auto flex-1 h-full">
                                 <table className="w-full text-left border-collapse min-w-[800px]">
-                                    <thead className="sticky top-0 z-10 bg-white">
-                                        <tr className="bg-gray-50/50 border-b border-gray-100">
-                                            <th className="px-2 py-1 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Member</th>
-                                            <th className="px-2 py-1 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Role</th>
-                                            <th className="px-2 py-1 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <thead className="sticky top-0 z-10 bg-white dark:bg-slate-900">
+                                        <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
+                                            <th className="px-2 py-1 text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Member</th>
+                                            <th className="px-2 py-1 text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Role</th>
+                                            <th className="px-2 py-1 text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
                                             {permissions.canUpdateMemberRole && (
-                                                <th className="px-2 py-1 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                                                <th className="px-2 py-1 text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
                                             )}
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-50 bg-white">
+                                    <tbody className="divide-y divide-gray-50 dark:divide-slate-800/60 bg-white dark:bg-slate-900">
                                         {isLoading ? (
                                             Array.from({ length: 5 }).map((_, i) => (
                                                 <tr key={i} className="animate-pulse">
-                                                    <td className="px-2 py-1"><div className="h-5 w-48 bg-gray-100 rounded-lg"></div></td>
-                                                    <td className="px-2 py-1"><div className="h-5 w-20 bg-gray-100 rounded-full"></div></td>
-                                                    <td className="px-2 py-1"><div className="h-5 w-16 bg-gray-100 rounded-full"></div></td>
+                                                    <td className="px-2 py-1"><div className="h-5 w-48 bg-gray-100 dark:bg-slate-800 rounded-lg"></div></td>
+                                                    <td className="px-2 py-1"><div className="h-5 w-20 bg-gray-100 dark:bg-slate-800 rounded-full"></div></td>
+                                                    <td className="px-2 py-1"><div className="h-5 w-16 bg-gray-100 dark:bg-slate-800 rounded-full"></div></td>
                                                     {permissions.canUpdateMemberRole && (
-                                                        <td className="px-2 py-1"><div className="h-5 w-5 bg-gray-100 rounded-lg float-right"></div></td>
+                                                        <td className="px-2 py-1"><div className="h-5 w-5 bg-gray-100 dark:bg-slate-800 rounded-lg float-right"></div></td>
                                                     )}
                                                 </tr>
                                             ))
@@ -258,32 +258,32 @@ export default function OrganizationSettingsPage() {
                                             <tr>
                                                 <td colSpan={permissions.canUpdateMemberRole ? 4 : 3} className="px-8 py-32 text-center">
                                                     <div className="flex flex-col items-center gap-3">
-                                                        <div className="p-4 bg-gray-50 rounded-full">
-                                                            <Users className="w-8 h-8 text-gray-400" />
+                                                        <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-full">
+                                                            <Users className="w-8 h-8 text-gray-400 dark:text-slate-500" />
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <p className="text-xs font-semibold text-gray-900">No members found</p>
-                                                            <p className="text-xs text-gray-500">Try adjusting your search filters</p>
+                                                            <p className="text-xs font-semibold text-gray-900 dark:text-slate-100">No members found</p>
+                                                            <p className="text-xs text-gray-500 dark:text-slate-400">Try adjusting your search filters</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                             </tr>
                                         ) : (
                                             members.map((member: any) => (
-                                                <tr key={member.id} className="group hover:bg-gray-50/50 transition-colors">
+                                                <tr key={member.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors">
                                                     <td className="px-2 py-1">
                                                         <div className="flex items-center gap-3">
                                                             <Avatar
                                                                 src={member.avatarUrl}
                                                                 name={member.name || member.email}
                                                                 size="sm"
-                                                                className="ring-2 ring-white shadow-sm"
+                                                                className="ring-2 ring-white dark:ring-slate-800 shadow-sm"
                                                             />
                                                             <div className="flex flex-col min-w-0">
-                                                                <span className="text-xs font-semibold text-gray-900 truncate group-hover:text-[#091590] transition-colors">
+                                                                <span className="text-xs font-semibold text-gray-900 dark:text-slate-100 truncate group-hover:text-[#091590] dark:group-hover:text-blue-400 transition-colors">
                                                                     {member.name || 'User'}
                                                                 </span>
-                                                                <span className="text-xs text-gray-500 truncate">
+                                                                <span className="text-xs text-gray-500 dark:text-slate-400 truncate">
                                                                     {member.email}
                                                                 </span>
                                                             </div>
@@ -295,9 +295,9 @@ export default function OrganizationSettingsPage() {
                                                             size="sm"
                                                             className={cn(
                                                                 "text-[10px] uppercase font-bold tracking-wide shadow-sm border",
-                                                                member.role === 'OWNER' && "bg-orange-50 text-orange-700 border-orange-200",
-                                                                member.role === 'ADMIN' && "bg-purple-50 text-purple-700 border-purple-200",
-                                                                member.role === 'MEMBER' && "bg-blue-50 text-[#091590] border-blue-200"
+                                                                member.role === 'OWNER' && "bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800/50",
+                                                                member.role === 'ADMIN' && "bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800/50",
+                                                                member.role === 'MEMBER' && "bg-blue-50 dark:bg-blue-950/50 text-[#091590] dark:text-blue-400 border-blue-200 dark:border-blue-800/50"
                                                             )}
                                                         >
                                                             {member.role}
@@ -309,7 +309,7 @@ export default function OrganizationSettingsPage() {
                                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                                                             </div>
-                                                            <span className="text-xs font-medium text-green-700">Active</span>
+                                                            <span className="text-xs font-medium text-green-700 dark:text-green-400">Active</span>
                                                         </div>
                                                     </td>
                                                     {permissions.canUpdateMemberRole && (
@@ -325,7 +325,7 @@ export default function OrganizationSettingsPage() {
                                                                     { label: 'Remove Member', value: 'remove', icon: <X className="w-4 h-4 text-red-500" /> },
                                                                 ]}
                                                                 customTrigger={
-                                                                    <button className="p-2 text-gray-400 hover:text-[#091590] hover:bg-gray-100 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                                                    <button className="p-2 text-gray-400 dark:text-slate-500 hover:text-[#091590] dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
                                                                         <MoreVertical className="w-4 h-4" />
                                                                     </button>
                                                                 }
@@ -341,9 +341,9 @@ export default function OrganizationSettingsPage() {
 
                             {/* Footer */}
                             {members.length > 0 && (
-                                <div className="border-t border-gray-100 px-6 py-4 bg-gray-50/30">
-                                    <p className="text-xs text-gray-500">
-                                        Showing <span className="font-semibold text-gray-700">{members.length}</span> member{members.length !== 1 ? 's' : ''}
+                                <div className="border-t border-gray-100 dark:border-slate-800 px-6 py-4 bg-gray-50/30 dark:bg-slate-900/40">
+                                    <p className="text-xs text-gray-500 dark:text-slate-400">
+                                        Showing <span className="font-semibold text-gray-700 dark:text-slate-200">{members.length}</span> member{members.length !== 1 ? 's' : ''}
                                     </p>
                                 </div>
                             )}
@@ -351,20 +351,20 @@ export default function OrganizationSettingsPage() {
                     </div>
                 ) : activeTab === 'productivity' ? (
                     <div className="p-6 max-w-4xl space-y-6">
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-xs p-5 space-y-4">
-                            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-xs p-5 space-y-4">
+                            <div className="flex items-center gap-3 pb-3 border-b border-gray-100 dark:border-slate-800">
+                                <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-lg">
                                     <Settings className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-bold text-gray-900">File Attachment Storage Location</h3>
-                                    <p className="text-xs text-gray-500">Configure the server folder path where uploaded issue files and documents are stored on disk.</p>
+                                    <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">File Attachment Storage Location</h3>
+                                    <p className="text-xs text-gray-500 dark:text-slate-400">Configure the server folder path where uploaded issue files and documents are stored on disk.</p>
                                 </div>
                             </div>
 
                             <div className="space-y-3 pt-2">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                                         Server Attachment Folder Path
                                     </label>
                                     <div className="flex items-center gap-2">
@@ -373,19 +373,19 @@ export default function OrganizationSettingsPage() {
                                             value={uploadPathInput}
                                             onChange={(e) => setUploadPathInput(e.target.value)}
                                             placeholder="uploads"
-                                            className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all"
+                                            className="flex-1 px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg text-xs font-mono text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 dark:focus:ring-blue-500/20 focus:border-[#091590] dark:focus:border-blue-500 transition-all"
                                         />
                                         <button
                                             type="button"
                                             onClick={handleSaveSettings}
                                             disabled={isUpdatingOrgSettings}
-                                            className="px-4 py-2 bg-[#091590] text-white rounded-lg text-xs font-semibold hover:bg-[#071170] transition-colors shadow-xs disabled:opacity-50"
+                                            className="px-4 py-2 bg-[#091590] dark:bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-[#071170] dark:hover:bg-blue-700 transition-colors shadow-xs disabled:opacity-50"
                                         >
                                             {isUpdatingOrgSettings ? 'Saving...' : 'Save Storage Path'}
                                         </button>
                                     </div>
-                                    <p className="text-[11px] text-gray-400 mt-1.5">
-                                        Default folder is <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">uploads</code>. Absolute server disk paths (e.g. <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">/var/www/uploads</code>) are also fully supported.
+                                    <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-1.5">
+                                        Default folder is <code className="bg-gray-100 dark:bg-slate-800 px-1 py-0.5 rounded text-gray-700 dark:text-slate-300">uploads</code>. Absolute server disk paths (e.g. <code className="bg-gray-100 dark:bg-slate-800 px-1 py-0.5 rounded text-gray-700 dark:text-slate-300">/var/www/uploads</code>) are also fully supported.
                                     </p>
                                 </div>
                             </div>
@@ -393,14 +393,14 @@ export default function OrganizationSettingsPage() {
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
-                        <div className="w-16 h-16 bg-blue-50 text-[#091590] rounded-xl flex items-center justify-center">
+                        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/50 text-[#091590] dark:text-blue-400 rounded-xl flex items-center justify-center">
                             {TABS.find(t => t.id === activeTab)?.icon}
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                                 {TABS.find(t => t.id === activeTab)?.label} Settings
                             </h3>
-                            <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+                            <p className="text-xs text-gray-500 dark:text-slate-400 max-w-sm mx-auto mt-1">
                                 This section is currently under development.
                             </p>
                         </div>
@@ -418,16 +418,16 @@ export default function OrganizationSettingsPage() {
                 {selectedMember && (
                     <div className="space-y-5">
                         {/* Member Info */}
-                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800/60 rounded-lg border border-gray-200 dark:border-slate-700">
                             <Avatar
                                 src={selectedMember.avatarUrl}
                                 name={selectedMember.name || selectedMember.email}
                                 size="sm"
-                                className="ring-2 ring-white shadow-sm"
+                                className="ring-2 ring-white dark:ring-slate-800 shadow-sm"
                             />
                             <div className="min-w-0">
-                                <p className="text-xs font-semibold text-gray-900 truncate">{selectedMember.name || 'User'}</p>
-                                <p className="text-xs text-gray-500 truncate">{selectedMember.email}</p>
+                                <p className="text-xs font-semibold text-gray-900 dark:text-slate-100 truncate">{selectedMember.name || 'User'}</p>
+                                <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{selectedMember.email}</p>
                             </div>
                         </div>
 
@@ -440,20 +440,20 @@ export default function OrganizationSettingsPage() {
                                     onChange={(val) => setNewRole(val as OrgRole)}
                                     options={roleOptions}
                                 />
-                                <p className="text-xs text-gray-500 -mt-2 ml-1">
+                                <p className="text-xs text-gray-500 dark:text-slate-400 -mt-2 ml-1">
                                     Selecting a new role will update permissions for this member.
                                 </p>
 
                                 <div className="flex items-center gap-2 pt-2">
                                     <button
                                         onClick={() => setIsRoleModalOpen(false)}
-                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 text-xs font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={() => setModalStep('confirm')}
-                                        className="flex-[2] px-4 py-2 rounded-lg bg-[#091590] text-xs font-semibold text-white hover:bg-[#071170] shadow-sm transition-colors"
+                                        className="flex-[2] px-4 py-2 rounded-lg bg-[#091590] dark:bg-blue-600 text-xs font-semibold text-white hover:bg-[#071170] dark:hover:bg-blue-700 shadow-sm transition-colors"
                                     >
                                         Continue
                                     </button>
@@ -461,12 +461,12 @@ export default function OrganizationSettingsPage() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-lg">
                                     <div className="flex items-start gap-2">
-                                        <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                                        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                                         <div>
-                                            <p className="text-xs font-semibold text-amber-900">Verification Required</p>
-                                            <p className="text-xs text-amber-700 mt-1">
+                                            <p className="text-xs font-semibold text-amber-900 dark:text-amber-300">Verification Required</p>
+                                            <p className="text-xs text-amber-700 dark:text-amber-400/90 mt-1">
                                                 Type <span className="font-semibold">{selectedMember.email}</span> to confirm changing role to <span className="font-semibold uppercase">{newRole}</span>.
                                             </p>
                                         </div>
@@ -479,14 +479,14 @@ export default function OrganizationSettingsPage() {
                                         value={confirmationText}
                                         onChange={(e) => setConfirmationText(e.target.value)}
                                         placeholder="Type email to confirm..."
-                                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#091590]/20 focus:border-[#091590] transition-all"
+                                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 rounded-lg text-xs placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#091590]/20 dark:focus:ring-blue-500/20 focus:border-[#091590] dark:focus:border-blue-500 transition-all"
                                     />
                                 </div>
 
                                 <div className="flex items-center gap-2 pt-2">
                                     <button
                                         onClick={() => setModalStep('select')}
-                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 text-xs font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                                     >
                                         Back
                                     </button>
@@ -496,8 +496,8 @@ export default function OrganizationSettingsPage() {
                                         className={cn(
                                             "flex-[2] px-4 py-2 rounded-lg text-xs font-semibold text-white transition-colors shadow-sm flex items-center justify-center gap-2",
                                             confirmationText === selectedMember.email
-                                                ? "bg-[#091590] hover:bg-[#071170]"
-                                                : "bg-gray-300 cursor-not-allowed"
+                                                ? "bg-[#091590] dark:bg-blue-600 hover:bg-[#071170] dark:hover:bg-blue-700"
+                                                : "bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-500 cursor-not-allowed"
                                         )}
                                     >
                                         {isUpdating && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}

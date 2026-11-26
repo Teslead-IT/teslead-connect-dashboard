@@ -34,44 +34,44 @@ const STATUS_CONFIG: Record<UserPresenceStatus, { label: string; icon: React.Rea
     'ONLINE': {
         label: 'Online',
         icon: <Circle className="w-1.5 h-1.5 fill-green-500 text-green-500" />,
-        color: 'text-green-600',
+        color: 'text-green-600 dark:text-green-400',
         bgColor: 'bg-green-500',
-        borderColor: 'border-green-200'
+        borderColor: 'border-green-200 dark:border-green-800/60'
     },
     'WFH': {
         label: 'WFH',
-        icon: <Home className="w-1.5 h-1.5 text-blue-500" />,
-        color: 'text-blue-600',
+        icon: <Home className="w-1.5 h-1.5 text-blue-500 dark:text-blue-400" />,
+        color: 'text-blue-600 dark:text-blue-400',
         bgColor: 'bg-blue-500',
-        borderColor: 'border-blue-200'
+        borderColor: 'border-blue-200 dark:border-blue-800/60'
     },
     'LUNCH': {
         label: 'Lunch',
-        icon: <Utensils className="w-1.5 h-1.5 text-orange-500" />,
-        color: 'text-orange-600',
+        icon: <Utensils className="w-1.5 h-1.5 text-orange-500 dark:text-orange-400" />,
+        color: 'text-orange-600 dark:text-orange-400',
         bgColor: 'bg-orange-500',
-        borderColor: 'border-orange-200'
+        borderColor: 'border-orange-200 dark:border-orange-800/60'
     },
     'BREAK': {
         label: 'Break',
-        icon: <Coffee className="w-1.5 h-1.5 text-amber-600" />,
-        color: 'text-amber-600',
+        icon: <Coffee className="w-1.5 h-1.5 text-amber-600 dark:text-amber-400" />,
+        color: 'text-amber-600 dark:text-amber-400',
         bgColor: 'bg-amber-500',
-        borderColor: 'border-amber-200'
+        borderColor: 'border-amber-200 dark:border-amber-800/60'
     },
     'CHECKED_OUT': {
         label: 'Checked Out',
-        icon: <Moon className="w-1.5 h-1.5 text-indigo-500" />,
-        color: 'text-indigo-600',
+        icon: <Moon className="w-1.5 h-1.5 text-indigo-500 dark:text-indigo-400" />,
+        color: 'text-indigo-600 dark:text-indigo-400',
         bgColor: 'bg-indigo-500',
-        borderColor: 'border-indigo-200'
+        borderColor: 'border-indigo-200 dark:border-indigo-800/60'
     },
     'OFFLINE': {
         label: 'Offline',
-        icon: <Circle className="w-1.5 h-1.5 fill-gray-400 text-gray-400" />,
-        color: 'text-gray-600',
-        bgColor: 'bg-gray-400',
-        borderColor: 'border-gray-200'
+        icon: <Circle className="w-1.5 h-1.5 fill-gray-400 text-gray-400 dark:fill-slate-500 dark:text-slate-500" />,
+        color: 'text-gray-600 dark:text-slate-400',
+        bgColor: 'bg-gray-400 dark:bg-slate-600',
+        borderColor: 'border-gray-200 dark:border-slate-700'
     },
 };
 
@@ -137,12 +137,12 @@ export default function TeamPage() {
 
     if (isError) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 bg-white">
-                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-6">
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 bg-white dark:bg-slate-900">
+                <div className="w-16 h-16 bg-red-50 dark:bg-red-950/40 text-red-500 rounded-full flex items-center justify-center mb-6">
                     <X className="w-8 h-8" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Connection Interrupted</h3>
-                <p className="text-gray-500 mt-2 max-w-sm">We're having trouble retrieving the team list.</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Connection Interrupted</h3>
+                <p className="text-gray-500 dark:text-slate-400 mt-2 max-w-sm">We're having trouble retrieving the team list.</p>
                 <Button
                     variant="primary"
                     className="mt-8"
@@ -155,13 +155,13 @@ export default function TeamPage() {
     }
 
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-white dark:bg-slate-950">
             {/* Uniform Header section */}
-            <div className="border-b border-gray-100 py-3 px-6 flex-shrink-0">
+            <div className="border-b border-gray-100 dark:border-slate-800 py-3 px-6 flex-shrink-0 bg-white dark:bg-slate-900">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-xl font-bold text-gray-900 tracking-tight">Team</h1>
-                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">
+                        <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Team</h1>
+                        <span className="bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200 dark:border-slate-700">
                             {filteredTeams.length}
                         </span>
                     </div>
@@ -169,14 +169,14 @@ export default function TeamPage() {
                     <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 justify-end">
                         <div className="relative flex-1 sm:flex-initial sm:max-w-xs w-full lg:max-w-sm group transition-all">
                             <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                                <Search className="w-3.5 h-3.5 text-gray-400 group-focus-within:text-[var(--primary)] transition-colors" />
+                                <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 group-focus-within:text-[var(--primary)] transition-colors" />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Search by name, email, or role..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-md leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all text-xs"
+                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md leading-5 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all text-xs"
                             />
                         </div>
                     </div>
@@ -184,7 +184,7 @@ export default function TeamPage() {
             </div>
 
             {/* Content Section */}
-            <div className="flex-1 overflow-y-auto p-4 lg:p-6 bg-gray-50/20">
+            <div className="flex-1 overflow-y-auto p-4 lg:p-6 bg-gray-50/20 dark:bg-slate-950">
                 <div className="w-full">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                         <AnimatePresence mode="popLayout">
@@ -200,10 +200,10 @@ export default function TeamPage() {
                                 >
                                 <div
                                     className={cn(
-                                        "bg-white border rounded-lg hover:border-blue-300 hover:shadow-md transition-all duration-200 group flex flex-col shadow-sm relative z-10 overflow-hidden",
+                                        "bg-white dark:bg-slate-900 border rounded-lg hover:border-blue-300 dark:hover:border-slate-700 hover:shadow-md transition-all duration-200 group flex flex-col shadow-sm relative z-10 overflow-hidden",
                                         member.user.id === user?.id
-                                            ? "border-blue-100 border-l-4 border-l-blue-600"
-                                            : "border-gray-100"
+                                            ? "border-blue-100 dark:border-blue-900/60 border-l-4 border-l-blue-600 dark:border-l-blue-500"
+                                            : "border-gray-100 dark:border-slate-800/80"
                                     )}
                                 >
                                     {/* Card Content Top */}
@@ -216,7 +216,7 @@ export default function TeamPage() {
                                                 className="rounded-lg"
                                             />
                                             <div className={cn(
-                                                "absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm flex items-center justify-center transition-colors duration-300",
+                                                "absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm flex items-center justify-center transition-colors duration-300",
                                                 STATUS_CONFIG[member.presence?.status || 'OFFLINE'].bgColor
                                             )}>
                                                 {/* Status Dot */}
@@ -225,7 +225,7 @@ export default function TeamPage() {
 
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5 overflow-hidden">
-                                                <p className="font-bold text-gray-900 group-hover/card:text-blue-600 transition-colors truncate text-[13px] tracking-tight">
+                                                <p className="font-bold text-gray-900 dark:text-slate-100 group-hover/card:text-blue-600 dark:group-hover/card:text-blue-400 transition-colors truncate text-[13px] tracking-tight">
                                                     {member.user.name}
                                                 </p>
                                                 {member.user.id === user?.id && (
@@ -234,22 +234,22 @@ export default function TeamPage() {
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-[11px] text-gray-400 truncate mt-0.5 lowercase">{member.user.email}</p>
+                                            <p className="text-[11px] text-gray-400 dark:text-slate-400 truncate mt-0.5 lowercase">{member.user.email}</p>
 
                                             <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                                <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded leading-none border border-gray-200/50">
+                                                <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded leading-none border border-gray-200/50 dark:border-slate-700">
                                                     {member.role}
                                                 </span>
                                                 <span className={cn(
                                                     "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded leading-none border",
                                                     STATUS_CONFIG[member.presence?.status || 'OFFLINE'].color,
-                                                    STATUS_CONFIG[member.presence?.status || 'OFFLINE'].bgColor.replace('bg-', 'bg-') + '/10',
+                                                    STATUS_CONFIG[member.presence?.status || 'OFFLINE'].bgColor.replace('bg-', 'bg-') + '/10 dark:' + STATUS_CONFIG[member.presence?.status || 'OFFLINE'].bgColor.replace('bg-', 'bg-') + '/20',
                                                     STATUS_CONFIG[member.presence?.status || 'OFFLINE'].borderColor
                                                 )}>
                                                     {STATUS_CONFIG[member.presence?.status || 'OFFLINE'].label}
                                                 </span>
                                                 {member.attendance?.status === 'checked_in' && (
-                                                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded leading-none border text-emerald-600 bg-emerald-50 border-emerald-200">
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded leading-none border text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60">
                                                         Checked In
                                                     </span>
                                                 )}
@@ -257,7 +257,7 @@ export default function TeamPage() {
                                         </div>
 
                                         <div className="flex flex-col items-end gap-2 shrink-0 ml-1">
-                                            <div className="flex items-center gap-1 text-gray-400 group-hover/card:text-blue-600 transition-colors">
+                                            <div className="flex items-center gap-1 text-gray-400 dark:text-slate-400 group-hover/card:text-blue-600 dark:group-hover/card:text-blue-400 transition-colors">
                                                 <span className="text-[9px] font-bold uppercase">Tasks</span>
                                                 <ChevronRight className="w-3 h-3" />
                                             </div>
@@ -298,7 +298,7 @@ export default function TeamPage() {
 
                                         return (
                                             <div
-                                                className="border-t border-gray-100 bg-slate-50/80 px-3 py-2 flex items-center justify-between gap-2 text-[11px] relative"
+                                                className="border-t border-gray-100 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-900/60 px-3 py-2 flex items-center justify-between gap-2 text-[11px] relative"
                                                 title={fullTooltip}
                                             >
                                                 <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden" title={fullTooltip}>
@@ -306,7 +306,7 @@ export default function TeamPage() {
                                                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" title={fullTooltip} />
                                                     ) : (
                                                         <span title={fullTooltip}>
-                                                            <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                            <Briefcase className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                                                         </span>
                                                     )}
 
@@ -314,7 +314,7 @@ export default function TeamPage() {
                                                         <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden" title={fullTooltip}>
                                                             {/* 1. Task Title First */}
                                                             <span
-                                                                className="font-bold text-slate-800 truncate text-[11px]"
+                                                                className="font-bold text-slate-800 dark:text-slate-200 truncate text-[11px]"
                                                                 title={fullTooltip}
                                                             >
                                                                 {taskInfo.taskTitle}
@@ -323,7 +323,7 @@ export default function TeamPage() {
                                                             {/* 2. Project Name Next */}
                                                             {taskInfo.projectName && (
                                                                 <span
-                                                                    className="bg-blue-50 text-blue-700 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border border-blue-200/60 shrink-0 truncate max-w-[100px]"
+                                                                    className="bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/60 shrink-0 truncate max-w-[100px]"
                                                                     title={fullTooltip}
                                                                 >
                                                                     {taskInfo.projectName}
@@ -331,7 +331,7 @@ export default function TeamPage() {
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <span className="text-slate-400 italic text-[10px]">No active task</span>
+                                                        <span className="text-slate-400 dark:text-slate-500 italic text-[10px]">No active task</span>
                                                     )}
                                                 </div>
 
@@ -344,7 +344,7 @@ export default function TeamPage() {
                                                                 <LiveTimer startedAt={taskInfo.startedAt} />
                                                             </div>
                                                         ) : (
-                                                            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/80" title={fullTooltip}>
+                                                            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60" title={fullTooltip}>
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                                                 {taskInfo.statusName || 'Working on it'}
                                                             </span>
@@ -363,8 +363,8 @@ export default function TeamPage() {
                     {/* Empty State */}
                     {filteredTeams.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-20">
-                            <Users className="w-12 h-12 text-gray-200" />
-                            <h4 className="text-lg font-bold text-gray-400 mt-4">No members found</h4>
+                            <Users className="w-12 h-12 text-gray-200 dark:text-slate-700" />
+                            <h4 className="text-lg font-bold text-gray-400 dark:text-slate-500 mt-4">No members found</h4>
                         </div>
                     )}
                 </div>

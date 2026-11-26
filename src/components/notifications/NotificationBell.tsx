@@ -76,7 +76,7 @@ export function NotificationBell() {
             {/* Bell Icon Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all active:scale-95 cursor-pointer"
+                className="relative p-2 text-gray-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95 cursor-pointer"
                 aria-label="Notifications"
             >
                 {/* Bell Icon */}
@@ -109,13 +109,13 @@ export function NotificationBell() {
 
             {/* Dropdown Panel */}
             <div
-                className={`absolute right-0 mt-2 w-96 max-h-[600px] bg-white border border-gray-200 rounded-sm shadow-2xl overflow-hidden z-50 transition-all duration-200 ease-out origin-top-right transform ${isOpen
+                className={`absolute right-0 mt-2 w-96 max-h-[600px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden z-50 transition-all duration-200 ease-out origin-top-right transform ${isOpen
                     ? 'opacity-100 scale-100 translate-y-0'
                     : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
                     }`}
             >
                 {/* Header */}
-                <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3">
+                <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 px-4 py-3">
                     <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-[var(--color-text-primary)]">
                             Notifications
@@ -196,7 +196,7 @@ export function NotificationBell() {
                                     </h4>
                                 </div>
                             )}
-                            <div className="flex flex-col gap-3 p-3 bg-gray-50/50">
+                            <div className="flex flex-col gap-3 p-3 bg-gray-50/50 dark:bg-slate-800/40">
                                 {notifications.slice(0, 10).map((notification: Notification) => (
                                     <NotificationItem
                                         key={notification.id}
@@ -242,7 +242,7 @@ export function NotificationBell() {
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                        className="w-full text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-slate-800"
                         onClick={() => {
                             setIsOpen(false);
                             router.push('/notifications');

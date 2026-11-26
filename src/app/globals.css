@@ -818,9 +818,19 @@ body {
   transition: all 0.2s ease !important;
 }
 
+.dark .custom-primereact-colorpicker .p-colorpicker-preview {
+  border-color: #334155 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
 .custom-primereact-colorpicker .p-colorpicker-preview:hover {
   border-color: #3b82f6 !important;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.dark .custom-primereact-colorpicker .p-colorpicker-preview:hover {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
 }
 
 .p-colorpicker-panel {
@@ -829,4 +839,10 @@ body {
   border-radius: 8px !important;
   padding: 8px !important;
   background: white !important;
+}
+
+.dark .p-colorpicker-panel {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
 }

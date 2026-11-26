@@ -49,6 +49,9 @@ import { useProjectIssues, useCreateIssue } from '@/hooks/use-issues';
 import { useProjectTasks } from '@/hooks/use-tasks';
 import { CreateIssueModal } from '@/components/issues/CreateIssueModal';
 import { IssueViewModal } from '@/components/issues/IssueViewModal';
+import { useTaskReminders } from '@/hooks/use-reminders';
+import { RemindersList } from '@/components/reminders/RemindersList';
+import { CreateReminderModal } from '@/components/reminders/CreateReminderModal';
 
 interface TaskViewModalProps {
     isOpen: boolean;
@@ -112,7 +115,7 @@ export function TaskViewModal({
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [contentTab, setContentTab] = useState<'details' | 'timesheets' | 'issues'>('details');
+    const [contentTab, setContentTab] = useState<'details' | 'timesheets' | 'issues' | 'reminders'>('details');
 
     const { allGroups, allTasksFlat } = useMemo(() => {
         const groups: { phase: PhaseWithTaskLists; taskList: { id: string; name: string }; tasks: StructuredTask[] }[] = [];
@@ -367,6 +370,16 @@ export function TaskViewModal({
                                                 >
                                                     Issues
                                                 </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setContentTab('reminders')}
+                                                    className={cn(
+                                                        'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                                                        contentTab === 'reminders' ? 'bg-[#091590] text-white' : 'text-gray-600 hover:bg-gray-100'
+                                                    )}
+                                                >
+                                                    Reminders
+                                                </button>
                                             </div>
                                             <div className="flex-1 overflow-auto">
                                                 {contentTab === 'details' && (
@@ -403,6 +416,13 @@ export function TaskViewModal({
                                                         phases={phases}
                                                         workflow={workflow}
                                                         members={members}
+                                                        canCreate={isEditable}
+                                                    />
+                                                )}
+                                                {contentTab === 'reminders' && (
+                                                    <TaskRemindersTab
+                                                        taskId={activeTask.id}
+                                                        projectId={projectId}
                                                         canCreate={isEditable}
                                                     />
                                                 )}
@@ -510,6 +530,47 @@ function ManualTimeEntryForm({
                 </button>
             </div>
         </form>
+    );
+}
+
+function TaskRemindersTab({
+    taskId,
+    projectId,
+    canCreate = true,
+}: {
+    taskId: string;
+    projectId: string;
+    canCreate?: boolean;
+}) {
+    const { data, isLoading } = useTaskReminders(taskId);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+    return (
+        <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <div>
+                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reminders</h3>
+                    <p className="text-[9px] text-gray-400 mt-0.5">In-app reminders for this task</p>
+                </div>
+                {canCreate && (
+                    <button
+                        type="button"
+                        onClick={() => setIsCreateOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-white uppercase tracking-wider !bg-[#091590] hover:!bg-[#071170] rounded shadow-sm transition-colors"
+                    >
+                        <Plus className="w-3 h-3" />
+                        Add Reminder
+                    </button>
+                )}
+            </div>
+            <RemindersList reminders={data?.data || []} isLoading={isLoading} />
+            <CreateReminderModal
+                open={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+                projectId={projectId}
+                taskId={taskId}
+            />
+        </div>
     );
 }
 

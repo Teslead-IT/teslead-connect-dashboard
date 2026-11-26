@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const PRODUCTS = [
-    { name: 'Project Management', icon: '📊', color: 'bg-blue-100 text-blue-600', href: 'https://teslead-connect-dashboard.vercel.app/' },
-    { name: 'Delivery Challan', icon: '👥', color: 'bg-purple-100 text-purple-600', href: 'https://dc-revamp-sathishs-projects-ffe2678a.vercel.app/' },
-    { name: 'Insert Room', icon: '💬', color: 'bg-green-100 text-green-600', href: 'https://room.teslead.com' },
+    { name: 'Project Management', icon: '📊', color: 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400', href: 'https://teslead-connect-dashboard.vercel.app/' },
+    { name: 'Delivery Challan', icon: '👥', color: 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400', href: 'https://dc-revamp-sathishs-projects-ffe2678a.vercel.app/' },
+    { name: 'Insert Room', icon: '💬', color: 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400', href: 'https://room.teslead.com' },
     // { name: 'Documents', icon: '📄', color: 'bg-yellow-100 text-yellow-600', href: 'https://docs.teslead.com' },
     // { name: 'Calendar', icon: '📅', color: 'bg-red-100 text-red-600', href: 'https://calendar.teslead.com' },
     // { name: 'Analytics', icon: '📈', color: 'bg-indigo-100 text-indigo-600', href: 'https://analytics.teslead.com' },
@@ -36,13 +36,15 @@ export function AppsMenu() {
     return (
         <div id="apps-menu-container" className="relative group">
             <button
-                disabled
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 className={cn(
-                    "p-2 rounded-lg transition-all active:scale-95 outline-none relative w-10 h-10 flex items-center justify-center",
-                    isOpen || isHovered ? "bg-blue-50" : "hover:bg-gray-50 bg-white"
+                    "p-2 rounded-lg transition-all active:scale-95 outline-none relative w-10 h-10 flex items-center justify-center border border-gray-200 dark:border-slate-700 shadow-sm",
+                    isOpen || isHovered
+                        ? "bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400"
+                        : "bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700"
                 )}
                 title="Teslead Apps"
             >
@@ -54,7 +56,7 @@ export function AppsMenu() {
                             isHovered ? "opacity-0" : "opacity-100"
                         )}
                     >
-                        <Grip className="w-6 h-6 text-gray-500" />
+                        <Grip className="w-5 h-5 text-gray-500 dark:text-slate-300" />
                     </div>
 
                     {/* Animated GIF (Visible when hovered) */}
@@ -80,7 +82,7 @@ export function AppsMenu() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 p-4"
+                        className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-200 dark:border-slate-800 overflow-hidden z-50 p-4"
                     >
                         <div className="grid grid-cols-3 gap-4">
                             {PRODUCTS.map((product, index) => (
@@ -89,19 +91,19 @@ export function AppsMenu() {
                                     href={product.href}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex flex-col items-center justify-center p-3 rounded-xl hover:bg-gray-50 transition-colors group/item"
+                                    className="flex flex-col items-center justify-center p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors group/item"
                                 >
                                     <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-xl mb-2 transition-transform group-hover/item:scale-110", product.color)}>
                                         {product.icon}
                                     </div>
-                                    <span className="text-xs font-medium text-gray-600 text-center leading-tight">
+                                    <span className="text-xs font-medium text-gray-600 dark:text-slate-300 text-center leading-tight">
                                         {product.name}
                                     </span>
                                 </a>
                             ))}
                         </div>
-                        <div className="mt-4 pt-3 border-t border-gray-100 text-center">
-                            <button className="text-xs font-semibold text-blue-600 hover:underline">
+                        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-slate-800 text-center">
+                            <button className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
                                 More from Teslead
                             </button>
                         </div>

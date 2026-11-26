@@ -41,9 +41,9 @@ function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
                 initial={false}
                 animate={{ marginLeft: isCollapsed ? 80 : 256 }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="pt-16"
+                className="pt-16 min-h-screen flex flex-col"
             >
-                <div className="p-4 lg:p-6">
+                <div className="p-4 lg:p-6 flex-1">
                     {/* Settings Content */}
                     <div className="w-full">
                         {children}
@@ -74,7 +74,13 @@ export default function SettingsLayout({
         }
     }, [backendUser, isBackendLoading, activeOrgId, router]);
 
-    if (isBackendLoading) return null;
+    if (isBackendLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center transition-colors duration-200">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <SidebarProvider>
