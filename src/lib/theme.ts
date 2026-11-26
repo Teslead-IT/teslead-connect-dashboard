@@ -70,11 +70,11 @@ export function initializeTheme(): void {
 
     try {
         const storedTheme = getStoredTheme();
-        const theme = storedTheme || 'system';
+        const theme = storedTheme || 'light';
         applyTheme(theme);
     } catch (error) {
         console.error('Failed to initialize theme:', error);
-        applyTheme('system');
+        applyTheme('light');
     }
 }
 
@@ -99,7 +99,7 @@ export function watchSystemTheme(callback: (theme: 'light' | 'dark') => void): (
 export const THEME_INIT_SCRIPT = `(function() {
     try {
         var stored = localStorage.getItem('${THEME_STORAGE_KEY}');
-        var isDark = stored === 'dark' || ((!stored || stored === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var isDark = stored === 'dark' || (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         var root = document.documentElement;
         if (isDark) {
             root.classList.add('dark');
