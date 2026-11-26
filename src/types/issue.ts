@@ -3,7 +3,7 @@
  * Separate from Task types but shares TaskStatus workflow, Tag, Phase, TaskList, User
  */
 
-export type IssueType = 'BUG' | 'UI' | 'LOGIC' | 'PERFORMANCE' | 'SECURITY' | 'OTHER';
+export type IssueType = 'BUG' | 'UI' | 'LOGIC' | 'PERFORMANCE' | 'SECURITY' | 'OTHER' | 'CLARIFY';
 export type IssueSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type IssuePriority = 1 | 2 | 3 | 4 | 5;
 
