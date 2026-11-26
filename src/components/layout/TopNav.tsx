@@ -260,7 +260,7 @@ export function TopNav() {
                         </button>
 
                         {/* 🌓 Dark / Light Mode Toggle */}
-                        <button
+                        {/* <button
                             type="button"
                             onClick={toggleTheme}
                             className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95 cursor-pointer"
@@ -272,7 +272,7 @@ export function TopNav() {
                             ) : (
                                 <Moon className="w-4 h-4 text-gray-600 dark:text-slate-300 hover:-rotate-12 transition-transform" />
                             )}
-                        </button>
+                        </button> */}
 
                         <GlobalTimerNav />
                         {/* 🔔 Real-time Notification Bell with WebSocket */}
