@@ -122,20 +122,20 @@ function AttachmentPreviewModal({
 
     return (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 animate-in fade-in duration-200">
-            <div className="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-100">
+            <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-100 dark:border-slate-800">
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50/90">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-slate-800 bg-gray-50/90 dark:bg-slate-800/90">
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-4">
-                        {isImage && <FileImage className="w-5 h-5 text-purple-600 shrink-0" />}
-                        {isPdf && <FileText className="w-5 h-5 text-red-600 shrink-0" />}
-                        {isExcel && <FileSpreadsheet className="w-5 h-5 text-emerald-600 shrink-0" />}
-                        {isWordDoc && <FileText className="w-5 h-5 text-blue-600 shrink-0" />}
-                        {!isImage && !isPdf && !isExcel && !isWordDoc && <File className="w-5 h-5 text-gray-500 shrink-0" />}
+                        {isImage && <FileImage className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />}
+                        {isPdf && <FileText className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />}
+                        {isExcel && <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                        {isWordDoc && <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                        {!isImage && !isPdf && !isExcel && !isWordDoc && <File className="w-5 h-5 text-gray-500 dark:text-slate-400 shrink-0" />}
 
                         <div className="min-w-0 flex-1">
-                            <h3 className="text-sm font-bold text-gray-900 truncate" title={fileName}>{fileName}</h3>
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate" title={fileName}>{fileName}</h3>
                             {fileSize && (
-                                <span className="text-[10px] text-gray-400 block font-medium">{(fileSize / 1024).toFixed(1)} KB</span>
+                                <span className="text-[10px] text-gray-400 dark:text-slate-500 block font-medium">{(fileSize / 1024).toFixed(1)} KB</span>
                             )}
                         </div>
                     </div>
@@ -144,26 +144,26 @@ function AttachmentPreviewModal({
                         <button
                             type="button"
                             onClick={() => downloadFile(fileUrl, fileName)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-2xs transition cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 text-xs font-semibold shadow-2xs transition cursor-pointer"
                             title="Download file"
                         >
-                            <Download className="w-3.5 h-3.5 text-gray-500" /> Download
+                            <Download className="w-3.5 h-3.5 text-gray-500 dark:text-slate-400" /> Download
                         </button>
 
                         <a
                             href={resolvedUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-2xs transition"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 text-xs font-semibold shadow-2xs transition"
                             title="Open in new window"
                         >
-                            <ExternalLink className="w-3.5 h-3.5 text-gray-500" /> Open External
+                            <ExternalLink className="w-3.5 h-3.5 text-gray-500 dark:text-slate-400" /> Open External
                         </a>
 
                         <button
                             type="button"
                             onClick={onClose}
-                            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition"
+                            className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:bg-gray-200 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 transition"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -171,7 +171,7 @@ function AttachmentPreviewModal({
                 </div>
 
                 {/* Content Viewer */}
-                <div className="flex-1 bg-gray-900/5 p-4 overflow-auto flex items-center justify-center min-h-[450px]">
+                <div className="flex-1 bg-gray-900/5 dark:bg-slate-950 p-4 overflow-auto flex items-center justify-center min-h-[450px]">
                     {isImage ? (
                         <img
                             src={resolvedUrl}
@@ -487,16 +487,16 @@ export function IssueViewModal({
         <div className="fixed inset-0 z-50 flex justify-end">
             <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
 
-            <div className="relative w-full max-w-3xl bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300 border-l border-gray-100">
+            <div className="relative w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col transform transition-transform duration-300 border-l border-gray-100 dark:border-slate-800">
                 {/* Header Bar */}
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-white to-gray-50/80">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-white to-gray-50/80 dark:from-slate-900 dark:to-slate-900">
                     <div className="flex items-center space-x-3">
                         <span className={cn("text-xs font-bold px-3 py-1 rounded-full shadow-2xs flex items-center gap-1.5 uppercase border", currentTypeOption.bg, currentTypeOption.color)}>
                             <TypeIcon className={cn("w-3.5 h-3.5", currentTypeOption.color)} />
                             {issue?.issueId || 'ISSUE'}
                         </span>
                         {issue?.projectName && (
-                            <span className="text-xs text-gray-500 font-semibold bg-gray-100 px-2.5 py-1 rounded-md border border-gray-200/60 uppercase tracking-tight">
+                            <span className="text-xs text-gray-500 dark:text-slate-400 font-semibold bg-gray-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-gray-200/60 dark:border-slate-700 uppercase tracking-tight">
                                 {issue.projectName}
                             </span>
                         )}
@@ -506,7 +506,7 @@ export function IssueViewModal({
                             <button
                                 type="button"
                                 onClick={() => setShowDeleteConfirm(true)}
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-2 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
                                 title="Delete Issue (Owner/Admin only)"
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -515,7 +515,7 @@ export function IssueViewModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -525,10 +525,10 @@ export function IssueViewModal({
                 {isLoading || !issue ? (
                     <div className="flex-1 flex flex-col items-center justify-center space-y-3">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-                        <p className="text-xs text-gray-400 font-medium">Loading issue details...</p>
+                        <p className="text-xs text-gray-400 dark:text-slate-500 font-medium">Loading issue details...</p>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-900">
                         {/* Title Section */}
                         <div className="px-6 pt-5 pb-3">
                             <input
@@ -536,16 +536,16 @@ export function IssueViewModal({
                                 value={formData.title}
                                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                                 disabled={isReadOnly}
-                                className="w-full text-lg font-bold text-gray-900 border-b border-transparent hover:border-gray-200 focus:border-red-500 focus:outline-none transition py-1 bg-transparent"
+                                className="w-full text-lg font-bold text-gray-900 dark:text-slate-100 border-b border-transparent hover:border-gray-200 dark:hover:border-slate-700 focus:border-red-500 dark:focus:border-red-400 focus:outline-none transition py-1 bg-transparent placeholder:text-gray-400 dark:placeholder:text-slate-500"
                                 placeholder="Issue Title..."
                             />
                         </div>
 
                         {/* Status, Priority & Issue Type Selectors with Dynamic Colors */}
-                        <div className="px-6 py-2.5 bg-gray-50/60 border-y border-gray-100 flex items-center flex-wrap gap-3">
+                        <div className="px-6 py-2.5 bg-gray-50/60 dark:bg-slate-800/60 border-y border-gray-100 dark:border-slate-800 flex items-center flex-wrap gap-3">
                             {/* Dynamic Status Dropdown */}
                             <div className="flex items-center space-x-2">
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status:</span>
+                                <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status:</span>
                                 <select
                                     value={formData.statusId}
                                     onChange={e => setFormData({ ...formData, statusId: e.target.value })}
@@ -558,7 +558,7 @@ export function IssueViewModal({
                                     }}
                                 >
                                     {allStatuses.map(s => (
-                                        <option key={s.id} value={s.id} className="text-gray-900 bg-white font-medium uppercase">
+                                        <option key={s.id} value={s.id} className="text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-900 font-medium uppercase">
                                             {s.name}
                                         </option>
                                     ))}
@@ -567,7 +567,7 @@ export function IssueViewModal({
 
                             {/* Dynamic Priority Dropdown */}
                             <div className="flex items-center space-x-2">
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Priority:</span>
+                                <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Priority:</span>
                                 <select
                                     value={formData.priority}
                                     onChange={e => setFormData({ ...formData, priority: parseInt(e.target.value) as IssuePriority })}
@@ -578,7 +578,7 @@ export function IssueViewModal({
                                     )}
                                 >
                                     {PRIORITY_OPTIONS.map(p => (
-                                        <option key={p.value} value={p.value} className="text-gray-900 bg-white font-medium">
+                                        <option key={p.value} value={p.value} className="text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-900 font-medium">
                                             {p.icon} {p.label}
                                         </option>
                                     ))}
@@ -587,7 +587,7 @@ export function IssueViewModal({
 
                             {/* Dynamic Issue Type Dropdown */}
                             <div className="flex items-center space-x-2">
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Type:</span>
+                                <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Type:</span>
                                 <select
                                     value={formData.type}
                                     onChange={e => setFormData({ ...formData, type: e.target.value as IssueType })}
@@ -598,7 +598,7 @@ export function IssueViewModal({
                                     )}
                                 >
                                     {ISSUE_TYPE_OPTIONS.map(t => (
-                                        <option key={t.value} value={t.value} className="text-gray-900 bg-white font-medium uppercase">
+                                        <option key={t.value} value={t.value} className="text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-900 font-medium uppercase">
                                             {t.label}
                                         </option>
                                     ))}
@@ -607,15 +607,15 @@ export function IssueViewModal({
                         </div>
 
                         {/* Navigation Tabs */}
-                        <div className="px-6 border-b border-gray-200 flex space-x-6">
+                        <div className="px-6 border-b border-gray-200 dark:border-slate-800 flex space-x-6">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('details')}
                                 className={cn(
                                     'py-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5',
                                     activeTab === 'details'
-                                        ? 'border-red-600 text-red-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                        ? 'border-red-600 text-red-600 dark:text-red-400'
+                                        : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                                 )}
                             >
                                 <AlignLeft className="w-3.5 h-3.5" /> Details
@@ -627,8 +627,8 @@ export function IssueViewModal({
                                 className={cn(
                                     'py-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5',
                                     activeTab === 'history'
-                                        ? 'border-red-600 text-red-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                        ? 'border-red-600 text-red-600 dark:text-red-400'
+                                        : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                                 )}
                             >
                                 <History className="w-3.5 h-3.5" /> Status History
@@ -640,8 +640,8 @@ export function IssueViewModal({
                                 className={cn(
                                     'py-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5',
                                     activeTab === 'attachments'
-                                        ? 'border-red-600 text-red-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                        ? 'border-red-600 text-red-600 dark:text-red-400'
+                                        : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                                 )}
                             >
                                 <Paperclip className="w-3.5 h-3.5" /> Attachments ({issue.attachments?.length || 0})
@@ -654,8 +654,8 @@ export function IssueViewModal({
                                 <>
                                     {/* Description */}
                                     <div>
-                                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                            <AlignLeft className="w-4 h-4 text-gray-400" /> Description / Steps to Reproduce
+                                        <h3 className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <AlignLeft className="w-4 h-4 text-gray-400 dark:text-slate-500" /> Description / Steps to Reproduce
                                         </h3>
                                         <textarea
                                             rows={3}
@@ -663,14 +663,14 @@ export function IssueViewModal({
                                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                                             disabled={isReadOnly}
                                             placeholder="No description provided..."
-                                            className="w-full p-3 bg-gray-50/60 border border-gray-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition shadow-2xs"
+                                            className="w-full p-3 bg-gray-50/60 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-xs text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition shadow-2xs"
                                         />
                                     </div>
 
                                     {/* Expected vs Actual Output */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <h3 className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <h3 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                                 <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Expected Output
                                             </h3>
                                             <textarea
@@ -679,12 +679,12 @@ export function IssueViewModal({
                                                 onChange={e => setFormData({ ...formData, expectedOutput: e.target.value })}
                                                 disabled={isReadOnly}
                                                 placeholder="What was expected to happen..."
-                                                className="w-full p-3 bg-emerald-50/30 border border-emerald-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-2xs"
+                                                className="w-full p-3 bg-emerald-50/30 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-lg text-xs text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-2xs"
                                             />
                                         </div>
 
                                         <div>
-                                            <h3 className="text-xs font-semibold text-red-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <h3 className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                                 <AlertCircle className="w-4 h-4 text-red-500" /> Actual Output
                                             </h3>
                                             <textarea
@@ -693,43 +693,43 @@ export function IssueViewModal({
                                                 onChange={e => setFormData({ ...formData, actualOutput: e.target.value })}
                                                 disabled={isReadOnly}
                                                 placeholder="What actually happened..."
-                                                className="w-full p-3 bg-red-50/30 border border-red-200 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition shadow-2xs"
+                                                className="w-full p-3 bg-red-50/30 dark:bg-rose-950/20 border border-red-200 dark:border-rose-800/40 rounded-lg text-xs text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition shadow-2xs"
                                             />
                                         </div>
                                     </div>
 
                                     {/* Interactive Metadata Cards Grid */}
-                                    <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50/70 rounded-xl border border-gray-100 text-xs">
+                                    <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50/70 dark:bg-slate-800/40 rounded-xl border border-gray-100 dark:border-slate-800 text-xs">
                                         {/* Phase Card */}
-                                        <div className="relative bg-white p-3 rounded-lg border border-gray-200/80 shadow-2xs">
+                                        <div className="relative bg-white dark:bg-slate-800 p-3 rounded-lg border border-gray-200/80 dark:border-slate-700 shadow-2xs">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-gray-400 font-semibold flex items-center gap-1">
+                                                <span className="text-gray-400 dark:text-slate-400 font-semibold flex items-center gap-1">
                                                     <Layers className="w-3.5 h-3.5 text-indigo-500" /> Phase
                                                 </span>
                                                 {!isReadOnly && phases.length > 0 && (
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowPhasePop(!showPhasePop)}
-                                                        className="text-[10px] text-indigo-600 font-semibold hover:underline cursor-pointer"
+                                                        className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline cursor-pointer"
                                                     >
                                                         Change
                                                     </button>
                                                 )}
                                             </div>
-                                            <span className="font-bold text-gray-800 uppercase block truncate">
+                                            <span className="font-bold text-gray-800 dark:text-slate-200 uppercase block truncate">
                                                 {selectedPhase?.name || (formData.phaseId ? issue.phaseName : null) || '—'}
                                             </span>
 
                                             {showPhasePop && (
                                                 <>
                                                     <div className="fixed inset-0 z-10" onClick={() => setShowPhasePop(false)} />
-                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl p-2 max-h-48 overflow-y-auto">
+                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl p-2 max-h-48 overflow-y-auto">
                                                         <input
                                                             type="text"
                                                             placeholder="Filter phase..."
                                                             value={phaseSearch}
                                                             onChange={e => setPhaseSearch(e.target.value)}
-                                                            className="w-full px-2 py-1 text-xs border rounded mb-1 focus:outline-none"
+                                                            className="w-full px-2 py-1 text-xs border border-gray-200 dark:border-slate-700 rounded mb-1 focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                                                         />
                                                         {filteredPhases.map(p => (
                                                             <button
@@ -746,8 +746,8 @@ export function IssueViewModal({
                                                                     setShowTaskListPop(false);
                                                                 }}
                                                                 className={cn(
-                                                                    'w-full px-2 py-1 text-left text-xs rounded hover:bg-indigo-50 block truncate',
-                                                                    formData.phaseId === p.id && 'font-bold text-indigo-600'
+                                                                    'w-full px-2 py-1 text-left text-xs rounded hover:bg-indigo-50 dark:hover:bg-slate-700 block truncate text-gray-700 dark:text-slate-300',
+                                                                    formData.phaseId === p.id && 'font-bold text-indigo-600 dark:text-indigo-400'
                                                                 )}
                                                             >
                                                                 {p.name}
@@ -759,9 +759,9 @@ export function IssueViewModal({
                                         </div>
 
                                         {/* Task List Card */}
-                                        <div className="relative bg-white p-3 rounded-lg border border-gray-200/80 shadow-2xs">
+                                        <div className="relative bg-white dark:bg-slate-800 p-3 rounded-lg border border-gray-200/80 dark:border-slate-700 shadow-2xs">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-gray-400 font-semibold flex items-center gap-1">
+                                                <span className="text-gray-400 dark:text-slate-400 font-semibold flex items-center gap-1">
                                                     <ListTodo className="w-3.5 h-3.5 text-emerald-500" /> Task List
                                                 </span>
                                                 {!isReadOnly && availableTaskLists.length > 0 && (
@@ -771,31 +771,31 @@ export function IssueViewModal({
                                                             setShowTaskListPop(!showTaskListPop);
                                                             setTaskListSearch('');
                                                         }}
-                                                        className="text-[10px] text-emerald-600 font-semibold hover:underline cursor-pointer"
+                                                        className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold hover:underline cursor-pointer"
                                                     >
                                                         Change
                                                     </button>
                                                 )}
                                             </div>
-                                            <span className="font-bold text-gray-800 uppercase block truncate">
+                                            <span className="font-bold text-gray-800 dark:text-slate-200 uppercase block truncate">
                                                 {selectedTaskList?.name || (formData.taskListId ? issue.taskListName : null) || '—'}
                                             </span>
 
                                             {showTaskListPop && (
                                                 <>
                                                     <div className="fixed inset-0 z-10" onClick={() => { setShowTaskListPop(false); setTaskListSearch(''); }} />
-                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl p-2 max-h-52 overflow-hidden flex flex-col">
+                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl p-2 max-h-52 overflow-hidden flex flex-col">
                                                         <input
                                                             type="text"
                                                             autoFocus
                                                             placeholder="Filter task list..."
                                                             value={taskListSearch}
                                                             onChange={e => setTaskListSearch(e.target.value)}
-                                                            className="w-full px-2 py-1 text-xs border rounded mb-1 focus:outline-none shrink-0"
+                                                            className="w-full px-2 py-1 text-xs border border-gray-200 dark:border-slate-700 rounded mb-1 focus:outline-none shrink-0 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                                                         />
                                                         <div className="overflow-y-auto flex-1">
                                                             {filteredTaskLists.length === 0 ? (
-                                                                <div className="px-2 py-3 text-center text-xs text-gray-400 italic">No task lists found</div>
+                                                                <div className="px-2 py-3 text-center text-xs text-gray-400 dark:text-slate-500 italic">No task lists found</div>
                                                             ) : (
                                                                 filteredTaskLists.map(tl => (
                                                                     <button
@@ -807,8 +807,8 @@ export function IssueViewModal({
                                                                             setTaskListSearch('');
                                                                         }}
                                                                         className={cn(
-                                                                            'w-full px-2 py-1 text-left text-xs rounded hover:bg-emerald-50 block truncate',
-                                                                            formData.taskListId === tl.id && 'font-bold text-emerald-600'
+                                                                            'w-full px-2 py-1 text-left text-xs rounded hover:bg-emerald-50 dark:hover:bg-slate-700 block truncate text-gray-700 dark:text-slate-300',
+                                                                            formData.taskListId === tl.id && 'font-bold text-emerald-600 dark:text-emerald-400'
                                                                         )}
                                                                     >
                                                                         {tl.name}
@@ -822,9 +822,9 @@ export function IssueViewModal({
                                         </div>
 
                                         {/* Linked Task Card */}
-                                        <div className="relative bg-white p-3 rounded-lg border border-gray-200/80 shadow-2xs">
+                                        <div className="relative bg-white dark:bg-slate-800 p-3 rounded-lg border border-gray-200/80 dark:border-slate-700 shadow-2xs">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-gray-400 font-semibold flex items-center gap-1">
+                                                <span className="text-gray-400 dark:text-slate-400 font-semibold flex items-center gap-1">
                                                     <Link2 className="w-3.5 h-3.5 text-blue-500" /> Linked Task
                                                 </span>
                                                 {!isReadOnly && tasks.length > 0 && (
@@ -834,34 +834,34 @@ export function IssueViewModal({
                                                             setShowTaskPop(!showTaskPop);
                                                             setTaskSearch('');
                                                         }}
-                                                        className="text-[10px] text-blue-600 font-semibold hover:underline cursor-pointer"
+                                                        className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer"
                                                     >
                                                         Change
                                                     </button>
                                                 )}
                                             </div>
-                                            <span className="font-bold text-gray-800 block truncate">
+                                            <span className="font-bold text-gray-800 dark:text-slate-200 block truncate">
                                                 {selectedTask?.title || '—'}
                                             </span>
 
                                             {showTaskPop && (
                                                 <>
                                                     <div className="fixed inset-0 z-10" onClick={() => { setShowTaskPop(false); setTaskSearch(''); }} />
-                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl p-2 max-h-52 overflow-hidden flex flex-col">
+                                                    <div className="absolute z-20 left-0 top-full mt-1 w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl p-2 max-h-52 overflow-hidden flex flex-col">
                                                         <div className="relative mb-1 shrink-0">
-                                                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 dark:text-slate-500" />
                                                             <input
                                                                 type="text"
                                                                 autoFocus
                                                                 placeholder="Search tasks..."
                                                                 value={taskSearch}
                                                                 onChange={e => setTaskSearch(e.target.value)}
-                                                                className="w-full pl-7 pr-2 py-1 text-xs border rounded focus:outline-none"
+                                                                className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 dark:border-slate-700 rounded focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                                                             />
                                                         </div>
                                                         <div className="overflow-y-auto flex-1">
                                                             {filteredTasks.length === 0 ? (
-                                                                <div className="px-2 py-3 text-center text-xs text-gray-400 italic">No tasks found</div>
+                                                                <div className="px-2 py-3 text-center text-xs text-gray-400 dark:text-slate-500 italic">No tasks found</div>
                                                             ) : (
                                                                 filteredTasks.map(t => (
                                                                     <button
@@ -878,8 +878,8 @@ export function IssueViewModal({
                                                                             setTaskSearch('');
                                                                         }}
                                                                         className={cn(
-                                                                            'w-full px-2 py-1 text-left text-xs rounded hover:bg-blue-50 block truncate',
-                                                                            formData.taskId === t.id && 'font-bold text-blue-600'
+                                                                            'w-full px-2 py-1 text-left text-xs rounded hover:bg-blue-50 dark:hover:bg-slate-700 block truncate text-gray-700 dark:text-slate-300',
+                                                                            formData.taskId === t.id && 'font-bold text-blue-600 dark:text-blue-400'
                                                                         )}
                                                                     >
                                                                         {t.title}
@@ -893,9 +893,9 @@ export function IssueViewModal({
                                         </div>
 
                                         {/* Due Date Card */}
-                                        <div className="bg-white p-3 rounded-lg border border-gray-200/80 shadow-2xs">
+                                        <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-gray-200/80 dark:border-slate-700 shadow-2xs">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-gray-400 font-semibold flex items-center gap-1">
+                                                <span className="text-gray-400 dark:text-slate-400 font-semibold flex items-center gap-1">
                                                     <Calendar className="w-3.5 h-3.5 text-amber-500" /> Due Date
                                                 </span>
                                             </div>
@@ -904,10 +904,10 @@ export function IssueViewModal({
                                                     type="date"
                                                     value={formData.dueDate || ''}
                                                     onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
-                                                    className="font-bold text-gray-800 bg-transparent text-xs border-none p-0 focus:outline-none"
+                                                    className="font-bold text-gray-800 dark:text-slate-200 bg-transparent text-xs border-none p-0 focus:outline-none"
                                                 />
                                             ) : (
-                                                <span className="font-bold text-gray-800 block">
+                                                <span className="font-bold text-gray-800 dark:text-slate-200 block">
                                                     {formData.dueDate ? formatDate(formData.dueDate) : '—'}
                                                 </span>
                                             )}
@@ -959,7 +959,7 @@ export function IssueViewModal({
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowAssigneePop(!showAssigneePop)}
-                                                    className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                                    className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 border-dashed rounded-md text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all text-left flex items-center gap-2"
                                                 >
                                                     <Users className="w-3.5 h-3.5" />
                                                     {selectedAssignees.length === 0 ? 'Click to assign team members...' : 'Add more...'}
@@ -968,17 +968,17 @@ export function IssueViewModal({
                                                 {showAssigneePop && (
                                                     <>
                                                         <div className="fixed inset-0 z-20" onClick={() => setShowAssigneePop(false)} />
-                                                        <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
-                                                            <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                        <div className="absolute z-30 bottom-full mb-1 w-full bg-white dark:bg-slate-800 rounded-md border border-gray-200 dark:border-slate-700 shadow-xl max-h-52 overflow-hidden flex flex-col">
+                                                            <div className="p-2 border-b border-gray-50 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-850">
                                                                 <div className="relative">
-                                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
                                                                     <input
                                                                         autoFocus
                                                                         type="text"
                                                                         placeholder="Search team members..."
                                                                         value={assigneeSearch}
                                                                         onChange={e => setAssigneeSearch(e.target.value)}
-                                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 dark:border-slate-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                                                                     />
                                                                 </div>
                                                             </div>
@@ -996,8 +996,8 @@ export function IssueViewModal({
                                                                             type="button"
                                                                             onClick={() => toggleAssignee(uid)}
                                                                             className={cn(
-                                                                                "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 transition-colors flex items-center justify-between gap-2",
-                                                                                isAssigned ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700"
+                                                                                "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between gap-2",
+                                                                                isAssigned ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold" : "text-gray-700 dark:text-slate-300"
                                                                             )}
                                                                         >
                                                                             <div className="flex items-center gap-2 truncate">
@@ -1015,7 +1015,7 @@ export function IssueViewModal({
                                                                                 </div>
                                                                                 <span className="truncate">{name}</span>
                                                                             </div>
-                                                                            {isAssigned && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                                                                            {isAssigned && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />}
                                                                         </button>
                                                                     );
                                                                 })}
@@ -1029,7 +1029,7 @@ export function IssueViewModal({
 
                                     {/* Tested By Section */}
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                        <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                                             <Eye className="w-3.5 h-3.5 text-indigo-500" /> Tested By
                                         </label>
 
@@ -1038,7 +1038,7 @@ export function IssueViewModal({
                                                 {selectedTesters.map(t => (
                                                     <span
                                                         key={t.id}
-                                                        className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-purple-50 border border-purple-100 text-xs font-medium text-purple-700 shadow-2xs"
+                                                        className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800/40 text-xs font-medium text-purple-700 dark:text-purple-300 shadow-2xs"
                                                     >
                                                         <div
                                                             className={cn(
@@ -1056,7 +1056,7 @@ export function IssueViewModal({
                                                             <button
                                                                 type="button"
                                                                 onClick={() => toggleTester(t.id)}
-                                                                className="ml-0.5 p-0.5 hover:bg-purple-100 rounded-full transition-colors text-purple-600"
+                                                                className="ml-0.5 p-0.5 hover:bg-purple-100 dark:hover:bg-purple-900/60 rounded-full transition-colors text-purple-600 dark:text-purple-400"
                                                             >
                                                                 <X className="w-3 h-3" />
                                                             </button>
@@ -1071,7 +1071,7 @@ export function IssueViewModal({
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowTesterPop(!showTesterPop)}
-                                                    className="w-full px-3 py-2.5 border border-gray-200 border-dashed rounded-md text-xs text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50 transition-all text-left flex items-center gap-2"
+                                                    className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 border-dashed rounded-md text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all text-left flex items-center gap-2"
                                                 >
                                                     <Eye className="w-3.5 h-3.5" />
                                                     {selectedTesters.length === 0 ? 'Click to select testers...' : 'Add more testers...'}
@@ -1080,17 +1080,17 @@ export function IssueViewModal({
                                                 {showTesterPop && (
                                                     <>
                                                         <div className="fixed inset-0 z-20" onClick={() => setShowTesterPop(false)} />
-                                                        <div className="absolute z-30 bottom-full mb-1 w-full bg-white rounded-md border border-gray-200 shadow-xl max-h-52 overflow-hidden flex flex-col">
-                                                            <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                        <div className="absolute z-30 bottom-full mb-1 w-full bg-white dark:bg-slate-800 rounded-md border border-gray-200 dark:border-slate-700 shadow-xl max-h-52 overflow-hidden flex flex-col">
+                                                            <div className="p-2 border-b border-gray-50 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-850">
                                                                 <div className="relative">
-                                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
                                                                     <input
                                                                         autoFocus
                                                                         type="text"
                                                                         placeholder="Search testers..."
                                                                         value={testerSearch}
                                                                         onChange={e => setTesterSearch(e.target.value)}
-                                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 dark:border-slate-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                                                                     />
                                                                 </div>
                                                             </div>
@@ -1108,8 +1108,8 @@ export function IssueViewModal({
                                                                             type="button"
                                                                             onClick={() => toggleTester(uid)}
                                                                             className={cn(
-                                                                                "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 transition-colors flex items-center justify-between gap-2",
-                                                                                isSelected ? "bg-purple-50 text-purple-700 font-semibold" : "text-gray-700"
+                                                                                "w-full px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between gap-2",
+                                                                                isSelected ? "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-semibold" : "text-gray-700 dark:text-slate-300"
                                                                             )}
                                                                         >
                                                                             <div className="flex items-center gap-2 truncate">
@@ -1126,7 +1126,7 @@ export function IssueViewModal({
                                                                                 </div>
                                                                                 <span className="truncate">{name}</span>
                                                                             </div>
-                                                                            {isSelected && <Check className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
+                                                                            {isSelected && <Check className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />}
                                                                         </button>
                                                                     );
                                                                 })}
@@ -1369,15 +1369,15 @@ export function IssueViewModal({
 
                         {/* Sticky Footer Bar with Update Issue Button */}
                         {!isReadOnly && (
-                            <div className="px-6 py-3.5 border-t border-gray-200 bg-white flex items-center justify-between shadow-xs shrink-0">
-                                <span className="text-xs text-gray-500 font-medium">
+                            <div className="px-6 py-3.5 border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shadow-xs shrink-0">
+                                <span className="text-xs text-gray-500 dark:text-slate-400 font-medium">
                                     Click Update Issue to apply changes
                                 </span>
                                 <div className="flex items-center space-x-3">
                                     <button
                                         type="button"
                                         onClick={onClose}
-                                        className="px-4 py-2 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 rounded-lg text-xs font-semibold transition cursor-pointer"
+                                        className="px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
                                     >
                                         Cancel
                                     </button>
@@ -1406,15 +1406,15 @@ export function IssueViewModal({
             {/* Delete Confirmation Modal */}
             {showDeleteConfirm && (
                 <div className="fixed inset-0 z-60 bg-black/50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-                        <h3 className="text-base font-bold text-gray-900">Delete Issue?</h3>
-                        <p className="text-xs text-gray-600">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-sm w-full space-y-4 shadow-2xl border border-gray-200 dark:border-slate-800">
+                        <h3 className="text-base font-bold text-gray-900 dark:text-slate-100">Delete Issue?</h3>
+                        <p className="text-xs text-gray-600 dark:text-slate-400">
                             Are you sure you want to delete this issue? This action cannot be undone.
                         </p>
                         <div className="flex items-center justify-end space-x-3 pt-2">
                             <button
                                 onClick={() => setShowDeleteConfirm(false)}
-                                className="px-3 py-1.5 text-xs text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
+                                className="px-3 py-1.5 text-xs text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg"
                             >
                                 Cancel
                             </button>

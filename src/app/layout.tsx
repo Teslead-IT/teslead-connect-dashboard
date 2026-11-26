@@ -8,6 +8,7 @@ import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 
 import { ThemeProvider } from "@/context/ThemeContext";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { Providers } from "@/providers";
 
 const geistSans = Geist({
@@ -37,8 +38,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-100`} suppressHydrationWarning>
         <Providers>
           <ThemeProvider>
             {children}
