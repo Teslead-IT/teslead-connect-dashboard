@@ -2,7 +2,7 @@ import { TaskPriority, CreateTaskPayload, Task, WorkflowStage, TaskType } from '
 import type { ProjectMember, Project } from '@/types/project';
 import type { PhaseWithTaskLists, TaskList } from '@/types/phase';
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Flag, Calendar, Users, AlignLeft, CheckCircle2, Layers, ListTodo, Search, Check, AlertCircle, Stars, Bug, Zap, RefreshCw, FlaskConical, FileText, Settings, ClipboardCheck, Flame, Tag, Folder, ChevronDown } from 'lucide-react';
+import { X, Flag, Calendar, Users, AlignLeft, CheckCircle2, Layers, ListTodo, Search, Check, AlertCircle, Stars, Bug, Zap, RefreshCw, FlaskConical, FileText, Settings, ClipboardCheck, Flame, Tag, Folder, ChevronDown, HelpCircle } from 'lucide-react';
 import { cn, getAvatarColor, getTaskStatusHexColor } from '@/lib/utils';
 import { Plus, CheckCircle2 as CheckCircleIcon } from 'lucide-react';
 import { useCreateStatus, useProjectWorkflow } from '@/hooks/use-tasks';
@@ -47,6 +47,7 @@ const TASK_TYPE_OPTIONS: { value: TaskType; label: string; color: string; bg: st
     { value: 'OPS', label: 'Operations', color: 'text-teal-600', bg: 'bg-teal-50 border-teal-200', icon: Settings },
     { value: 'TEST', label: 'Testing', color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-200', icon: ClipboardCheck },
     { value: 'HOT', label: 'Hotfix', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', icon: Flame },
+    { value: 'CLARIFY', label: 'Need to clarify', color: 'text-sky-600', bg: 'bg-sky-50 border-sky-200', icon: HelpCircle },
 ];
 
 const EMPTY_ARRAY: any[] = [];
