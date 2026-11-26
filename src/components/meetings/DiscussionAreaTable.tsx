@@ -589,6 +589,12 @@ export function DiscussionAreaTable({
         setTypedUserQuery((prev) => ({ ...prev, [currentItem.id]: '' }));
         if (currentItem.id) onCellDirty?.(currentItem.id, 'user');
         updateRowsAndNotify(updated);
+        // Commit after select — blur may have already fired empty before click
+        if (currentItem.id) {
+            onCellBlur?.(currentItem.id, 'user', names);
+            // Input kept focus via mousedown preventDefault — restore collab focus after commit
+            onCellFocus?.(currentItem.id, 'user');
+        }
     };
 
     // Remove single user item from row
@@ -613,6 +619,7 @@ export function DiscussionAreaTable({
         };
         if (currentItem.id) onCellDirty?.(currentItem.id, 'user');
         updateRowsAndNotify(updated);
+        if (currentItem.id) onCellBlur?.(currentItem.id, 'user', names);
     };
 
     // Select Project from mention popup
@@ -634,6 +641,10 @@ export function DiscussionAreaTable({
         });
         if (currentItem.id) onCellDirty?.(currentItem.id, 'project');
         updateRowsAndNotify(updated);
+        if (currentItem.id) {
+            onCellBlur?.(currentItem.id, 'project', projectItem.name);
+            onCellFocus?.(currentItem.id, 'project');
+        }
     };
 
     const tableElement = (
@@ -867,6 +878,7 @@ export function DiscussionAreaTable({
                                                                         <button
                                                                             key={u.id}
                                                                             type="button"
+                                                                            onMouseDown={(e) => e.preventDefault()}
                                                                             onClick={() => handleSelectUser(index, u)}
                                                                             className={cn(
                                                                                 "w-full text-left px-3.5 py-2.5 flex items-center gap-3 transition-colors border-b border-gray-50 dark:border-slate-800 last:border-none",
@@ -1032,6 +1044,7 @@ export function DiscussionAreaTable({
                                                                     <button
                                                                         key={p.id}
                                                                         type="button"
+                                                                        onMouseDown={(e) => e.preventDefault()}
                                                                         onClick={() => handleSelectProject(index, p)}
                                                                         className="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-gray-50 dark:border-slate-800 last:border-none cursor-pointer"
                                                                     >

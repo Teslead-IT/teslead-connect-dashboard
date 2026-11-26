@@ -109,6 +109,7 @@ interface FlatRow {
     startDate?: string | null;
     startDateTime?: string | null;
     dueDate?: string | null;
+    createdAt?: string | null;
     priority?: number;
     type?: TaskType;
 
@@ -447,6 +448,7 @@ export default function PhaseTaskListTab({
                                     tags: task.tags,
                                     startDateTime: task.startDateTime ?? null,
                                     dueDate: task.dueDate,
+                                    createdAt: task.createdAt ?? null,
                                     priority: task.priority,
                                     type: task.type,
                                     childCount: children.length,
@@ -814,6 +816,24 @@ export default function PhaseTaskListTab({
             suppressMenu: false,
             filterValueGetter: (p) => {
                 const v = p.data?.dueDate;
+                if (!v) return '';
+                try {
+                    return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } catch {
+                    return String(v);
+                }
+            },
+        },
+        {
+            headerName: 'Created Date',
+            field: 'createdAt',
+            width: 130,
+            cellRenderer: DateCell,
+            cellClass: '!p-0',
+            filter: 'agTextColumnFilter',
+            suppressMenu: false,
+            filterValueGetter: (p) => {
+                const v = p.data?.createdAt;
                 if (!v) return '';
                 try {
                     return new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -2341,7 +2361,9 @@ function DateCell(params: ICellRendererParams) {
 
     const d = new Date(dateStr);
     const formatted = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-    const isPast = d < new Date() && row.rowType !== 'phase';
+    // Overdue styling only for due dates — createdAt is always in the past
+    const isDueField = params.colDef?.field === 'dueDate';
+    const isPast = isDueField && d < new Date() && row.rowType !== 'phase';
 
     return (
         <div className="flex items-center h-full px-2">

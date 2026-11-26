@@ -66,6 +66,14 @@ function applyCellToDiscussionContent(content: any, payload: CellCommitPayload) 
     return { ...content, rows };
 }
 
+/** True when own empty user echo would clobber local mention chips (blur-before-click race). */
+function wouldStaleEmptyUserWipe(content: any, payload: CellCommitPayload) {
+    if (payload.field !== 'user' || (payload.value || '').trim()) return false;
+    const row = content?.rows?.find((r: any) => r.id === payload.rowId);
+    if (!row) return false;
+    return !!(row.userItems?.length || (typeof row.user === 'string' && row.user.trim()));
+}
+
 /** Merge remote content_updated into local, keeping focused/dirty cell drafts. */
 function mergeRemoteDiscussionContent(
     localContent: any,
@@ -318,15 +326,24 @@ export function MeetingForm({
 
     /** A1: remote cell commit overwrites local value even if focused */
     const handleRemoteCellCommit = useCallback((payload: CellCommitPayload) => {
+        const isSelf = !!(payload.userId && currentUser?.id && payload.userId === currentUser.id);
         // Same-tab echo: value already local; still apply for multi-tab same user
         applyingRemoteRef.current = true;
-        setFormData((prev) => ({
-            ...prev,
-            content: applyCellToDiscussionContent(prev.content, payload),
-        }));
+        setFormData((prev) => {
+            // Own stale empty blur must not wipe chips after select already landed
+            if (isSelf && wouldStaleEmptyUserWipe(prev.content, payload)) {
+                return prev;
+            }
+            return {
+                ...prev,
+                content: applyCellToDiscussionContent(prev.content, payload),
+            };
+        });
+        // Flash only for other users — own echo would highlight the cell you just left
+        if (isSelf) return;
         setFlashCellKey(`${payload.rowId}::${payload.field}`);
         window.setTimeout(() => setFlashCellKey((k) => (k === `${payload.rowId}::${payload.field}` ? null : k)), 900);
-    }, []);
+    }, [currentUser?.id]);
 
     const {
         otherViewers,
